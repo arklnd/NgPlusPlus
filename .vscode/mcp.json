@@ -7,6 +7,6 @@
       "args": [
         "${workspaceFolder}\\build\\index.js"
       ]
-    },
+    }
   }
 }
