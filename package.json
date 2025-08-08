@@ -11,7 +11,7 @@
         "build"
     ],
     "scripts": {
-        "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+        "build": "tsc && node -e \"require('fs').copyFileSync('./.env', './build/.env')\" && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "author": "Arijit Kundu",
@@ -22,6 +22,7 @@
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.17.1",
+        "dotenv": "17.2.1",
         "openai": "5.12.0",
         "zod": "^3.23.8"
     }
