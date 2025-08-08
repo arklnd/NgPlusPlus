@@ -67,18 +67,11 @@ export function validateProjectPath(repoPath: string): { isValid: boolean; error
 }
 
 /**
- * Get the absolute path for a repository, handling both relative and absolute paths
- */
-export function getRepositoryPath(repoPath: string): string {
-    return resolve(repoPath);
-}
-
-/**
  * Common repository path validation and resolution for NCU tools
  */
 export async function validateAndResolveRepoPath(repoPath: string): Promise<{ success: boolean; resolvedPath?: string; error?: string }> {
     try {
-        const resolvedPath = getRepositoryPath(repoPath);
+        const resolvedPath = resolve(repoPath);
         const validation = validateProjectPath(resolvedPath);
         
         if (!validation.isValid) {
