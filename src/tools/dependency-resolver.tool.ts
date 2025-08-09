@@ -14,7 +14,10 @@ interface PackageJson {
 }
 
 interface RegistryData {
-    versions: Record<string, { dependencies?: Record<string, string> }>;
+    versions: Record<string, { 
+        dependencies?: Record<string, string>;
+        peerDependencies?: Record<string, string>;
+    }>;
 }
 
 async function getPackageData(name: string): Promise<RegistryData> {
@@ -47,15 +50,38 @@ async function updatePackageWithDependencies(
     for (const { name, version } of updates) {
         try {
             const registryData = await getPackageData(name);
-            const versionData = registryData.versions[version];
+            // Use semver.coerce to extract clean version from any npm specification
+            const coercedVersion = semver.coerce(version);
+            if (!coercedVersion) {
+                results.push(`❌ Invalid version specification: ${version} for ${name}`);
+                continue;
+            }
+            const cleanVersion = coercedVersion.version;
+            const versionData = registryData.versions[cleanVersion];
             
-            if (!versionData?.dependencies) continue;
+            if (!versionData) {
+                results.push(`❌ Version ${version} not found for ${name}`);
+                continue;
+            }
 
-            for (const [depName, requiredRange] of Object.entries(versionData.dependencies)) {
+            // Check both dependencies AND peerDependencies
+            const allDeps = {
+                ...(versionData.dependencies || {}),
+                ...(versionData.peerDependencies || {})
+            };
+
+            for (const [depName, requiredRange] of Object.entries(allDeps)) {
                 const currentSpec = packageJson.dependencies?.[depName] || packageJson.devDependencies?.[depName];
                 if (!currentSpec) continue;
 
-                const currentVersion = currentSpec.replace(/^[~^]/, '');
+                // Use semver.coerce to extract clean version from any npm specification
+                const coercedVersion = semver.coerce(currentSpec);
+                if (!coercedVersion) {
+                    results.push(`❌ Invalid version specification: ${currentSpec} for ${depName}`);
+                    continue;
+                }
+                const currentVersion = coercedVersion.version;
+                
                 if (semver.satisfies(currentVersion, requiredRange)) {
                     results.push(`✓ ${depName}@${currentSpec} satisfies ${requiredRange}`);
                     continue;
