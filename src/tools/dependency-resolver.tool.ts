@@ -4,6 +4,7 @@ import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 import axios from 'axios';
 import semver from 'semver';
+import registryUrl from 'registry-url';
 
 interface PackageJson {
     name: string;
@@ -21,7 +22,10 @@ interface RegistryData {
 }
 
 async function getPackageData(name: string): Promise<RegistryData> {
-    const response = await axios.get(`https://registry.npmjs.org/${name}`);
+    // Extract scope from package name if it's a scoped package
+    const scope = name.startsWith('@') ? name.split('/')[0] : undefined;
+    const registry = registryUrl(scope);
+    const response = await axios.get(`${registry}${name}`);
     return response.data;
 }
 
