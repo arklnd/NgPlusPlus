@@ -42,6 +42,25 @@ async function updatePackageWithDependencies(
     const packageJson: PackageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
     const results: string[] = [];
 
+    // Helper function to safely get clean version from spec using semver
+    const getCleanVersion = (spec: string): string | null => {
+        const coerced = semver.coerce(spec);
+        return coerced ? coerced.version : null;
+    };
+
+    // Helper function to check if a version satisfies a peer dependency range
+    const satisfiesPeerDep = (version: string, range: string): boolean => {
+        try {
+            const cleanVersion = semver.coerce(version);
+            if (!cleanVersion) return false;
+            
+            // Let semver handle all range types natively
+            return semver.satisfies(cleanVersion.version, range);
+        } catch (error) {
+            return false;
+        }
+    };
+
     // Phase 1: Analyze existing dependencies that might conflict with updates
     const conflicts: Array<{ packageName: string; currentVersion: string; conflictsWith: string; reason: string }> = [];
     
@@ -54,19 +73,19 @@ async function updatePackageWithDependencies(
             
             try {
                 const existingRegistry = await getPackageData(existingName);
-                const existingCoerced = semver.coerce(existingSpec);
-                if (!existingCoerced) continue;
+                const existingVersion = getCleanVersion(existingSpec);
+                if (!existingVersion) continue;
                 
-                const existingVersionData = existingRegistry.versions[existingCoerced.version];
+                const existingVersionData = existingRegistry.versions[existingVersion];
                 if (!existingVersionData?.peerDependencies) continue;
                 
                 const peerDep = existingVersionData.peerDependencies[updateName];
                 if (!peerDep) continue;
                 
-                const updateCoerced = semver.coerce(updateVersion);
-                if (!updateCoerced) continue;
+                const updateVersionClean = getCleanVersion(updateVersion);
+                if (!updateVersionClean) continue;
                 
-                if (!semver.satisfies(updateCoerced.version, peerDep)) {
+                if (!satisfiesPeerDep(updateVersionClean, peerDep)) {
                     conflicts.push({
                         packageName: existingName,
                         currentVersion: existingSpec,
@@ -76,6 +95,7 @@ async function updatePackageWithDependencies(
                 }
             } catch (error) {
                 // Continue if we can't analyze this package
+                results.push(`⚠ Warning: Could not analyze ${existingName} for conflicts: ${error instanceof Error ? error.message : String(error)}`);
             }
         }
     }
@@ -91,12 +111,18 @@ async function updatePackageWithDependencies(
             
             const updateName = conflict.conflictsWith.split('@')[0];
             const updateVersion = conflict.conflictsWith.split('@')[1];
+            const updateVersionClean = getCleanVersion(updateVersion);
+            
+            if (!updateVersionClean) {
+                results.push(`❌ Could not parse update version: ${updateVersion}`);
+                continue;
+            }
             
             let compatibleVersion = null;
             for (const version of versions) {
                 const versionData = conflictRegistry.versions[version];
                 const peerDep = versionData.peerDependencies?.[updateName];
-                if (peerDep && semver.satisfies(semver.coerce(updateVersion)!.version, peerDep)) {
+                if (peerDep && satisfiesPeerDep(updateVersionClean, peerDep)) {
                     compatibleVersion = version;
                     break;
                 }
@@ -111,7 +137,16 @@ async function updatePackageWithDependencies(
                 results.push(`✓ Auto-updated ${conflict.packageName} to ^${compatibleVersion}`);
             } else {
                 results.push(`❌ No compatible version of ${conflict.packageName} found for ${conflict.conflictsWith}`);
-                results.push(`   Consider using --force or --legacy-peer-deps, or find an alternative package`);
+                
+                // Special handling for known ecosystem packages
+                if (conflict.packageName.includes('storybook')) {
+                    results.push(`   💡 TIP: Consider updating to Storybook 7.x or 8.x which supports Angular 20`);
+                    results.push(`   💡 Run: npm install @storybook/angular@latest @storybook/core@latest`);
+                } else if (conflict.packageName.includes('angular')) {
+                    results.push(`   💡 TIP: This Angular-related package may need a major version update`);
+                }
+                
+                results.push(`   Alternative: Use --force or --legacy-peer-deps to override (may cause issues)`);
             }
         } catch (error) {
             results.push(`❌ Failed to analyze ${conflict.packageName}: ${error instanceof Error ? error.message : String(error)}`);
@@ -130,15 +165,13 @@ async function updatePackageWithDependencies(
     for (const { name, version } of updates) {
         try {
             const registryData = await getPackageData(name);
-            // Use semver.coerce to extract clean version from any npm specification
-            const coercedVersion = semver.coerce(version);
-            if (!coercedVersion) {
+            const cleanVersion = getCleanVersion(version);
+            if (!cleanVersion) {
                 results.push(`❌ Invalid version specification: ${version} for ${name}`);
                 continue;
             }
-            const cleanVersion = coercedVersion.version;
-            const versionData = registryData.versions[cleanVersion];
             
+            const versionData = registryData.versions[cleanVersion];
             if (!versionData) {
                 results.push(`❌ Version ${version} not found for ${name}`);
                 continue;
@@ -154,23 +187,21 @@ async function updatePackageWithDependencies(
                 const currentSpec = packageJson.dependencies?.[depName] || packageJson.devDependencies?.[depName];
                 if (!currentSpec) continue;
 
-                // Use semver.coerce to extract clean version from any npm specification
-                const coercedVersion = semver.coerce(currentSpec);
-                if (!coercedVersion) {
+                const currentVersion = getCleanVersion(currentSpec);
+                if (!currentVersion) {
                     results.push(`❌ Invalid version specification: ${currentSpec} for ${depName}`);
                     continue;
                 }
-                const currentVersion = coercedVersion.version;
                 
-                if (semver.satisfies(currentVersion, requiredRange)) {
+                if (satisfiesPeerDep(currentVersion, requiredRange)) {
                     results.push(`✓ ${depName}@${currentSpec} satisfies ${requiredRange}`);
                     continue;
                 }
 
-                // Find suitable version
+                // Find suitable version using semver
                 const depRegistry = await getPackageData(depName);
                 const versions = Object.keys(depRegistry.versions).sort(semver.rcompare);
-                const suitableVersion = versions.find(v => semver.satisfies(v, requiredRange));
+                const suitableVersion = semver.maxSatisfying(versions, requiredRange);
 
                 if (suitableVersion) {
                     const newSpec = `^${suitableVersion}`;
