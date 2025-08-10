@@ -12,12 +12,16 @@
     ],
     "scripts": {
         "build": "node -e \"require('fs').rmSync('./build', {recursive: true, force: true})\" && tsc && node -e \"require('fs').copyFileSync('./.env', './build/.env')\" && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "mocha test/index.test.ts"
     },
     "author": "Arijit Kundu",
     "license": "ISC",
     "devDependencies": {
+        "@types/chai": "5.2.2",
+        "@types/mocha": "10.0.10",
         "@types/node": "^24.2.1",
+        "chai": "5.2.1",
+        "mocha": "11.7.1",
         "typescript": "^5.9.2"
     },
     "dependencies": {
