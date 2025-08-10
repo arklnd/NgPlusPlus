@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 import axios from 'axios';
-import semver from 'semver';
+import * as semver from 'semver';
 import registryUrl from 'registry-url';
 
 interface PackageJson {
@@ -42,7 +42,83 @@ async function updatePackageWithDependencies(
     const packageJson: PackageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
     const results: string[] = [];
 
-    // Apply initial updates
+    // Phase 1: Analyze existing dependencies that might conflict with updates
+    const conflicts: Array<{ packageName: string; currentVersion: string; conflictsWith: string; reason: string }> = [];
+    
+    for (const { name: updateName, version: updateVersion } of updates) {
+        // Check all existing dependencies for peer dependency conflicts
+        const allExistingDeps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+        
+        for (const [existingName, existingSpec] of Object.entries(allExistingDeps)) {
+            if (existingName === updateName) continue; // Skip self
+            
+            try {
+                const existingRegistry = await getPackageData(existingName);
+                const existingCoerced = semver.coerce(existingSpec);
+                if (!existingCoerced) continue;
+                
+                const existingVersionData = existingRegistry.versions[existingCoerced.version];
+                if (!existingVersionData?.peerDependencies) continue;
+                
+                const peerDep = existingVersionData.peerDependencies[updateName];
+                if (!peerDep) continue;
+                
+                const updateCoerced = semver.coerce(updateVersion);
+                if (!updateCoerced) continue;
+                
+                if (!semver.satisfies(updateCoerced.version, peerDep)) {
+                    conflicts.push({
+                        packageName: existingName,
+                        currentVersion: existingSpec,
+                        conflictsWith: `${updateName}@${updateVersion}`,
+                        reason: `requires ${updateName}@${peerDep} but updating to ${updateVersion}`
+                    });
+                }
+            } catch (error) {
+                // Continue if we can't analyze this package
+            }
+        }
+    }
+
+    // Report conflicts and suggest solutions
+    for (const conflict of conflicts) {
+        results.push(`🚨 CONFLICT: ${conflict.packageName}@${conflict.currentVersion} ${conflict.reason}`);
+        
+        // Try to find a compatible version of the conflicting package
+        try {
+            const conflictRegistry = await getPackageData(conflict.packageName);
+            const versions = Object.keys(conflictRegistry.versions).sort(semver.rcompare);
+            
+            const updateName = conflict.conflictsWith.split('@')[0];
+            const updateVersion = conflict.conflictsWith.split('@')[1];
+            
+            let compatibleVersion = null;
+            for (const version of versions) {
+                const versionData = conflictRegistry.versions[version];
+                const peerDep = versionData.peerDependencies?.[updateName];
+                if (peerDep && semver.satisfies(semver.coerce(updateVersion)!.version, peerDep)) {
+                    compatibleVersion = version;
+                    break;
+                }
+            }
+            
+            if (compatibleVersion) {
+                results.push(`💡 SOLUTION: Update ${conflict.packageName} to ${compatibleVersion} to support ${conflict.conflictsWith}`);
+                
+                // Auto-update the conflicting package
+                const target = packageJson.devDependencies?.[conflict.packageName] ? 'devDependencies' : 'dependencies';
+                packageJson[target]![conflict.packageName] = `^${compatibleVersion}`;
+                results.push(`✓ Auto-updated ${conflict.packageName} to ^${compatibleVersion}`);
+            } else {
+                results.push(`❌ No compatible version of ${conflict.packageName} found for ${conflict.conflictsWith}`);
+                results.push(`   Consider using --force or --legacy-peer-deps, or find an alternative package`);
+            }
+        } catch (error) {
+            results.push(`❌ Failed to analyze ${conflict.packageName}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    // Phase 2: Apply initial updates
     for (const { name, version, isDev } of updates) {
         const target = isDev ? 'devDependencies' : 'dependencies';
         if (!packageJson[target]) packageJson[target] = {};
@@ -50,7 +126,7 @@ async function updatePackageWithDependencies(
         results.push(`✓ Updated ${name} to ${version} (${target})`);
     }
 
-    // Check and update transitive dependencies
+    // Phase 3: Check and update transitive dependencies
     for (const { name, version } of updates) {
         try {
             const registryData = await getPackageData(name);
