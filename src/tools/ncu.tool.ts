@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { existsSync, readFileSync } from 'fs';
 import { join, resolve } from 'path';
 import { spawn } from 'child_process';
+import { getLogger } from '../utils/index.js';
 
 /**
  * Base schema for NCU operations that require a repository path
@@ -91,20 +92,31 @@ export async function validateAndResolveRepoPath(repoPath: string): Promise<{ su
  * Execute npm-check-updates command
  */
 async function executeNcu(args: string[], cwd: string): Promise<{ success: boolean; output: string; error?: string }> {
+    const logger = getLogger().child('ncu:execute');
+    
+    logger.debug('Executing NCU command', { args, cwd });
+    
     return new Promise((resolve) => {
         // Find the ncu executable in node_modules
         const ncuPath = join(process.cwd(), 'node_modules', '.bin', process.platform === 'win32' ? 'ncu.cmd' : 'ncu');
         
+        logger.debug('Looking for NCU executable', { ncuPath });
+        
         // Check if ncu exists in node_modules
         if (!existsSync(ncuPath)) {
+            const errorMsg = 'npm-check-updates not found in node_modules. Please install it first with: npm install npm-check-updates';
+            logger.error('NCU executable not found', { ncuPath });
+            
             resolve({
                 success: false,
                 output: '',
-                error: 'npm-check-updates not found in node_modules. Please install it first with: npm install npm-check-updates'
+                error: errorMsg
             });
             return;
         }
 
+        logger.info('Starting NCU process', { ncuPath, args, cwd });
+        
         const child = spawn(ncuPath, args, {
             cwd,
             stdio: ['pipe', 'pipe', 'pipe'],
@@ -123,9 +135,13 @@ async function executeNcu(args: string[], cwd: string): Promise<{ success: boole
         });
 
         child.on('close', (code) => {
+            logger.debug('NCU process completed', { code, stdoutLength: stdout.length, stderrLength: stderr.length });
+            
             if (code === 0) {
+                logger.info('NCU command executed successfully');
                 resolve({ success: true, output: stdout });
             } else {
+                logger.warn('NCU command failed', { code, stderr });
                 resolve({
                     success: false,
                     output: stdout,
@@ -135,6 +151,7 @@ async function executeNcu(args: string[], cwd: string): Promise<{ success: boole
         });
 
         child.on('error', (error) => {
+            logger.error('NCU process error', { error: error.message });
             resolve({
                 success: false,
                 output: '',
@@ -148,13 +165,19 @@ async function executeNcu(args: string[], cwd: string): Promise<{ success: boole
  * Execute NCU update command
  */
 async function ncuUpdate(params: z.infer<typeof NcuSchemas.update>): Promise<{ success: boolean; message: string; details?: string }> {
+    const logger = getLogger().child('ncu:update');
     const { repo_path, target, upgrade, doctor } = params;
+    
+    logger.info('Starting NCU update', { repo_path, target, upgrade, doctor });
     
     // Validate and resolve repository path
     const pathResult = await validateAndResolveRepoPath(repo_path);
     if (!pathResult.success) {
+        logger.error('Repository path validation failed', { repo_path, error: pathResult.error });
         return { success: false, message: pathResult.error! };
     }
+
+    logger.debug('Repository path validated', { resolvedPath: pathResult.resolvedPath });
 
     // Build ncu command arguments
     const args: string[] = [];
@@ -193,6 +216,10 @@ async function ncuUpdate(params: z.infer<typeof NcuSchemas.update>): Promise<{ s
  * Register ncu tools with the MCP server
  */
 export function registerNcuTools(server: McpServer) {
+    const logger = getLogger().child('ncu-tool');
+    
+    logger.info('Registering NCU tools');
+    
     // Register NCU Update tool
     server.registerTool(
         NcuTools.UPDATE,
@@ -202,9 +229,27 @@ export function registerNcuTools(server: McpServer) {
             inputSchema: NcuSchemas.update.shape,
         },
         async ({ repo_path, target, upgrade = true, doctor = false }) => {
+            const requestId = Math.random().toString(36).substr(2, 9);
+            
+            logger.info('NCU update tool invoked', {
+                requestId,
+                repo_path,
+                target,
+                upgrade,
+                doctor
+            });
+            
             try {
+                const startTime = Date.now();
                 const params = { repo_path, target, upgrade, doctor };
                 const result = await ncuUpdate(params);
+                const executionTime = Date.now() - startTime;
+                
+                logger.info('NCU update tool completed', {
+                    requestId,
+                    success: result.success,
+                    executionTimeMs: executionTime
+                });
                 
                 if (result.success) {
                     return {
@@ -227,11 +272,19 @@ export function registerNcuTools(server: McpServer) {
                     };
                 }
             } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                
+                logger.error('NCU update tool failed', {
+                    requestId,
+                    error: errorMessage,
+                    stack: error instanceof Error ? error.stack : undefined
+                });
+                
                 return {
                     content: [
                         {
                             type: 'text',
-                            text: `❌ Unexpected error: ${error instanceof Error ? error.message : String(error)}`
+                            text: `❌ Unexpected error: ${errorMessage}`
                         }
                     ],
                     isError: true
@@ -239,4 +292,6 @@ export function registerNcuTools(server: McpServer) {
             }
         }
     );
+    
+    logger.info('NCU tools registered successfully');
 }

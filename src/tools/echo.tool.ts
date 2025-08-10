@@ -1,11 +1,15 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { getOpenAIService } from '../services/index.js';
+import { getLogger } from '../utils/index.js';
 
 /**
  * Register echo tools with the MCP server
  */
 export function registerEchoTools(server: McpServer) {
+    const logger = getLogger().child('echo-tool');
+    
+    logger.info('Registering echo tools');
     // Register echo tool
     server.registerTool(
         'echo',
@@ -33,6 +37,7 @@ export function registerEchoTools(server: McpServer) {
             },
         },
         async ({ text, repeat, prefix, suffix }) => {
+            logger.info('Echo tool invoked',{ text, repeat, prefix, suffix });
             // Build the echoed result
             const echoedTexts: string[] = [];
             for (let i = 0; i < repeat; i++) {
@@ -313,4 +318,6 @@ export function registerEchoTools(server: McpServer) {
             }
         }
     );
+    
+    logger.info('Echo tools registered successfully');
 }
