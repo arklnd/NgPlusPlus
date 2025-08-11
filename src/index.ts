@@ -7,7 +7,7 @@ import { initializeLogger, LogLevel } from './utils/logger.utils.js';
 
 // Initialize logger with appropriate configuration
 const logger = initializeLogger({
-    level: LogLevel.INFO,
+    level: LogLevel.TRACE,
     enableFileLogging: true,
     logDirectory: '../logs',
     enableConsoleLogging: false, // Disable console logging to avoid interfering with MCP stdio
