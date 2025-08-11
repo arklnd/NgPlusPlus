@@ -1,5 +1,4 @@
-import axios from 'axios';
-import registryUrl, { defaultUrl }  from 'registry-url';
+import { spawn } from 'child_process';
 import { getLogger } from './logger.utils.js';
 
 export interface RegistryData {
@@ -7,40 +6,60 @@ export interface RegistryData {
         dependencies?: Record<string, string>;
         peerDependencies?: Record<string, string>;
     }>;
+    'dist-tags'?: {
+        latest?: string;
+        [tag: string]: string | undefined;
+    };
 }
 
 /**
- * Fetches package metadata from npm registry
+ * Fetches package metadata using npm view command (respects .npmrc auth)
  * @param name Package name (can be scoped)
  * @returns Registry data with version information
  */
 export async function getPackageData(name: string): Promise<RegistryData> {
     const logger = getLogger().child('PackageRegistry');
     
-    logger.debug('Fetching package data', { package: name });
+    logger.debug('Fetching package data via npm', { package: name });
     
     try {
-        // Extract scope from package name if it's a scoped package
-        const scope = name.startsWith('@') ? name.split('/')[0] : undefined;
-        logger.debug('Determined package scope', { scope, defaultUrl });
-        const registry = scope ? registryUrl(scope) : defaultUrl;
-        
-        // Normalize registry URL to ensure proper concatenation
-        // Remove trailing slash if present, then add it back for consistency
-        const normalizedRegistry = registry.endsWith('/') ? registry : `${registry}/`;
-        const url = `${normalizedRegistry}${name}`;
-        
-        logger.trace('Making registry request', { 
-            package: name, 
-            scope, 
-            registry: normalizedRegistry, 
-            url 
+        // Use npm view to get package info - this respects .npmrc authentication
+        const data = await new Promise<RegistryData>((resolve, reject) => {
+            const child = spawn('npm', ['view', name, '--json'], {
+                stdio: ['pipe', 'pipe', 'pipe'],
+                shell: true
+            });
+            
+            let stdout = '';
+            let stderr = '';
+            
+            child.stdout?.on('data', (chunk) => {
+                stdout += chunk.toString();
+            });
+            
+            child.stderr?.on('data', (chunk) => {
+                stderr += chunk.toString();
+            });
+            
+            child.on('close', (code) => {
+                if (code === 0) {
+                    try {
+                        const parsedData = JSON.parse(stdout);
+                        resolve(parsedData);
+                    } catch (parseError) {
+                        reject(new Error(`Failed to parse npm output: ${parseError}`));
+                    }
+                } else {
+                    reject(new Error(`npm view failed with code ${code}: ${stderr}`));
+                }
+            });
+            
+            child.on('error', (error) => {
+                reject(new Error(`Failed to spawn npm process: ${error.message}`));
+            });
         });
         
-        const response = await axios.get(url);
-        const data = response.data;
-        
-        logger.info('Successfully fetched package data', { 
+        logger.info('Successfully fetched package data via npm', { 
             package: name, 
             versionCount: Object.keys(data.versions || {}).length,
             latestVersion: data['dist-tags']?.latest
@@ -48,11 +67,14 @@ export async function getPackageData(name: string): Promise<RegistryData> {
         
         return data;
     } catch (error) {
-        logger.error('Failed to fetch package data', { 
+        logger.error('Failed to fetch package data via npm', { 
             package: name, 
-            error: error instanceof Error ? error.message : String(error),
-            status: axios.isAxiosError(error) ? error.response?.status : undefined
+            error: error instanceof Error ? error.message : String(error)
         });
         throw error;
     }
 }
+/*
+ * Utility functions for working with package registries
+ * Alternate ideas: libnpmconfig, libnpmaccess, npm-registry-fetch
+ */
