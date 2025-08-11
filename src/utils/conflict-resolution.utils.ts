@@ -26,7 +26,7 @@ export async function analyzeConflicts(
     plannedUpdates: Array<{ name: string; version: string; isDev: boolean }>
 ): Promise<ConflictResolution> {
     const logger = getLogger().child('ConflictResolution');
-    logger.info('Starting conflict analysis', { updateCount: plannedUpdates.length });
+    logger.info('Starting conflict analysis', { plannedUpdateCount: plannedUpdates.length });
     
     const conflicts: ConflictInfo[] = [];
     const resolutions: string[] = [];
@@ -59,20 +59,20 @@ export async function analyzeConflicts(
                 if (!existingVersionData?.peerDependencies) continue;
                 
                 // Check if this existing package has a peer dependency on the package we're updating
-                const peerDep = existingVersionData.peerDependencies[updateName];
-                if (!peerDep) continue;
+                const existingPeerDepVersion = existingVersionData.peerDependencies[updateName];
+                if (!existingPeerDepVersion) continue;
                 
                 // Clean the planned update version for comparison
-                const updateVersionClean = getCleanVersion(plannedVersion);
-                if (!updateVersionClean) continue;
+                const plannedVersionClean = getCleanVersion(plannedVersion);
+                if (!plannedVersionClean) continue;
                 
                 // Check if the planned update version satisfies the existing package's peer dependency requirement
-                if (!satisfiesPeerDep(updateVersionClean, peerDep)) {
+                if (!satisfiesPeerDep(plannedVersionClean, existingPeerDepVersion)) {
                     const conflict = {
                         packageName: existingName,
                         currentVersion: existingSpec as string,
                         conflictsWith: `${updateName}@${plannedVersion}`,
-                        reason: `requires ${updateName}@${peerDep} but updating to ${plannedVersion}`
+                        reason: `requires ${updateName}@${existingPeerDepVersion} but updating to ${plannedVersion}`
                     };
                     conflicts.push(conflict);
                     
