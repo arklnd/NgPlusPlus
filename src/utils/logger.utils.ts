@@ -40,7 +40,16 @@ export class Logger {
             level: LogLevel.INFO,
             enableFileLogging: true,
             logDirectory: './logs',
-            logFileName: `ngplusplus-${new Date().toISOString().split('T')[0]}.log`,
+            logFileName: `ngplusplus-${new Date().toLocaleString('en-IN', { 
+                timeZone: 'Asia/Kolkata',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }).replace(/[/,:]/g, '-').replace(/\s/g, '_')}.log`,
             maxFileSize: 10 * 1024 * 1024, // 10MB
             maxFiles: 5,
             enableConsoleLogging: true,
