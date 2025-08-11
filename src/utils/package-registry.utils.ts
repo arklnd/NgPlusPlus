@@ -1,5 +1,5 @@
 import axios from 'axios';
-import registryUrl from 'registry-url';
+import registryUrl, { defaultUrl }  from 'registry-url';
 import { getLogger } from './logger.utils.js';
 
 export interface RegistryData {
@@ -22,7 +22,8 @@ export async function getPackageData(name: string): Promise<RegistryData> {
     try {
         // Extract scope from package name if it's a scoped package
         const scope = name.startsWith('@') ? name.split('/')[0] : undefined;
-        const registry = registryUrl(scope);
+        logger.debug('Determined package scope', { scope, defaultUrl });
+        const registry = scope ? registryUrl(scope) : defaultUrl;
         
         // Normalize registry URL to ensure proper concatenation
         // Remove trailing slash if present, then add it back for consistency
