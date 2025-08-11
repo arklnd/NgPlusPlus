@@ -41,29 +41,48 @@ export enum NcuTools {
  * by checking for package.json file
  */
 export function validateProjectPath(repoPath: string): { isValid: boolean; error?: string } {
+    const logger = getLogger().child('ncu:validate');
+    
+    logger.debug('Validating project path', { repoPath });
+    
     try {
         const absolutePath = resolve(repoPath);
         
         if (!existsSync(absolutePath)) {
-            return { isValid: false, error: `Path does not exist: ${absolutePath}` };
+            const error = `Path does not exist: ${absolutePath}`;
+            logger.warn('Path validation failed - path not found', { absolutePath });
+            return { isValid: false, error };
         }
         
         const packageJsonPath = join(absolutePath, 'package.json');
         if (!existsSync(packageJsonPath)) {
-            return { isValid: false, error: `No package.json found in: ${absolutePath}` };
+            const error = `No package.json found in: ${absolutePath}`;
+            logger.warn('Path validation failed - no package.json', { absolutePath });
+            return { isValid: false, error };
         }
         
         // Try to parse package.json to ensure it's valid
         try {
             const packageJson = readFileSync(packageJsonPath, 'utf8');
             JSON.parse(packageJson);
+            logger.debug('Project path validation successful', { absolutePath });
         } catch (parseError) {
-            return { isValid: false, error: `Invalid package.json in: ${absolutePath}` };
+            const error = `Invalid package.json in: ${absolutePath}`;
+            logger.error('Path validation failed - invalid package.json', { 
+                absolutePath, 
+                parseError: parseError instanceof Error ? parseError.message : String(parseError) 
+            });
+            return { isValid: false, error };
         }
         
         return { isValid: true };
     } catch (error) {
-        return { isValid: false, error: `Error validating path: ${error instanceof Error ? error.message : String(error)}` };
+        const errorMsg = `Error validating path: ${error instanceof Error ? error.message : String(error)}`;
+        logger.error('Unexpected error during path validation', { 
+            repoPath, 
+            error: error instanceof Error ? error.message : String(error) 
+        });
+        return { isValid: false, error: errorMsg };
     }
 }
 
@@ -71,19 +90,35 @@ export function validateProjectPath(repoPath: string): { isValid: boolean; error
  * Common repository path validation and resolution for NCU tools
  */
 export async function validateAndResolveRepoPath(repoPath: string): Promise<{ success: boolean; resolvedPath?: string; error?: string }> {
+    const logger = getLogger().child('ncu:validate');
+    
+    logger.debug('Validating and resolving repository path', { repoPath });
+    
     try {
         const resolvedPath = resolve(repoPath);
+        logger.trace('Path resolved', { original: repoPath, resolved: resolvedPath });
+        
         const validation = validateProjectPath(resolvedPath);
         
         if (!validation.isValid) {
+            logger.warn('Repository path validation failed', { 
+                resolvedPath, 
+                error: validation.error 
+            });
             return { success: false, error: validation.error };
         }
         
+        logger.debug('Repository path validation successful', { resolvedPath });
         return { success: true, resolvedPath };
     } catch (error) {
+        const errorMsg = `Failed to resolve repository path: ${error instanceof Error ? error.message : String(error)}`;
+        logger.error('Error resolving repository path', { 
+            repoPath, 
+            error: error instanceof Error ? error.message : String(error) 
+        });
         return { 
             success: false, 
-            error: `Failed to resolve repository path: ${error instanceof Error ? error.message : String(error)}` 
+            error: errorMsg
         };
     }
 }
@@ -184,26 +219,41 @@ async function ncuUpdate(params: z.infer<typeof NcuSchemas.update>): Promise<{ s
     
     if (upgrade) {
         args.push('-u'); // Update package.json
+        logger.trace('Added upgrade flag to NCU arguments');
     }
     
     if (doctor) {
         args.push('--doctor'); // Doctor mode
+        logger.trace('Added doctor flag to NCU arguments');
     }
     
     if (target) {
         args.push(target); // Specific package
+        logger.trace('Added target package to NCU arguments', { target });
     }
+    
+    logger.debug('NCU command arguments prepared', { args });
 
     // Execute ncu command
+    const startTime = Date.now();
     const result = await executeNcu(args, pathResult.resolvedPath!);
+    const executionTime = Date.now() - startTime;
+    
+    logger.info('NCU command execution completed', { 
+        success: result.success, 
+        executionTimeMs: executionTime,
+        outputLength: result.output?.length || 0
+    });
     
     if (result.success) {
+        logger.info('NCU update successful', { upgrade, target });
         return {
             success: true,
             message: upgrade ? 'Package dependencies updated successfully' : 'Package check completed successfully',
             details: result.output
         };
     } else {
+        logger.warn('NCU update failed', { error: result.error });
         return {
             success: false,
             message: 'NCU command failed',

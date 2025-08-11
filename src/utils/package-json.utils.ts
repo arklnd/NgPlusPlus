@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
+import { getLogger } from './logger.utils.js';
 
 export interface PackageJson {
     name: string;
@@ -15,13 +16,35 @@ export interface PackageJson {
  * @returns Parsed package.json object
  */
 export function readPackageJson(repoPath: string): PackageJson {
+    const logger = getLogger().child('PackageJson');
     const packageJsonPath = join(resolve(repoPath), 'package.json');
     
+    logger.debug('Reading package.json', { path: packageJsonPath });
+    
     if (!existsSync(packageJsonPath)) {
+        logger.error('package.json not found', { path: packageJsonPath });
         throw new Error(`package.json not found at ${packageJsonPath}`);
     }
 
-    return JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    try {
+        const content = readFileSync(packageJsonPath, 'utf-8');
+        const packageJson = JSON.parse(content);
+        
+        logger.info('Successfully read package.json', { 
+            name: packageJson.name, 
+            version: packageJson.version,
+            dependencies: Object.keys(packageJson.dependencies || {}).length,
+            devDependencies: Object.keys(packageJson.devDependencies || {}).length
+        });
+        
+        return packageJson;
+    } catch (error) {
+        logger.error('Failed to parse package.json', { 
+            path: packageJsonPath, 
+            error: error instanceof Error ? error.message : String(error) 
+        });
+        throw error;
+    }
 }
 
 /**
@@ -30,8 +53,25 @@ export function readPackageJson(repoPath: string): PackageJson {
  * @param packageJson The package.json object to write
  */
 export function writePackageJson(repoPath: string, packageJson: PackageJson): void {
+    const logger = getLogger().child('PackageJson');
     const packageJsonPath = join(resolve(repoPath), 'package.json');
-    writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+    
+    logger.debug('Writing package.json', { 
+        path: packageJsonPath, 
+        name: packageJson.name, 
+        version: packageJson.version 
+    });
+    
+    try {
+        writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+        logger.info('Successfully wrote package.json', { path: packageJsonPath });
+    } catch (error) {
+        logger.error('Failed to write package.json', { 
+            path: packageJsonPath, 
+            error: error instanceof Error ? error.message : String(error) 
+        });
+        throw error;
+    }
 }
 
 /**
@@ -40,7 +80,16 @@ export function writePackageJson(repoPath: string, packageJson: PackageJson): vo
  * @returns Combined dependencies object
  */
 export function getAllDependencies(packageJson: PackageJson): Record<string, string> {
-    return { ...packageJson.dependencies, ...packageJson.devDependencies };
+    const logger = getLogger().child('PackageJson');
+    const allDeps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+    
+    logger.trace('Retrieved all dependencies', { 
+        totalCount: Object.keys(allDeps).length,
+        dependencies: Object.keys(packageJson.dependencies || {}).length,
+        devDependencies: Object.keys(packageJson.devDependencies || {}).length
+    });
+    
+    return allDeps;
 }
 
 /**
@@ -56,9 +105,20 @@ export function updateDependency(
     version: string, 
     isDev: boolean
 ): void {
+    const logger = getLogger().child('PackageJson');
     const target = isDev ? 'devDependencies' : 'dependencies';
+    const oldVersion = isDev ? packageJson.devDependencies?.[name] : packageJson.dependencies?.[name];
+    
     if (!packageJson[target]) packageJson[target] = {};
     packageJson[target]![name] = version;
+    
+    logger.info('Updated dependency', { 
+        package: name, 
+        oldVersion, 
+        newVersion: version, 
+        isDev, 
+        target 
+    });
 }
 
 /**
@@ -68,5 +128,13 @@ export function updateDependency(
  * @returns True if the package is in devDependencies
  */
 export function isDevDependency(packageJson: PackageJson, packageName: string): boolean {
-    return !!packageJson.devDependencies?.[packageName];
+    const logger = getLogger().child('PackageJson');
+    const isDev = !!packageJson.devDependencies?.[packageName];
+    
+    logger.trace('Checked dependency type', { 
+        package: packageName, 
+        isDev 
+    });
+    
+    return isDev;
 }

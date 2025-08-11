@@ -1,6 +1,7 @@
 import { getPackageData, RegistryData } from './package-registry.utils.js';
 import { getCleanVersion, satisfiesPeerDep, findCompatibleVersion } from './version.utils.js';
 import { PackageJson, getAllDependencies, isDevDependency, updateDependency } from './package-json.utils.js';
+import { getLogger } from './logger.utils.js';
 
 export interface ConflictInfo {
     packageName: string;
@@ -24,10 +25,18 @@ export async function analyzeConflicts(
     packageJson: PackageJson,
     plannedUpdates: Array<{ name: string; version: string; isDev: boolean }>
 ): Promise<ConflictResolution> {
+    const logger = getLogger().child('ConflictResolution');
+    logger.info('Starting conflict analysis', { updateCount: plannedUpdates.length });
+    
     const conflicts: ConflictInfo[] = [];
     const resolutions: string[] = [];
     
     for (const { name: updateName, version: plannedVersion } of plannedUpdates) {
+        logger.debug('Analyzing conflicts for package update', { 
+            package: updateName, 
+            version: plannedVersion 
+        });
+        
         // Check all existing dependencies for peer dependency conflicts
         const allExistingDeps = getAllDependencies(packageJson);
         
@@ -35,6 +44,11 @@ export async function analyzeConflicts(
             if (existingName === updateName) continue; // Skip self
             
             try {
+                logger.trace('Checking peer dependencies', { 
+                    existingPackage: existingName, 
+                    updatePackage: updateName 
+                });
+                
                 // Get registry data for the existing package to check its peer dependencies
                 const existingRegistry = await getPackageData(existingName);
                 const existingVersion = getCleanVersion(existingSpec);
@@ -54,19 +68,32 @@ export async function analyzeConflicts(
                 
                 // Check if the planned update version satisfies the existing package's peer dependency requirement
                 if (!satisfiesPeerDep(updateVersionClean, peerDep)) {
-                    conflicts.push({
+                    const conflict = {
                         packageName: existingName,
                         currentVersion: existingSpec as string,
                         conflictsWith: `${updateName}@${plannedVersion}`,
                         reason: `requires ${updateName}@${peerDep} but updating to ${plannedVersion}`
-                    });
+                    };
+                    conflicts.push(conflict);
+                    
+                    logger.warn('Conflict detected', conflict);
                 }
             } catch (error) {
                 // Continue if we can't analyze this package
-                resolutions.push(`⚠ Warning: Could not analyze ${existingName} for conflicts: ${error instanceof Error ? error.message : String(error)}`);
+                const errorMsg = `Could not analyze ${existingName} for conflicts: ${error instanceof Error ? error.message : String(error)}`;
+                resolutions.push(`⚠ Warning: ${errorMsg}`);
+                logger.error('Failed to analyze package for conflicts', { 
+                    package: existingName, 
+                    error: error instanceof Error ? error.message : String(error) 
+                });
             }
         }
     }
+    
+    logger.info('Conflict analysis completed', { 
+        conflictCount: conflicts.length, 
+        resolutionCount: resolutions.length 
+    });
     
     return { conflicts, resolutions };
 }
@@ -81,13 +108,21 @@ export async function resolveConflicts(
     packageJson: PackageJson,
     conflicts: ConflictInfo[]
 ): Promise<string[]> {
+    const logger = getLogger().child('ConflictResolution');
+    logger.info('Starting conflict resolution', { conflictCount: conflicts.length });
+    
     const resolutions: string[] = [];
     
     for (const conflict of conflicts) {
+        logger.debug('Resolving conflict', conflict);
         resolutions.push(`🚨 CONFLICT: ${conflict.packageName}@${conflict.currentVersion} ${conflict.reason}`);
         
         // Try to find a compatible version of the conflicting package
         try {
+            logger.debug('Fetching package data for conflict resolution', { 
+                package: conflict.packageName 
+            });
+            
             const conflictRegistry = await getPackageData(conflict.packageName);
             const versions = Object.keys(conflictRegistry.versions);
             
@@ -96,9 +131,18 @@ export async function resolveConflicts(
             const updateVersionClean = getCleanVersion(updateVersion);
             
             if (!updateVersionClean) {
-                resolutions.push(`❌ Could not parse update version: ${updateVersion}`);
+                const errorMsg = `Could not parse update version: ${updateVersion}`;
+                resolutions.push(`❌ ${errorMsg}`);
+                logger.error(errorMsg, { version: updateVersion });
                 continue;
             }
+            
+            logger.trace('Searching for compatible version', { 
+                package: conflict.packageName, 
+                updatePackage: updateName, 
+                updateVersion: updateVersionClean,
+                availableVersions: versions.length 
+            });
             
             let compatibleVersion = null;
             for (const version of versions.sort((a, b) => b.localeCompare(a))) {
@@ -106,6 +150,10 @@ export async function resolveConflicts(
                 const peerDep = versionData.peerDependencies?.[updateName];
                 if (peerDep && satisfiesPeerDep(updateVersionClean, peerDep)) {
                     compatibleVersion = version;
+                    logger.debug('Found compatible version', { 
+                        package: conflict.packageName, 
+                        version: compatibleVersion 
+                    });
                     break;
                 }
             }
@@ -117,23 +165,42 @@ export async function resolveConflicts(
                 const isDev = isDevDependency(packageJson, conflict.packageName);
                 updateDependency(packageJson, conflict.packageName, `^${compatibleVersion}`, isDev);
                 resolutions.push(`✓ Auto-updated ${conflict.packageName} to ^${compatibleVersion}`);
+                
+                logger.info('Successfully resolved conflict', { 
+                    package: conflict.packageName, 
+                    newVersion: compatibleVersion, 
+                    isDev 
+                });
             } else {
-                resolutions.push(`❌ No compatible version of ${conflict.packageName} found for ${conflict.conflictsWith}`);
+                const noCompatibleMsg = `No compatible version of ${conflict.packageName} found for ${conflict.conflictsWith}`;
+                resolutions.push(`❌ ${noCompatibleMsg}`);
+                logger.warn(noCompatibleMsg);
                 
                 // Special handling for known ecosystem packages
                 if (conflict.packageName.includes('storybook')) {
                     resolutions.push(`   💡 TIP: Consider updating to Storybook 7.x or 8.x which supports Angular 20`);
                     resolutions.push(`   💡 Run: npm install @storybook/angular@latest @storybook/core@latest`);
+                    logger.info('Provided Storybook-specific resolution tip');
                 } else if (conflict.packageName.includes('angular')) {
                     resolutions.push(`   💡 TIP: This Angular-related package may need a major version update`);
+                    logger.info('Provided Angular-specific resolution tip');
                 }
                 
                 resolutions.push(`   Alternative: Use --force or --legacy-peer-deps to override (may cause issues)`);
             }
         } catch (error) {
-            resolutions.push(`❌ Failed to analyze ${conflict.packageName}: ${error instanceof Error ? error.message : String(error)}`);
+            const errorMsg = `Failed to analyze ${conflict.packageName}: ${error instanceof Error ? error.message : String(error)}`;
+            resolutions.push(`❌ ${errorMsg}`);
+            logger.error('Failed to resolve conflict', { 
+                package: conflict.packageName, 
+                error: error instanceof Error ? error.message : String(error) 
+            });
         }
     }
+    
+    logger.info('Conflict resolution completed', { 
+        totalResolutions: resolutions.length 
+    });
     
     return resolutions;
 }
