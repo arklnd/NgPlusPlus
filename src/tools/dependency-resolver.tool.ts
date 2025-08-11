@@ -25,7 +25,7 @@ async function updatePackageWithDependencies(
     logger.info('Starting dependency update process', {
         repoPath,
         plannedUpdatesCount: plannedUpdates.length,
-        plannedUpdates: plannedUpdates.map(u => `${u.name}@${u.version} (${u.isDev ? 'dev' : 'prod'})`)
+        plannedUpdates: plannedUpdates.map(u => `${u.name}@${u.version} (${u.isDev ? 'devDep' : 'dirDep'})`)
     });
 
     try {
