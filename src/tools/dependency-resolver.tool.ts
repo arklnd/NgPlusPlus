@@ -220,7 +220,7 @@ export function registerDependencyResolverTools(server: McpServer) {
                 requestId,
                 repo_path,
                 dependenciesCount: dependencies.length,
-                dependencies: dependencies.map(d => `${d.name}@${d.version} (${d.isDev ? 'dev' : 'prod'})`)
+                dependencies: dependencies.map(d => `${d.name}@${d.version} (${d.isDev ? 'devDep' : 'dirDep'})`)
             });
             
             try {
