@@ -16,7 +16,7 @@ import {
  * @param plannedUpdates Array of dependency updates to apply
  * @returns String with all operation results
  */
-async function updatePackageWithDependencies(
+export async function updatePackageWithDependencies(
     repoPath: string,
     plannedUpdates: Array<{ name: string; version: string; isDev: boolean }>
 ): Promise<string> {

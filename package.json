@@ -12,7 +12,7 @@
     ],
     "scripts": {
         "build": "node -e \"require('fs').rmSync('./build', {recursive: true, force: true})\" && tsc && node -e \"require('fs').copyFileSync('./.env', './build/.env')\" && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
-        "test": "mocha test/index.test.ts"
+        "test": "mocha test/*"
     },
     "author": "Arijit Kundu",
     "license": "ISC",
