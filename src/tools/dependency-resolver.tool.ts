@@ -215,7 +215,7 @@ export function registerDependencyResolverTools(server: McpServer) {
             }
         },
         async ({ repo_path, dependencies }) => {
-            const requestId = Math.random().toString(36).substr(2, 9);
+            const requestId = Math.random().toString(36).substring(2, 9);
             logger.info('Dependency resolver tool invoked', {
                 requestId,
                 repo_path,
