@@ -1,5 +1,6 @@
 import { spawn } from 'child_process';
 import { getLogger } from './logger.utils.js';
+import { getCachedPackageData, setCachedPackageData, cleanExpiredCache } from './cache.utils.js';
 
 export interface RegistryData {
     versions: Record<string, { 
@@ -19,6 +20,18 @@ export interface RegistryData {
  */
 export async function getPackageData(name: string): Promise<RegistryData> {
     const logger = getLogger().child('PackageRegistry');
+    
+    // Check cache first
+    const cachedData = getCachedPackageData(name);
+    if (cachedData) {
+        logger.debug('Returning cached package data', { package: name });
+        return cachedData;
+    }
+    
+    // Clean up expired cache entries periodically (10% chance)
+    if (Math.random() < 0.1) {
+        cleanExpiredCache();
+    }
     
     logger.debug('Fetching package data via npm', { package: name });
     
@@ -59,7 +72,10 @@ export async function getPackageData(name: string): Promise<RegistryData> {
             });
         });
         
-        logger.info('Successfully fetched package data via npm', { 
+        // Cache the successfully fetched data (60 minute TTL)
+        setCachedPackageData(name, data, 60);
+        
+        logger.info('Successfully fetched and cached package data via npm', { 
             package: name, 
             versionCount: Object.keys(data.versions || {}).length,
             latestVersion: data['dist-tags']?.latest

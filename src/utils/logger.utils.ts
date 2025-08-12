@@ -58,6 +58,7 @@ export class Logger {
 
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = path.dirname(__filename);
+        // console.warn(__dirname); //C:\ARIJIT\TINKERING\MCPs\TS\NgPlusPlus\build\utils
         this.config.logDirectory = path.join(__dirname, this.config.logDirectory);
         this.logFilePath = path.join(this.config.logDirectory, this.config.logFileName!);
         this.ensureLogDirectory();
