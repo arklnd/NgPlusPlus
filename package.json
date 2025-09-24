@@ -12,8 +12,8 @@
     ],
     "scripts": {
         "build": "node -e \"require('fs').rmSync('./build', {recursive: true, force: true})\" && tsc && node -e \"require('fs').copyFileSync('./.env', './build/.env')\" && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
-        "test": "mocha --require ts-node/register --require source-map-support/register \"test/**/*.test.ts\"",
-        "test:unit": "mocha --require ts-node/register --require source-map-support/register \"test/**/*.test.ts\""
+        "test": "mocha --loader=ts-node/esm --require source-map-support/register \"test/**/*.test.ts\"",
+        "test:unit": "mocha --loader=ts-node/esm --require source-map-support/register \"test/**/*.test.ts\""
     },
     "author": "Arijit Kundu",
     "license": "ISC",
@@ -38,14 +38,17 @@
     },
     "mocha": {
         "extension": ["test.ts"],
+        "loader": "ts-node/esm",
         "require": [
-            "source-map-support/register",
-            "ts-node/register"
+            "source-map-support/register"
         ]
     },
     "ts-node": {
+        "esm": true,
+        "experimentalSpecifierResolution": "node",
         "compilerOptions": {
-            "module": "commonjs"
+            "module": "ESNext",
+            "moduleResolution": "node"
         }
     }
 }
