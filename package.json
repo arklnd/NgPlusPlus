@@ -2,17 +2,20 @@
     "name": "ngplusplus",
     "version": "0.0.0",
     "description": "Angular version upgrade helper MCP",
-    "main": "index.js",
+    "main": "dist/index.js",
     "type": "module",
     "bin": {
-        "ngplusplus": "./build/index.js"
+        "ngplusplus": "./dist/index.js"
     },
     "files": [
-        "build"
+        "dist"
     ],
     "scripts": {
-        "build": "node -e \"require('fs').rmSync('./build', {recursive: true, force: true})\" && ts-node --esm src/index.ts && node -e \"require('fs').copyFileSync('./.env', './build/.env')\" && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
-        "dev": "ts-node --esm src/index.ts",
+        "dev": "tsx src/index.ts",
+        "build": "tsc -p tsconfig.build.json",
+        "start": "node dist/index.js",
+        "clean": "rmdir /s /q dist 2>nul || echo dist folder cleaned",
+        "build:watch": "tsc -p tsconfig.build.json --watch",
         "test": "mocha --loader=ts-node/esm --require source-map-support/register \"test/**/*.test.ts\"",
         "test:unit": "mocha --loader=ts-node/esm --require source-map-support/register \"test/**/*.test.ts\""
     },
@@ -26,6 +29,7 @@
         "mocha": "11.7.1",
         "source-map-support": "0.5.21",
         "ts-node": "10.9.2",
+        "tsx": "4.20.5",
         "typescript": "^5.9.2"
     },
     "dependencies": {
@@ -38,18 +42,12 @@
         "zod": "^3.23.8"
     },
     "mocha": {
-        "extension": ["test.ts"],
+        "extension": [
+            "test.ts"
+        ],
         "loader": "ts-node/esm",
         "require": [
             "source-map-support/register"
         ]
-    },
-    "ts-node": {
-        "esm": true,
-        "experimentalSpecifierResolution": "node",
-        "compilerOptions": {
-            "module": "ESNext",
-            "moduleResolution": "node"
-        }
     }
 }
