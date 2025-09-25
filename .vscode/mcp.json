@@ -1,12 +1,21 @@
 {
   "inputs": [],
   "servers": {
+    // "NgPlusPlus": {
+    //   "type": "stdio",
+    //   "command": "node",
+    //   "args": [
+    //     "${workspaceFolder}\\build\\index.js"
+    //   ]
+    // },
     "NgPlusPlus": {
       "type": "stdio",
-      "command": "node",
+      "command": "npm",
       "args": [
-        "${workspaceFolder}\\build\\index.js"
-      ]
+        "run",
+        "dev"
+      ],
+      "cwd": "${workspaceFolder}"
     }
   }
 }
