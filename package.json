@@ -11,7 +11,8 @@
         "build"
     ],
     "scripts": {
-        "build": "node -e \"require('fs').rmSync('./build', {recursive: true, force: true})\" && tsc && node -e \"require('fs').copyFileSync('./.env', './build/.env')\" && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+        "build": "node -e \"require('fs').rmSync('./build', {recursive: true, force: true})\" && ts-node --esm src/index.ts && node -e \"require('fs').copyFileSync('./.env', './build/.env')\" && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+        "dev": "ts-node --esm src/index.ts",
         "test": "mocha --loader=ts-node/esm --require source-map-support/register \"test/**/*.test.ts\"",
         "test:unit": "mocha --loader=ts-node/esm --require source-map-support/register \"test/**/*.test.ts\""
     },
