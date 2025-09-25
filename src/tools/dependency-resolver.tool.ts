@@ -1,5 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { fileURLToPath } from 'url';
+import path from 'path';
 import {
     readPackageJson,
     writePackageJson,
@@ -9,6 +11,9 @@ import {
     updateTransitiveDependencies,
     getLogger
 } from '../utils/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Main function to update package dependencies and resolve conflicts
@@ -20,7 +25,7 @@ export async function updatePackageWithDependencies(
     repoPath: string,
     plannedUpdates: Array<{ name: string; version: string; isDev: boolean }>
 ): Promise<string> {
-    const logger = getLogger().child('dependency-resolver');
+    const logger = getLogger().child(path.join(__dirname, __filename));
     
     logger.info('Starting dependency update process', {
         repoPath,
@@ -197,7 +202,7 @@ export async function updatePackageWithDependencies(
 }
 
 export function registerDependencyResolverTools(server: McpServer) {
-    const logger = getLogger().child('dependency-resolver-tool');
+    const logger = getLogger().child(`dependency-resolver-tool:${__dirname}`);
     
     logger.info('Registering dependency resolver tools');
     
