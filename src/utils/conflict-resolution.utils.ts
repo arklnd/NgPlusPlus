@@ -6,7 +6,8 @@ import { getLogger } from './logger.utils.js';
 export interface ConflictInfo {
     packageName: string;
     currentVersion: string;
-    conflictsWith: string;
+    conflictsWithPackageName: string;
+    conflictsWithVersion: string;
     reason: string;
 }
 
@@ -71,7 +72,8 @@ export async function analyzeConflicts(
                     const conflict = {
                         packageName: existingName,
                         currentVersion: existingSpec as string,
-                        conflictsWith: `${updateName}@${plannedVersion}`,
+                        conflictsWithPackageName: updateName,
+                        conflictsWithVersion: plannedVersion,
                         reason: `requires ${updateName}@${existingPeerDepVersion} but updating to ${plannedVersion}`
                     };
                     conflicts.push(conflict);
@@ -126,8 +128,8 @@ export async function resolveConflicts(
             const conflictRegistry = await getPackageData(conflict.packageName);
             const versions = Object.keys(conflictRegistry.versions);
             
-            const updateName = conflict.conflictsWith.split('@')[0];
-            const updateVersion = conflict.conflictsWith.split('@')[1];
+            const updateName = conflict.conflictsWithPackageName;
+            const updateVersion = conflict.conflictsWithVersion;
             const updateVersionClean = getCleanVersion(updateVersion);
             
             if (!updateVersionClean) {
@@ -159,7 +161,7 @@ export async function resolveConflicts(
             }
             
             if (compatibleVersion) {
-                resolutions.push(`💡 SOLUTION: Update ${conflict.packageName} to ${compatibleVersion} to support ${conflict.conflictsWith}`);
+                resolutions.push(`💡 SOLUTION: Update ${conflict.packageName} to ${compatibleVersion} to support ${conflict.conflictsWithPackageName}@${conflict.conflictsWithVersion}`);
                 
                 // Auto-update the conflicting package
                 const isDev = isDevDependency(packageJson, conflict.packageName);
@@ -172,7 +174,7 @@ export async function resolveConflicts(
                     isDev 
                 });
             } else {
-                const noCompatibleMsg = `No compatible version of ${conflict.packageName} found for ${conflict.conflictsWith}`;
+                const noCompatibleMsg = `No compatible version of ${conflict.packageName} found for ${conflict.conflictsWithPackageName}@${conflict.conflictsWithVersion}`;
                 resolutions.push(`❌ ${noCompatibleMsg}`);
                 logger.warn(noCompatibleMsg);
                 

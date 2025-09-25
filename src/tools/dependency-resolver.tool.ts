@@ -63,7 +63,8 @@ export async function updatePackageWithDependencies(
             conflicts: conflicts.map(c => ({ 
                 package: c.packageName, 
                 current: c.currentVersion, 
-                conflictsWith: c.conflictsWith,
+                conflictsWithPackageName: c.conflictsWithPackageName,
+                conflictsWithVersion: c.conflictsWithVersion,
                 reason: c.reason 
             }))
         });
