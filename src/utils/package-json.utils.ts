@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
+import { spawn } from 'child_process';
 import { getLogger } from './logger.utils.js';
 
 export interface PackageJson {
@@ -137,4 +138,116 @@ export function isDevDependency(packageJson: PackageJson, packageName: string): 
     });
     
     return isDev;
+}
+
+/**
+ * Gets all packages that depend on a given package
+ */
+export async function getAllDependent(repoPath: string, packageName: string): Promise<Record<string, PackageJson[]>> {
+    const logger = getLogger().child('PackageJson');
+    
+    logger.debug('Getting dependents for package', { packageName, repoPath });
+    
+    try {
+        // Execute npm ls command to get dependency tree
+        const dependencyTree = await new Promise<any>((resolve, reject) => {
+            const child = spawn('npm', ['ls', packageName, '--json'], {
+                stdio: ['pipe', 'pipe', 'pipe'],
+                shell: true,
+                cwd: repoPath
+            });
+            
+            let stdout = '';
+            let stderr = '';
+            
+            child.stdout.on('data', (chunk: Buffer) => {
+                stdout += chunk.toString();
+            });
+            
+            child.stderr.on('data', (chunk: Buffer) => {
+                stderr += chunk.toString();
+            });
+            
+            child.on('close', (code: number | null) => {
+                // npm ls can return non-zero exit code even for successful queries
+                // when there are warnings (like peer dependency issues)
+                try {
+                    const parsedData = JSON.parse(stdout);
+                    resolve(parsedData);
+                } catch (parseError) {
+                    reject(new Error(`Failed to parse npm ls output: ${parseError}`));
+                }
+            });
+            
+            child.on('error', (error: Error) => {
+                reject(new Error(`Failed to spawn npm process: ${error.message}`));
+            });
+        });
+        
+        // Parse the dependency tree to find dependents
+        const result: Record<string, PackageJson[]> = {};
+        
+        function traverseDependencies(deps: any, parentName: string, parentVersion: string, path: string[] = []) {
+            if (!deps || typeof deps !== 'object') return;
+            
+            // Avoid circular dependencies
+            if (path.includes(parentName)) return;
+            
+            for (const [depName, depInfo] of Object.entries(deps)) {
+                if (typeof depInfo !== 'object' || depInfo === null) continue;
+                
+                const depData = depInfo as any;
+                const currentPath = [...path, parentName];
+                
+                // If this dependency is our target package
+                if (depName === packageName && depData.version) {
+                    const targetVersion = depData.version;
+                    
+                    // Initialize array for this version if it doesn't exist
+                    if (!result[targetVersion]) {
+                        result[targetVersion] = [];
+                    }
+                    
+                    // Add the parent package as a dependent
+                    const existingDependent = result[targetVersion].find(p => p.name === parentName);
+                    if (!existingDependent) {
+                        result[targetVersion].push({
+                            name: parentName,
+                            version: parentVersion
+                        });
+                    }
+                }
+                
+                // Recursively check this dependency's dependencies
+                if (depData.dependencies) {
+                    traverseDependencies(depData.dependencies, depName, depData.version || 'unknown', currentPath);
+                }
+            }
+        }
+        
+        // Start traversal from root dependencies
+        if (dependencyTree.dependencies) {
+            traverseDependencies(
+                dependencyTree.dependencies, 
+                dependencyTree.name || 'root', 
+                dependencyTree.version || '0.0.0'
+            );
+        }
+        
+        logger.info('Successfully found dependents', { 
+            packageName, 
+            versionsFound: Object.keys(result).length,
+            totalDependents: Object.values(result).reduce((sum, arr) => sum + arr.length, 0)
+        });
+        
+        return result;
+        
+    } catch (error) {
+        logger.error('Failed to get dependents', { 
+            packageName, 
+            repoPath,
+            error: error instanceof Error ? error.message : String(error)
+        });
+        throw error;
+    }
 }
