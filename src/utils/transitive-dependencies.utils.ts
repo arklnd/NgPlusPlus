@@ -1,4 +1,4 @@
-import { getPackageData } from './package-registry.utils.js';
+import { getPackageData, getPackageVersionData } from './package-registry.utils.js';
 import { getCleanVersion, satisfiesPeerDep, findCompatibleVersion } from './version.utils.js';
 import { PackageJson, getAllDependencies, isDevDependency, updateDependency } from './package-json.utils.js';
 import { getLogger } from './logger.utils.js';
@@ -35,10 +35,6 @@ export async function updateTransitiveDependencies(
         logger.debug('Processing package for transitive dependencies', { package: name, version });
         
         try {
-            // Fetch complete package registry data to access dependency metadata
-            logger.trace('Fetching registry data for transitive analysis', { package: name });
-            const registryData = await getPackageData(name);
-            
             // VALIDATION: Ensure version specification is valid and parseable
             const cleanVersion = getCleanVersion(version);
             if (!cleanVersion) {
@@ -48,14 +44,9 @@ export async function updateTransitiveDependencies(
                 continue;
             }
             
-            // VALIDATION: Verify the specific version exists in the registry
-            const versionData = registryData.versions[cleanVersion];
-            if (!versionData) {
-                const errorMsg = `Version ${version} not found for ${name}`;
-                results.push(`❌ ${errorMsg}`);
-                logger.error(errorMsg, { package: name, version });
-                continue;
-            }
+            // Fetch specific version data to access dependency metadata
+            logger.trace('Fetching specific version data for transitive analysis', { package: name, version: cleanVersion });
+            const versionData = await getPackageVersionData(name, cleanVersion);
 
             // PHASE 2: COMPREHENSIVE DEPENDENCY COLLECTION
             // Merge both direct dependencies AND peer dependencies to handle all requirements.

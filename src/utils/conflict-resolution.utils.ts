@@ -1,4 +1,4 @@
-import { getPackageData, RegistryData } from './package-registry.utils.js';
+import { getPackageData, getPackageVersionData, getPackageVersions, RegistryData } from './package-registry.utils.js';
 import { getCleanVersion, satisfiesPeerDep, findCompatibleVersion } from './version.utils.js';
 import { PackageJson, getAllDependencies, isDevDependency, updateDependency } from './package-json.utils.js';
 import { getLogger } from './logger.utils.js';
@@ -51,12 +51,11 @@ export async function analyzeConflicts(
                 });
                 
                 // Get registry data for the existing package to check its peer dependencies
-                const existingRegistry = await getPackageData(existingName);
                 const existingVersion = getCleanVersion(existingSpec);
                 if (!existingVersion) continue;
                 
                 // Get the specific version data for the existing package
-                const existingVersionData = existingRegistry.versions[existingVersion];
+                const existingVersionData = await getPackageVersionData(existingName, existingVersion);
                 if (!existingVersionData?.peerDependencies) continue;
                 
                 // Check if this existing package has a peer dependency on the package we're updating
@@ -121,12 +120,11 @@ export async function resolveConflicts(
         
         // Try to find a compatible version of the conflicting package
         try {
-            logger.debug('Fetching package data for conflict resolution', { 
+            logger.debug('Fetching package versions for conflict resolution', { 
                 package: conflict.packageName 
             });
             
-            const conflictRegistry = await getPackageData(conflict.packageName);
-            const versions = Object.keys(conflictRegistry.versions);
+            const versions = await getPackageVersions(conflict.packageName);
             
             const updateName = conflict.conflictsWithPackageName;
             const updateVersion = conflict.conflictsWithVersion;
@@ -148,15 +146,25 @@ export async function resolveConflicts(
             
             let compatibleVersion = null;
             for (const version of versions.sort((a, b) => b.localeCompare(a))) {
-                const versionData = conflictRegistry.versions[version];
-                const peerDep = versionData.peerDependencies?.[updateName];
-                if (peerDep && satisfiesPeerDep(updateVersionClean, peerDep)) {
-                    compatibleVersion = version;
-                    logger.debug('Found compatible version', { 
+                try {
+                    const versionData = await getPackageVersionData(conflict.packageName, version);
+                    const peerDep = versionData.peerDependencies?.[updateName];
+                    if (peerDep && satisfiesPeerDep(updateVersionClean, peerDep)) {
+                        compatibleVersion = version;
+                        logger.debug('Found compatible version', { 
+                            package: conflict.packageName, 
+                            version: compatibleVersion 
+                        });
+                        break;
+                    }
+                } catch (versionError) {
+                    // Skip this version if we can't fetch its data
+                    logger.trace('Skipping version due to fetch error', { 
                         package: conflict.packageName, 
-                        version: compatibleVersion 
+                        version, 
+                        error: versionError instanceof Error ? versionError.message : String(versionError) 
                     });
-                    break;
+                    continue;
                 }
             }
             
