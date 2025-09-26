@@ -210,11 +210,11 @@ export async function getAllDependent(repoPath: string, packageName: string): Pr
                     
                     // Add the parent package as a dependent
                     const existingDependent = result[targetVersion].find(p => p.name === parentName);
-                    if (!existingDependent) {
+                    if (!existingDependent && currentPath.length > 1) {
                         result[targetVersion].push({
                             name: parentName,
                             version: parentVersion,
-                            recursionLevel: currentPath.length // New field to indicate recursion level
+                            traversalPath: currentPath
                         });
                     }
                 }
