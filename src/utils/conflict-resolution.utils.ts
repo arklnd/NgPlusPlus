@@ -1,6 +1,6 @@
 import { getPackageData, getPackageVersionData, getPackageVersions, RegistryData } from './package-registry.utils.js';
 import { getCleanVersion, satisfiesPeerDep, findCompatibleVersion } from './version.utils.js';
-import { PackageJson, getAllDependencies, isDevDependency, updateDependency } from './package-json.utils.js';
+import { PackageJson, getAllDependencies, getAllDependent, isDevDependency, updateDependency } from './package-json.utils.js';
 import { getLogger } from './logger.utils.js';
 
 export interface ConflictInfo {
@@ -23,6 +23,7 @@ export interface ConflictResolution {
  * @returns Conflict analysis results
  */
 export async function analyzeConflicts(
+    repoPath: string,
     packageJson: PackageJson,
     plannedUpdates: Array<{ name: string; version: string; isDev: boolean }>
 ): Promise<ConflictResolution> {
@@ -38,56 +39,86 @@ export async function analyzeConflicts(
             version: plannedVersion 
         });
         
-        // Check all existing dependencies for peer dependency conflicts
-        const allExistingDeps = getAllDependencies(packageJson);
-        
-        for (const [existingName, existingSpec] of Object.entries(allExistingDeps)) {
-            if (existingName === updateName) continue; // Skip self
+        try {
+            // Get current version of the package being updated from package.json
+            const currentVersion = (packageJson.dependencies ?? {})[updateName];
             
-            try {
-                logger.trace('Checking peer dependencies', { 
-                    existingPackage: existingName, 
-                    updatePackage: updateName 
+            if (!currentVersion) {
+                logger.trace('Package not found in current dependencies, skipping conflict analysis', { 
+                    package: updateName 
                 });
-                
-                // Get registry data for the existing package to check its peer dependencies
-                const existingVersion = getCleanVersion(existingSpec);
-                if (!existingVersion) continue;
-                
-                // Get the specific version data for the existing package
-                const existingVersionData = await getPackageVersionData(existingName, existingVersion);
-                if (!existingVersionData?.peerDependencies) continue;
-                
-                // Check if this existing package has a peer dependency on the package we're updating
-                const existingPeerDepVersion = existingVersionData.peerDependencies[updateName];
-                if (!existingPeerDepVersion) continue;
-                
-                // Clean the planned update version for comparison
-                const plannedVersionClean = getCleanVersion(plannedVersion);
-                if (!plannedVersionClean) continue;
-                
-                // Check if the planned update version satisfies the existing package's peer dependency requirement
-                if (!satisfiesPeerDep(plannedVersionClean, existingPeerDepVersion)) {
-                    const conflict = {
-                        packageName: existingName,
-                        currentVersion: existingSpec as string,
-                        conflictsWithPackageName: updateName,
-                        conflictsWithVersion: plannedVersion,
-                        reason: `requires ${updateName}@${existingPeerDepVersion} but updating to ${plannedVersion}`
-                    };
-                    conflicts.push(conflict);
-                    
-                    logger.warn('Conflict detected', conflict);
-                }
-            } catch (error) {
-                // Continue if we can't analyze this package
-                const errorMsg = `Could not analyze ${existingName} for conflicts: ${error instanceof Error ? error.message : String(error)}`;
-                resolutions.push(`⚠ Warning: ${errorMsg}`);
-                logger.error('Failed to analyze package for conflicts', { 
-                    package: existingName, 
-                    error: error instanceof Error ? error.message : String(error) 
-                });
+                continue;
             }
+            
+            // Use getAllDependent to find packages that depend on the current version of updateName
+            const dependents = await getAllDependent(repoPath, updateName);
+            
+            logger.trace('Found dependents for package', { 
+                package: updateName, 
+                currentVersion,
+                dependentVersions: Object.keys(dependents),
+                totalDependents: Object.values(dependents).reduce((sum, arr) => sum + arr.length, 0)
+            });
+            
+            // Check each dependent package to see if it has peer dependency requirements
+            for (const [dependentOnVersion, dependentPackages] of Object.entries(dependents)) {
+                for (const dependent of dependentPackages) {
+                    try {
+                        logger.trace('Checking dependent package', { 
+                            dependent: dependent.name, 
+                            dependentVersion: dependent.version,
+                            updatePackage: updateName,
+                            currentVersion: dependentOnVersion,
+                            plannedVersion 
+                        });
+                        
+                        // Get the dependent package's version data to check its peer dependencies
+                        const dependentVersionClean = getCleanVersion(dependent.version);
+                        if (!dependentVersionClean) continue;
+                        
+                        const dependentVersionData = await getPackageVersionData(dependent.name, dependentVersionClean);
+                        if (!dependentVersionData?.peerDependencies) continue;
+                        
+                        // Check if this dependent has a peer dependency on the package we're updating
+                        const peerDepVersion = dependentVersionData.peerDependencies[updateName];
+                        if (!peerDepVersion) continue;
+                        
+                        // Clean the planned update version for comparison
+                        const plannedVersionClean = getCleanVersion(plannedVersion);
+                        if (!plannedVersionClean) continue;
+                        
+                        // Check if the planned update version satisfies the dependent's peer dependency requirement
+                        if (!satisfiesPeerDep(plannedVersionClean, peerDepVersion)) {
+                            const conflict = {
+                                packageName: dependent.name,
+                                currentVersion: dependent.version,
+                                conflictsWithPackageName: updateName,
+                                conflictsWithVersion: plannedVersion,
+                                reason: `requires ${updateName}@${peerDepVersion} but updating to ${plannedVersion}`
+                            };
+                            conflicts.push(conflict);
+                            
+                            logger.warn('Conflict detected', conflict);
+                        }
+                    } catch (error) {
+                        // Continue if we can't analyze this dependent package
+                        const errorMsg = `Could not analyze dependent ${dependent.name} for conflicts: ${error instanceof Error ? error.message : String(error)}`;
+                        resolutions.push(`⚠ Warning: ${errorMsg}`);
+                        logger.error('Failed to analyze dependent package for conflicts', { 
+                            package: dependent.name, 
+                            error: error instanceof Error ? error.message : String(error) 
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            // Continue if we can't analyze this update
+            const errorMsg = `Could not analyze ${updateName} for conflicts: ${error instanceof Error ? error.message : String(error)}`;
+            resolutions.push(`⚠ Warning: ${errorMsg}`);
+            logger.error('Failed to analyze package update for conflicts', { 
+                package: updateName, 
+                error: error instanceof Error ? error.message : String(error) 
+            });
         }
     }
     

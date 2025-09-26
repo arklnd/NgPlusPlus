@@ -57,9 +57,9 @@ export async function updatePackageWithDependencies(
         // The analysis returns both conflict data and preliminary resolution suggestions
         logger.info('Phase 1: Starting conflict analysis');
         const conflictAnalysisStart = Date.now();
-        
-        const { conflicts, resolutions: conflictAnalysisResults } = await analyzeConflicts(packageJson, plannedUpdates);
-        
+
+        const { conflicts, resolutions: conflictAnalysisResults } = await analyzeConflicts(repoPath, packageJson, plannedUpdates);
+
         const conflictAnalysisTime = Date.now() - conflictAnalysisStart;
         logger.info('Phase 1: Conflict analysis completed', {
             conflictsFound: conflicts.length,
