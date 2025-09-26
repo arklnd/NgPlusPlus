@@ -213,7 +213,8 @@ export async function getAllDependent(repoPath: string, packageName: string): Pr
                     if (!existingDependent) {
                         result[targetVersion].push({
                             name: parentName,
-                            version: parentVersion
+                            version: parentVersion,
+                            recursionLevel: currentPath.length // New field to indicate recursion level
                         });
                     }
                 }
