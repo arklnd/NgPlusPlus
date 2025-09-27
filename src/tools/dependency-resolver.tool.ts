@@ -25,7 +25,7 @@ export async function updatePackageWithDependencies(
     repoPath: string,
     plannedUpdates: Array<{ name: string; version: string; isDev: boolean }>
 ): Promise<string> {
-    const logger = getLogger().child(path.join(__dirname, __filename));
+    const logger = getLogger().child(` ${__filename} `);
     
     logger.info('Starting dependency update process', {
         repoPath,
