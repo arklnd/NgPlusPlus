@@ -89,6 +89,7 @@ The server can be configured to work with MCP clients. Add it to your MCP client
 
 - `npm run dev` - Run in development mode with hot reload
 - `npm run build` - Build the TypeScript project
+- `npm run rebuild` - Clean build artifacts and rebuild the project
 - `npm run build:watch` - Build in watch mode
 - `npm run test` - Run all tests
 - `npm run clean` - Clean build artifacts
