@@ -32,27 +32,27 @@ export function getCleanVersion(spec: string): string | null {
 }
 
 /**
- * Checks if a version satisfies a peer dependency range
+ * Checks if a version satisfies a version range
  * @param version The version to check
  * @param range The semver range to satisfy
  * @returns True if version satisfies the range
  */
-export function satisfiesPeerDep(version: string, range: string): boolean {
+export function satisfiesVersionRange(version: string, range: string): boolean {
     const logger = getLogger().child('Version');
     
-    logger.trace('Checking peer dependency compatibility', { version, range });
+    logger.trace('Checking version compatibility', { version, range });
     
     try {
         const cleanVersion = semver.coerce(version);
         if (!cleanVersion) {
-            logger.warn('Could not coerce version for peer dependency check', { version, range });
+            logger.warn('Could not coerce version for version compatibility check', { version, range });
             return false;
         }
         
         // Let semver handle all range types natively
         const satisfies = semver.satisfies(cleanVersion.version, range);
         
-        logger.trace('Peer dependency check result', { 
+        logger.trace('Version compatibility check result', { 
             version, 
             range, 
             cleanVersion: cleanVersion.version, 
@@ -61,7 +61,7 @@ export function satisfiesPeerDep(version: string, range: string): boolean {
         
         return satisfies;
     } catch (error) {
-        logger.error('Error checking peer dependency compatibility', { 
+        logger.error('Error checking version compatibility', { 
             version, 
             range, 
             error: error instanceof Error ? error.message : String(error) 

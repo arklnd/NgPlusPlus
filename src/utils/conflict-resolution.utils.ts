@@ -1,5 +1,5 @@
 import { getPackageData, getPackageVersionData, getPackageVersions, RegistryData } from './package-registry.utils.js';
-import { getCleanVersion, satisfiesPeerDep, findCompatibleVersion } from './version.utils.js';
+import { getCleanVersion, satisfiesVersionRange, findCompatibleVersion } from './version.utils.js';
 import { PackageJson, getAllDependencies, getAllDependent, isDevDependency, updateDependency } from './package-json.utils.js';
 import { getLogger } from './logger.utils.js';
 
@@ -60,41 +60,45 @@ export async function analyzeConflicts(
                 totalDependents: Object.values(dependents).reduce((sum, arr) => sum + arr.length, 0)
             });
             
+            // Flatten all dependent packages for easier processing
+            const allDependentPackages = Object.entries(dependents).flatMap(([dependentOnVersion, dependentPackages]) =>
+                dependentPackages.map(dependent => ({ ...dependent, dependentOnVersion }))
+            );
+            
             // Check each dependent package to see if it has peer dependency requirements
-            for (const [dependentOnVersion, dependentPackages] of Object.entries(dependents)) {
-                for (const dependent of dependentPackages) {
-                    try {
-                        logger.trace('Checking dependent package', { 
-                            dependent: dependent.name, 
-                            dependentVersion: dependent.version,
-                            updatePackage: updateName,
-                            currentVersion: dependentOnVersion,
-                            plannedVersion 
-                        });
+            for (const dependent of allDependentPackages) {
+                try {
+                    logger.trace('Checking dependent package', { 
+                        dependent: dependent.name, 
+                        dependentVersion: dependent.version,
+                        updatePackage: updateName,
+                        currentVersion: dependent.dependentOnVersion,
+                        plannedVersion 
+                    });
                         
                         // Get the dependent package's version data to check its peer dependencies
                         const dependentVersionClean = getCleanVersion(dependent.version);
                         if (!dependentVersionClean) continue;
                         
                         const dependentVersionData = await getPackageVersionData(dependent.name, dependentVersionClean);
-                        if (!dependentVersionData?.peerDependencies) continue;
-                        
-                        // Check if this dependent has a peer dependency on the package we're updating
-                        const peerDepVersion = dependentVersionData.peerDependencies[updateName];
-                        if (!peerDepVersion) continue;
-                        
+                        if (!dependentVersionData?.dependencies) continue;
+
+                        // Check if this dependent has a dependency on the package we're updating
+                        const depVersion = dependentVersionData.dependencies[updateName];
+                        if (!depVersion) continue;
+
                         // Clean the planned update version for comparison
-                        const plannedVersionClean = getCleanVersion(plannedVersion);
-                        if (!plannedVersionClean) continue;
-                        
-                        // Check if the planned update version satisfies the dependent's peer dependency requirement
-                        if (!satisfiesPeerDep(plannedVersionClean, peerDepVersion)) {
+                        // const plannedVersionClean = getCleanVersion(plannedVersion);
+                        // if (!plannedVersionClean) continue;
+
+                        // Check if the planned update version satisfies the dependent's dependency requirement
+                        if (!satisfiesVersionRange(plannedVersion, depVersion)) {
                             const conflict = {
                                 packageName: dependent.name,
                                 currentVersion: dependent.version,
                                 conflictsWithPackageName: updateName,
                                 conflictsWithVersion: plannedVersion,
-                                reason: `requires ${updateName}@${peerDepVersion} but updating to ${plannedVersion}`
+                                reason: `requires ${updateName}@${depVersion} but updating to ${plannedVersion}`
                             };
                             conflicts.push(conflict);
                             
@@ -110,7 +114,6 @@ export async function analyzeConflicts(
                         });
                     }
                 }
-            }
         } catch (error) {
             // Continue if we can't analyze this update
             const errorMsg = `Could not analyze ${updateName} for conflicts: ${error instanceof Error ? error.message : String(error)}`;
@@ -180,7 +183,7 @@ export async function resolveConflicts(
                 try {
                     const versionData = await getPackageVersionData(conflict.packageName, version);
                     const peerDep = versionData.peerDependencies?.[updateName];
-                    if (peerDep && satisfiesPeerDep(updateVersionClean, peerDep)) {
+                    if (peerDep && satisfiesVersionRange(updateVersionClean, peerDep)) {
                         compatibleVersion = version;
                         logger.debug('Found compatible version', { 
                             package: conflict.packageName, 
