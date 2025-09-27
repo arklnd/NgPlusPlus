@@ -16,8 +16,9 @@
         "start": "node dist/index.js",
         "clean": "rmdir /s /q dist 2>nul || echo dist folder cleaned",
         "build:watch": "tsc -p tsconfig.build.json --watch",
-        "test": "mocha --loader=ts-node/esm --require source-map-support/register \"test/**/*.test.ts\"",
-        "test:unit": "mocha --loader=ts-node/esm --require source-map-support/register \"test/**/*.test.ts\""
+        "test": "mocha --import=tsx \"test/**/*.test.ts\"",
+        "test:unit": "mocha --import=tsx \"test/**/*.test.ts\"",
+        "test:mocha": "mocha --import=tsx \"test/**/*.test.ts\""
     },
     "author": "Arijit Kundu",
     "license": "ISC",
@@ -45,9 +46,7 @@
         "extension": [
             "test.ts"
         ],
-        "loader": "ts-node/esm",
-        "require": [
-            "source-map-support/register"
-        ]
+        "spec": "test/**/*.test.ts",
+        "timeout": 10000
     }
 }
