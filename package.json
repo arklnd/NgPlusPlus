@@ -13,12 +13,11 @@
     "scripts": {
         "dev": "tsx src/index.ts",
         "build": "tsc -p tsconfig.build.json",
+        "rebuild": "npm run clean && tsc -p tsconfig.build.json",
         "start": "node dist/index.js",
-        "clean": "rmdir /s /q dist 2>nul || echo dist folder cleaned",
+        "clean": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true})\"",
         "build:watch": "tsc -p tsconfig.build.json --watch",
-        "test": "mocha --import=tsx \"test/**/*.test.ts\"",
-        "test:unit": "mocha --import=tsx \"test/**/*.test.ts\"",
-        "test:mocha": "mocha --import=tsx \"test/**/*.test.ts\""
+        "test": "mocha --import=tsx \"test/**/*.test.ts\""
     },
     "author": "Arijit Kundu",
     "license": "ISC",
