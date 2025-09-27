@@ -1,5 +1,5 @@
 import { getPackageData, getPackageVersionData } from './package-registry.utils.js';
-import { getCleanVersion, satisfiesPeerDep, findCompatibleVersion } from './version.utils.js';
+import { getCleanVersion, satisfiesVersionRange, findCompatibleVersion } from './version.utils.js';
 import { PackageJson, getAllDependencies, isDevDependency, updateDependency } from './package-json.utils.js';
 import { getLogger } from './logger.utils.js';
 
@@ -96,7 +96,7 @@ export async function updateTransitiveDependencies(
                 
                 // PHASE 4: COMPATIBILITY VERIFICATION
                 // Check if current version satisfies the transitive dependency requirements
-                if (satisfiesPeerDep(currentVersion, requiredRange)) {
+                if (satisfiesVersionRange(currentVersion, requiredRange)) {
                     const successMsg = `${depName}@${currentSpec} satisfies ${requiredRange}`;
                     results.push(`✓ ${successMsg}`);
                     logger.debug('Dependency compatibility verified', { 
