@@ -22,14 +22,37 @@ describe('analyzeConflicts', function () {
         testRepoPath = tempDir;
     });
     
-    afterEach(function () {
+    afterEach(async function () {
         // Clean up temporary directory
         if (fs.existsSync(tempDir)) {
-            fs.rmSync(tempDir, { recursive: true, force: true });
+            // Add a small delay to allow npm processes to release file handles
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            try {
+                // Try multiple times with increasing delays
+                for (let attempt = 1; attempt <= 3; attempt++) {
+                    try {
+                        fs.rmSync(tempDir, { recursive: true, force: true });
+                        break;
+                    } catch (error) {
+                        if (attempt === 3) {
+                            console.warn(`Failed to clean up temp directory after ${attempt} attempts:`, tempDir);
+                            // Don't throw - just warn and continue
+                        } else {
+                            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('Failed to clean up temp directory:', error);
+            }
         }
     });
     
     it('should analyze conflicts with existing dependencies', async function () {
+        // Increase timeout for npm operations
+        this.timeout(60000); // 60 seconds
+        
         // Arrange
         const packageJson: PackageJson = {
             name: "test-project",
