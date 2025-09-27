@@ -30,6 +30,7 @@ export async function analyzeConflicts(
     const logger = getLogger().child('ConflictResolution');
     logger.info('Starting conflict analysis', { plannedUpdateCount: plannedUpdates.length });
     
+    // #region Dependency Installation for Conflict Analysis
     // Before starting conflict analysis, ensure installDependencies has been run to populate node_modules
     try {
         logger.debug('Installing dependencies to populate node_modules for conflict analysis');
@@ -42,6 +43,7 @@ export async function analyzeConflicts(
         });
         throw new Error(`Cannot perform conflict analysis: dependency installation failed - ${errorMessage}`);
     }
+    // #endregion
     
     const conflicts: ConflictInfo[] = [];
     const resolutions: string[] = [];
