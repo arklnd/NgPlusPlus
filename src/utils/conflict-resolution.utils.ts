@@ -1,6 +1,6 @@
 import { getPackageData, getPackageVersionData, getPackageVersions, RegistryData } from './package-registry.utils.js';
 import { getCleanVersion, satisfiesVersionRange, findCompatibleVersion } from './version.utils.js';
-import { PackageJson, getAllDependencies, getAllDependent, isDevDependency, updateDependency } from './package-json.utils.js';
+import { PackageJson, getAllDependencies, getAllDependent, isDevDependency, updateDependency, installDependencies } from './package-json.utils.js';
 import { getLogger } from './logger.utils.js';
 
 export interface ConflictInfo {
@@ -29,6 +29,19 @@ export async function analyzeConflicts(
 ): Promise<ConflictResolution> {
     const logger = getLogger().child('ConflictResolution');
     logger.info('Starting conflict analysis', { plannedUpdateCount: plannedUpdates.length });
+    
+    // Before starting conflict analysis, ensure installDependencies has been run to populate node_modules
+    try {
+        logger.debug('Installing dependencies to populate node_modules for conflict analysis');
+        await installDependencies(repoPath);
+        logger.info('Successfully installed dependencies before conflict analysis');
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error('Failed to install dependencies before conflict analysis - aborting', {
+            error: errorMessage
+        });
+        throw new Error(`Cannot perform conflict analysis: dependency installation failed - ${errorMessage}`);
+    }
     
     const conflicts: ConflictInfo[] = [];
     const resolutions: string[] = [];
