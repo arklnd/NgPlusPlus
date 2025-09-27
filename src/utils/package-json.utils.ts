@@ -242,3 +242,66 @@ export async function getAllDependent(repoPath: string, packageName: string): Pr
         throw error;
     }
 }
+
+/**
+ * do npm install in the given repo path
+ * @param repoPath Path to the repository
+ */
+export async function installDependencies(repoPath: string): Promise<void> {
+    const logger = getLogger().child('PackageJson');
+
+    logger.debug('Installing dependencies', { repoPath });
+
+    try {
+        await new Promise<void>((resolve, reject) => {
+            const child = spawn('npm', ['install'], {
+                stdio: ['pipe', 'pipe', 'pipe'],
+                shell: true,
+                cwd: repoPath,
+            });
+
+            let stdout = '';
+            let stderr = '';
+
+            child.stdout.on('data', (chunk: Buffer) => {
+                stdout += chunk.toString();
+            });
+
+            child.stderr.on('data', (chunk: Buffer) => {
+                stderr += chunk.toString();
+            });
+
+            child.on('close', (code: number | null) => {
+                if (code === 0) {
+                    logger.info('Successfully installed dependencies', {
+                        repoPath,
+                        stdout: stdout.trim(),
+                    });
+                    resolve();
+                } else {
+                    const errorMessage = `npm install failed with exit code ${code}`;
+                    logger.error(errorMessage, {
+                        repoPath,
+                        stderr: stderr.trim(),
+                        stdout: stdout.trim(),
+                    });
+                    reject(new Error(`${errorMessage}: ${stderr || stdout}`));
+                }
+            });
+
+            child.on('error', (error: Error) => {
+                logger.error('Failed to spawn npm install process', {
+                    repoPath,
+                    error: error.message,
+                });
+                reject(new Error(`Failed to spawn npm install process: ${error.message}`));
+            });
+        });
+    } catch (error) {
+        logger.error('Failed to install dependencies', {
+            repoPath,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+    }
+}
