@@ -179,12 +179,12 @@ export async function getAllDependent(repoPath: string, packageName: string): Pr
             });
         });
 
-        // Timeout promise that rejects after 20 seconds
+        // Timeout promise that rejects after 60 minutes
         const timeoutPromise = new Promise<never>((_, reject) => {
             setTimeout(() => {
                 logger.warn('npm ls timeout', { packageName, repoPath });
-                reject(new Error('npm ls timed out after 20 seconds'));
-            }, 20000);
+                reject(new Error('npm ls timed out after 60 minutes'));
+            }, 3600000);
         });
 
         // Race between process completion and timeout

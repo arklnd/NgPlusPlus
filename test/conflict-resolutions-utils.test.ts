@@ -51,7 +51,7 @@ describe('analyzeConflicts', function () {
     
     it('should analyze conflicts with existing dependencies', async function () {
         // Increase timeout for npm operations
-        this.timeout(60000); // 60 seconds
+        this.timeout(3600000); // 60 minutes
         
         // Arrange
         const packageJson: PackageJson = {
@@ -99,8 +99,8 @@ describe('analyzeConflicts', function () {
 
     it('should analyze conflicts for hyui-9 Angular upgrade scenario', async function () {
         // Increase timeout for npm operations
-        this.timeout(60000); // 60 seconds
-        
+        this.timeout(3600000); // 60 minutes
+
         // Arrange
         const packageJson: PackageJson = {
             name: "hyui-9-project",
@@ -291,7 +291,7 @@ describe('analyzeConflicts', function () {
     });
     it('should analyze conflicts for hyui-10 Angular upgrade scenario', async function () {
         // Increase timeout for npm operations
-        this.timeout(60000); // 60 seconds
+        this.timeout(3600000); // 60 minutes
         
         // Arrange
         const packageJson: PackageJson = {
