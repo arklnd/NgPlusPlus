@@ -144,8 +144,8 @@ export async function getAllDependent(repoPath: string, packageName: string): Pr
     logger.debug('Getting dependents for package', { packageName, repoPath });
 
     try {
-        // Execute npm ls command to get dependency tree
-        const dependencyTree = await new Promise<any>((resolve, reject) => {
+        // Execute npm ls command to get dependency tree using Promise.race()
+        const processPromise = new Promise<any>((resolve, reject) => {
             const child = spawn('npm', ['ls', packageName, '--json'], {
                 stdio: ['pipe', 'pipe', 'pipe'],
                 shell: true,
@@ -155,11 +155,11 @@ export async function getAllDependent(repoPath: string, packageName: string): Pr
             let stdout = '';
             let stderr = '';
 
-            child.stdout.on('data', (chunk: Buffer) => {
+            child.stdout?.on('data', (chunk: Buffer) => {
                 stdout += chunk.toString();
             });
 
-            child.stderr.on('data', (chunk: Buffer) => {
+            child.stderr?.on('data', (chunk: Buffer) => {
                 stderr += chunk.toString();
             });
 
@@ -178,6 +178,17 @@ export async function getAllDependent(repoPath: string, packageName: string): Pr
                 reject(new Error(`Failed to spawn npm process: ${error.message}`));
             });
         });
+
+        // Timeout promise that rejects after 20 seconds
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => {
+                logger.warn('npm ls timeout', { packageName, repoPath });
+                reject(new Error('npm ls timed out after 20 seconds'));
+            }, 20000);
+        });
+
+        // Race between process completion and timeout
+        const dependencyTree = await Promise.race([processPromise, timeoutPromise]);
 
         // Parse the dependency tree to find dependents
         const result: Record<string, PackageJson[]> = {};
@@ -253,7 +264,8 @@ export async function installDependencies(repoPath: string): Promise<void> {
     logger.debug('Installing dependencies', { repoPath });
 
     try {
-        await new Promise<void>((resolve, reject) => {
+        // Use Promise.race() for cleaner timeout handling (like C# Task.WhenAny)
+        const processPromise = new Promise<void>((resolve, reject) => {
             const child = spawn('npm', ['install'], {
                 stdio: ['pipe', 'pipe', 'pipe'],
                 shell: true,
@@ -263,11 +275,11 @@ export async function installDependencies(repoPath: string): Promise<void> {
             let stdout = '';
             let stderr = '';
 
-            child.stdout.on('data', (chunk: Buffer) => {
+            child.stdout?.on('data', (chunk: Buffer) => {
                 stdout += chunk.toString();
             });
 
-            child.stderr.on('data', (chunk: Buffer) => {
+            child.stderr?.on('data', (chunk: Buffer) => {
                 stderr += chunk.toString();
             });
 
@@ -297,6 +309,17 @@ export async function installDependencies(repoPath: string): Promise<void> {
                 reject(new Error(`Failed to spawn npm install process: ${error.message}`));
             });
         });
+
+        // Timeout promise that rejects after 60 minutes
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => {
+                logger.warn('npm install timeout', { repoPath });
+                reject(new Error('npm install timed out after 60 minutes'));
+            }, 3600000);
+        });
+
+        // Race between process completion and timeout (like C# Task.WhenAny)
+        await Promise.race([processPromise, timeoutPromise]);
     } catch (error) {
         logger.error('Failed to install dependencies', {
             repoPath,
