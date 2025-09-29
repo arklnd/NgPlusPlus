@@ -55,6 +55,10 @@ jobs:
         if [ -d "node_modules" ]; then
           echo "node_modules directory exists"
           ls -la node_modules/ | head -5
+          echo "Checking for mocha..."
+          ls -la node_modules/.bin/ | grep mocha || echo "mocha not found in .bin"
+          echo "Checking for key packages..."
+          ls -la node_modules/ | grep -E "(mocha|chai|tsx)" || echo "Some packages missing"
         else
           echo "ERROR: node_modules directory not found!"
           exit 1
@@ -71,7 +75,13 @@ jobs:
     - name: Run test
       run: |
         echo "Running test with pattern: ${{ github.event.inputs.test_pattern }}"
-        npm test -- --grep "${{ github.event.inputs.test_pattern }}"
+        # Try npm test first, fallback to npx if binaries aren't linked properly
+        if npm test -- --grep "${{ github.event.inputs.test_pattern }}"; then
+          echo "Test completed via npm test"
+        else
+          echo "npm test failed, trying npx mocha directly..."
+          npx mocha --import=tsx "test/**/*.test.ts" --grep "${{ github.event.inputs.test_pattern }}"
+        fi
 
     - name: Display test results
       if: always()
