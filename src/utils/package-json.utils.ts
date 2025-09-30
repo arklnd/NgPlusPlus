@@ -309,20 +309,30 @@ export async function installDependencies(repoPath: string): Promise<void> {
                 });
                 reject(new Error(`Failed to spawn npm install process: ${error.message}`));
             });
+
+            // Set timeout that will abort the process and reject the promise
+            const timeoutId = setTimeout(() => {
+                logger.warn('npm install timeout', { repoPath });
+                abortController.abort(); // This will terminate the child process
+                reject(new Error('npm install timed out after 60 minutes'));
+            }, 3600000);
+
+            // Clear timeout when the process completes (either success or error)
+            const originalResolve = resolve;
+            const originalReject = reject;
+            
+            resolve = (...args) => {
+                clearTimeout(timeoutId);
+                originalResolve(...args);
+            };
+            
+            reject = (...args) => {
+                clearTimeout(timeoutId);
+                originalReject(...args);
+            };
         });
 
-        // Set timeout that will abort the process
-        const timeoutId = setTimeout(() => {
-            logger.warn('npm install timeout', { repoPath });
-            abortController.abort(); // This will terminate the child process
-            reject(new Error('npm install timed out after 60 minutes'));
-        }, 3600000);
-
-        const result = await processPromise;
-        
-        // Clear timeout if process completes successfully
-        clearTimeout(timeoutId);
-        return result;
+        return await processPromise;
 
     } catch (error) {
         logger.error('Failed to install dependencies', {
