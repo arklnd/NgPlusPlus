@@ -12,7 +12,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
 
     steps:
     - name: Checkout code
@@ -22,62 +21,15 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20.x'
-        # Removed cache: 'npm' to avoid cache conflicts
-
-    - name: Verify package files
-      run: |
-        echo "Checking package.json and package-lock.json..."
-        ls -la package*.json
-        node --version
-        npm --version
-
-    - name: Clear npm cache and install dependencies
-      run: |
-        echo "Clearing npm cache..."
-        npm cache clean --force
-        
-        echo "Installing dependencies..."
-        # Try npm ci first, with multiple fallback strategies
-        if npm ci --no-audit --no-fund 2>/dev/null; then
-          echo "npm ci succeeded with --no-audit --no-fund"
-        elif npm ci --legacy-peer-deps --no-audit 2>/dev/null; then
-          echo "npm ci succeeded with --legacy-peer-deps"
-        else
-          echo "npm ci failed, using npm install..."
-          rm -rf node_modules package-lock.json
-          # Use npm install with flags to be more permissive
-          npm install --legacy-peer-deps --no-audit --no-fund || npm install --force
-        fi
-
-    - name: Verify installation
-      run: |
-        echo "Verifying node_modules..."
-        if [ -d "node_modules" ]; then
-          echo "node_modules directory exists"
-          ls -la node_modules/ | head -5
-          echo "Checking for mocha..."
-          ls -la node_modules/.bin/ | grep mocha || echo "mocha not found in .bin"
-          echo "Checking for key packages..."
-          ls -la node_modules/ | grep -E "(mocha|chai|tsx)" || echo "Some packages missing"
-        else
-          echo "ERROR: node_modules directory not found!"
-          exit 1
-        fi
+ 
+    - name: Install dependencies
+      run: npm i --verbose
 
     - name: Build project
-      continue-on-error: true
-      run: |
-        echo "Building project..."
-        npm run build || {
-          echo "Build failed due to type definition issues, but this is expected"
-          echo "Tests can still run using tsx for TypeScript compilation"
-        }
+      run: npm run build
 
     - name: Run test
-      run: |
-        echo "Running test with pattern: ${{ github.event.inputs.test_pattern }}"
-        echo "Using npx to ensure mocha is found..."
-        npx mocha --import=tsx "test/**/*.test.ts" --grep "${{ github.event.inputs.test_pattern }}"
+      run: npx mocha -- --grep "${{ github.event.inputs.test_pattern }}"
 
     - name: Display test results
       if: always()
