@@ -34,3 +34,14 @@ jobs:
     - name: Display test results
       if: always()
       run: echo "Test execution completed with pattern - ${{ github.event.inputs.test_pattern }}"
+
+    - name: Upload logs as artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-logs-${{ github.run_number }}
+        path: |
+          logs/
+          src/logs/
+          src/utils/logs/
+        retention-days: 30
