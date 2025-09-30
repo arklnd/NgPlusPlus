@@ -1,0 +1,10 @@
+{
+    "extension": [
+        "test.ts"
+    ],
+    "spec": "test/**/*.test.ts",
+    "timeout": 3600000,
+    "import": [
+        "tsx"
+    ]
+}

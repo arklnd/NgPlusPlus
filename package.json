@@ -17,7 +17,7 @@
         "start": "node dist/index.js",
         "clean": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true})\"",
         "build:watch": "tsc -p tsconfig.build.json --watch",
-        "test": "mocha --import=tsx \"test/**/*.test.ts\""
+        "test": "npx mocha"
     },
     "author": "Arijit Kundu",
     "license": "ISC",
@@ -40,12 +40,5 @@
         "openai": "5.12.2",
         "semver": "7.7.2",
         "zod": "^3.23.8"
-    },
-    "mocha": {
-        "extension": [
-            "test.ts"
-        ],
-        "spec": "test/**/*.test.ts",
-        "timeout": 3600000
     }
 }
