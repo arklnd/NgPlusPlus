@@ -260,16 +260,17 @@ export async function getAllDependent(repoPath: string, packageName: string): Pr
  */
 export async function installDependencies(repoPath: string): Promise<void> {
     const logger = getLogger().child('PackageJson');
-
     logger.debug('Installing dependencies', { repoPath });
 
+    const abortController = new AbortController();
+
     try {
-        // Use Promise.race() for cleaner timeout handling (like C# Task.WhenAny)
         const processPromise = new Promise<void>((resolve, reject) => {
             const child = spawn('npm', ['install'], {
                 stdio: ['pipe', 'pipe', 'pipe'],
                 shell: true,
                 cwd: repoPath,
+                signal: abortController.signal, // Pass the abort signal
             });
 
             let stdout = '';
@@ -310,16 +311,19 @@ export async function installDependencies(repoPath: string): Promise<void> {
             });
         });
 
-        // Timeout promise that rejects after 60 minutes
-        const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => {
-                logger.warn('npm install timeout', { repoPath });
-                reject(new Error('npm install timed out after 60 minutes'));
-            }, 3600000);
-        });
+        // Set timeout that will abort the process
+        const timeoutId = setTimeout(() => {
+            logger.warn('npm install timeout', { repoPath });
+            abortController.abort(); // This will terminate the child process
+            reject(new Error('npm install timed out after 60 minutes'));
+        }, 3600000);
 
-        // Race between process completion and timeout (like C# Task.WhenAny)
-        await Promise.race([processPromise, timeoutPromise]);
+        const result = await processPromise;
+        
+        // Clear timeout if process completes successfully
+        clearTimeout(timeoutId);
+        return result;
+
     } catch (error) {
         logger.error('Failed to install dependencies', {
             repoPath,
