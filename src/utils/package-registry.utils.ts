@@ -214,6 +214,88 @@ export async function getPackageVersions(name: string): Promise<string[]> {
         throw error;
     }
 }
+
+export interface ValidationResult {
+    packageName: string;
+    version: string;
+    exists: boolean;
+    error?: string;
+}
+
+/**
+ * Validates if planned package updates have existing versions in the npm registry
+ * @param plannedUpdates Array of planned dependency updates
+ * @returns Array of validation results indicating which packages/versions exist
+ */
+export async function validatePackageVersionsExist(plannedUpdates: Array<{ name: string; version: string; isDev: boolean }>): Promise<ValidationResult[]> {
+    const logger = getLogger().child('PackageVersionValidator');
+
+    logger.info('Starting package version validation', {
+        packageCount: plannedUpdates.length,
+        packages: plannedUpdates.map((u) => `${u.name}@${u.version}`),
+    });
+
+    const results: ValidationResult[] = [];
+
+    // Process packages in parallel for better performance
+    const validationPromises = plannedUpdates.map(async (update) => {
+        const { name, version } = update;
+
+        logger.debug('Validating package version', { package: name, version });
+
+        try {
+            // Try to fetch the specific version data
+            await getPackageVersionData(name, version);
+
+            logger.trace('Package version exists', { package: name, version });
+
+            return {
+                packageName: name,
+                version,
+                exists: true,
+            };
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+
+            logger.warn('Package version validation failed', {
+                package: name,
+                version,
+                error: errorMessage,
+            });
+
+            return {
+                packageName: name,
+                version,
+                exists: false,
+                error: errorMessage,
+            };
+        }
+    });
+
+    try {
+        const validationResults = await Promise.all(validationPromises);
+        results.push(...validationResults);
+
+        const existingCount = results.filter((r) => r.exists).length;
+        const nonExistingCount = results.filter((r) => !r.exists).length;
+
+        logger.info('Package version validation completed', {
+            totalPackages: results.length,
+            existingVersions: existingCount,
+            nonExistingVersions: nonExistingCount,
+            nonExistingPackages: results.filter((r) => !r.exists).map((r) => `${r.packageName}@${r.version}`),
+        });
+
+        return results;
+    } catch (error) {
+        logger.error('Package version validation failed', {
+            error: error instanceof Error ? error.message : String(error),
+            packageCount: plannedUpdates.length,
+        });
+        throw error;
+    }
+}
+
 /*
  * Utility functions for working with package registries
  * Alternate ideas: libnpmconfig, libnpmaccess, npm-registry-fetch

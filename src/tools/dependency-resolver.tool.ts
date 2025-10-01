@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { readPackageJson, writePackageJson, updateDependency, analyzeConflicts, resolveConflicts, updateTransitiveDependencies, getLogger } from '../utils/index.js';
+import { readPackageJson, writePackageJson, updateDependency, analyzeConflicts, resolveConflicts, updateTransitiveDependencies, getLogger, validatePackageVersionsExist, ValidationResult } from '../utils/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,6 +23,42 @@ export async function updatePackageWithDependencies(repoPath: string, runNpmInst
     });
 
     try {
+        const results: string[] = [];
+
+        // Phase 0: Validate package versions exist in npm registry
+        // This phase verifies that all planned dependency updates reference actual versions
+        // that exist in the npm registry before proceeding with any modifications.
+        // It prevents the update process from failing later due to non-existent package versions.
+        logger.info('Phase 0: Starting package version validation');
+        const validationStart = Date.now();
+
+        const validationResults = await validatePackageVersionsExist(plannedUpdates);
+        const nonExistentVersions = validationResults.filter((result) => !result.exists);
+
+        const validationTime = Date.now() - validationStart;
+        logger.info('Phase 0: Package version validation completed', {
+            totalPackages: validationResults.length,
+            existingVersions: validationResults.length - nonExistentVersions.length,
+            nonExistingVersions: nonExistentVersions.length,
+            validationTimeMs: validationTime,
+            nonExistentPackages: nonExistentVersions.map((v) => `${v.packageName}@${v.version}`),
+        });
+
+        // If any versions don't exist, throw an error with details
+        if (nonExistentVersions.length > 0) {
+            const errorDetails = nonExistentVersions.map((v) => `- ${v.packageName}@${v.version}: ${v.error || 'Version not found'}`).join('\n');
+
+            const errorMessage = `The following package versions do not exist in the npm registry:\n${errorDetails}`;
+            logger.error('Package validation failed - non-existent versions detected', {
+                nonExistentCount: nonExistentVersions.length,
+                nonExistentPackages: nonExistentVersions.map((v) => `${v.packageName}@${v.version}`),
+            });
+
+            throw new Error(errorMessage);
+        }
+
+        results.push(`✅ All ${plannedUpdates.length} package versions validated successfully`);
+
         // Read package.json
         logger.debug('Reading package.json', { repoPath });
         const packageJson = readPackageJson(repoPath);
@@ -32,8 +68,6 @@ export async function updatePackageWithDependencies(repoPath: string, runNpmInst
             existingDepsCount: Object.keys(packageJson.dependencies || {}).length,
             existingDevDepsCount: Object.keys(packageJson.devDependencies || {}).length,
         });
-
-        const results: string[] = [];
 
         // Phase 1: Analyze conflicts
         // This phase examines the planned dependency updates against the current package.json
@@ -163,11 +197,12 @@ export async function updatePackageWithDependencies(repoPath: string, runNpmInst
 
         results.push('✅ package.json updated successfully');
 
-        const totalTime = Date.now() - conflictAnalysisStart;
+        const totalTime = Date.now() - validationStart;
         logger.info('Dependency update process completed successfully', {
             totalOperations: results.length,
             totalTimeMs: totalTime,
             phaseTimes: {
+                packageValidation: validationTime,
                 conflictAnalysis: conflictAnalysisTime,
                 conflictResolution: conflicts.length > 0 ? Date.now() - conflictAnalysisStart - conflictAnalysisTime : 0,
                 dependencyUpdates: updateTime,
