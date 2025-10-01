@@ -57,4 +57,5 @@ jobs:
           logs/
           src/logs/
           src/utils/logs/
+          src/test/assets/
         retention-days: 30

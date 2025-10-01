@@ -144,7 +144,18 @@ describe('updatePackageWithDependencies', function () {
         
         // Act
         const result = await updatePackageWithDependencies(testRepoPath, false, plannedUpdates);
-        
+
+        // Create artifacts directory if it doesn't exist
+        // const artifactsDir = path.join(__dirname, 'artifacts');
+        // if (!fs.existsSync(artifactsDir)) {
+        //     fs.mkdirSync(artifactsDir, { recursive: true });
+        // }
+
+        // copy package.json to src/test/artifacts/ for inspection
+        // fs.copyFileSync(targetPackageJsonPath, path.join(__dirname, 'artifacts', 'package_hyui9_updated.json'));
+        // fs.copyFileSync(targetPackageLockPath, path.join(__dirname, 'artifacts', 'package-lock_hyui9_updated.json'));
+        fs.copyFileSync(targetPackageJsonPath, sourcePackageJsonPath);
+        fs.copyFileSync(targetPackageLockPath, sourcePackageLockPath);
         // Assert
         expect(result).to.be.a('string');
         expect(result).to.include('✅ package.json updated successfully');
