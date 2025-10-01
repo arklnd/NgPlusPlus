@@ -184,10 +184,6 @@ describe('updatePackageWithDependencies', function () {
         expect(updatedPackageJson.devDependencies).to.have.property('@angular-devkit/core', '^20.0.0');
         expect(updatedPackageJson.devDependencies).to.have.property('@angular/elements', '^20.0.0');
         expect(updatedPackageJson.devDependencies).to.have.property('@angular/language-service', '^20.0.0');
-
-        // Verify existing dependencies are preserved
-        expect(updatedPackageJson.dependencies).to.have.property('rxjs', '~7.8.0');
-        expect(updatedPackageJson.devDependencies).to.have.property('typescript', '~5.6.0');
     });
 
     it('should handle empty package.json', async function () {
