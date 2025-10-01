@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { getLogger } from '../utils/index.js';
+import { getLogger } from '@U/index.js';
 
 /**
  * Demo data for the MCP resources

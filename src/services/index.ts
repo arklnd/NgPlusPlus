@@ -1,1 +1,1 @@
-export * from './openai.service.js';
+export * from '@S/openai.service.js';

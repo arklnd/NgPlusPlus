@@ -1,7 +1,12 @@
-export * from './package-registry.utils.js';
-export * from './version.utils.js';
-export * from './package-json.utils.js';
-export * from './conflict-resolution.utils.js';
-export * from './transitive-dependencies.utils.js';
-export * from './logger.utils.js';
-export type { ValidationResult } from './package-registry.utils.js';
+export * from '@U/package-registry.utils.js';
+export * from '@U/version.utils.js';
+export * from '@U/package-json.utils.js';
+export * from '@U/conflict-resolution.utils.js';
+export * from '@U/transitive-dependencies.utils.js';
+export * from '@U/logger.utils.js';
+
+// Export interfaces from the interfaces folder
+export * from '@I/package-registry.interfaces.js';
+export * from '@I/package-json.interfaces.js';
+export * from '@I/conflict-resolution.interfaces.js';
+export * from '@I/logger.interfaces.js';

@@ -1,32 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-
-export enum LogLevel {
-    ERROR = 0,
-    WARN = 1,
-    INFO = 2,
-    DEBUG = 3,
-    TRACE = 4,
-}
-
-export interface LogEntry {
-    timestamp: string;
-    level: string;
-    message: string;
-    context?: string;
-    metadata?: Record<string, any>;
-}
-
-export interface LoggerConfig {
-    level: LogLevel;
-    enableFileLogging: boolean;
-    logDirectory: string;
-    logFileName?: string;
-    maxFileSize?: number; // in bytes
-    maxFiles?: number;
-    enableConsoleLogging: boolean;
-}
+import { LogEntry, LoggerConfig, LogLevel } from '@I/logger.interfaces.js';
 
 /**
  * Simple file-based logger utility for NgPlusPlus MCP

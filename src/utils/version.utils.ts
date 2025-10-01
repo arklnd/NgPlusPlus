@@ -1,5 +1,5 @@
 import * as semver from 'semver';
-import { getLogger } from './logger.utils.js';
+import { getLogger } from '@U/logger.utils.js';
 
 /**
  * Safely extracts a clean version from a version spec using semver

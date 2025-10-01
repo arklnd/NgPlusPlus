@@ -4,7 +4,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { updatePackageWithDependencies } from '@T/dependency-resolver.tool.js';
-import { PackageJson, installDependencies } from '@U/package-json.utils.js';
+import { installDependencies } from '@U/package-json.utils.js';
+import { PackageJson } from '@U/index.js';
 
 interface PackageUpdate {
     name: string;

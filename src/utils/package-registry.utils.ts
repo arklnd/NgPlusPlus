@@ -1,27 +1,6 @@
 import { spawn } from 'child_process';
-import { getLogger } from './logger.utils.js';
-
-export interface RegistryData {
-    versions: Record<
-        string,
-        {
-            dependencies?: Record<string, string>;
-            peerDependencies?: Record<string, string>;
-        }
-    >;
-    'dist-tags'?: {
-        latest?: string;
-        [tag: string]: string | undefined;
-    };
-}
-
-export interface PackageVersionData {
-    dependencies?: Record<string, string>;
-    peerDependencies?: Record<string, string>;
-    devDependencies?: Record<string, string>;
-    version: string;
-    name: string;
-}
+import { getLogger } from '@U/logger.utils.js';
+import { RegistryData, PackageVersionData, ValidationResult } from '@I/package-registry.interfaces.js';
 
 /**
  * Fetches package metadata using npm view command (respects .npmrc auth)
@@ -213,13 +192,6 @@ export async function getPackageVersions(name: string): Promise<string[]> {
         });
         throw error;
     }
-}
-
-export interface ValidationResult {
-    packageName: string;
-    version: string;
-    exists: boolean;
-    error?: string;
 }
 
 /**
