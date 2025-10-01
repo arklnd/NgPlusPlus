@@ -23,6 +23,7 @@ const __dirname = path.dirname(__filename);
  */
 export async function updatePackageWithDependencies(
     repoPath: string,
+    runNpmInstall: boolean,
     plannedUpdates: Array<{ name: string; version: string; isDev: boolean }>
 ): Promise<string> {
     const logger = getLogger().child(` ${__filename} `);
@@ -58,7 +59,7 @@ export async function updatePackageWithDependencies(
         logger.info('Phase 1: Starting conflict analysis');
         const conflictAnalysisStart = Date.now();
 
-        const { conflicts, resolutions: conflictAnalysisResults } = await analyzeConflicts(repoPath, packageJson, plannedUpdates);
+        const { conflicts, resolutions: conflictAnalysisResults } = await analyzeConflicts(repoPath, runNpmInstall, packageJson, plannedUpdates);
 
         const conflictAnalysisTime = Date.now() - conflictAnalysisStart;
         logger.info('Phase 1: Conflict analysis completed', {
@@ -213,6 +214,7 @@ export function registerDependencyResolverTools(server: McpServer) {
             description: 'Update package dependencies to specific versions and resolve their transitive dependencies automatically',
             inputSchema: {
                 repo_path: z.string().describe('Path to the repository/project root directory that contains package.json'),
+                run_npm_install: z.boolean().default(false).describe('Whether to run npm install during the process to fetch latest dependency info'),
                 dependencies: z.array(z.object({
                     name: z.string().describe('Package name'),
                     version: z.string().describe('Target version'),
@@ -220,7 +222,7 @@ export function registerDependencyResolverTools(server: McpServer) {
                 })).describe('List of dependencies to update with their target versions')
             }
         },
-        async ({ repo_path, dependencies }) => {
+        async ({ repo_path, run_npm_install, dependencies }) => {
             const requestId = Math.random().toString(36).substring(2, 9);
             logger.info('Dependency resolver tool invoked', {
                 requestId,
@@ -231,7 +233,7 @@ export function registerDependencyResolverTools(server: McpServer) {
             
             try {
                 const startTime = Date.now();
-                const result = await updatePackageWithDependencies(repo_path, dependencies);
+                const result = await updatePackageWithDependencies(repo_path, run_npm_install, dependencies);
                 const executionTime = Date.now() - startTime;
                 
                 logger.info('Dependency resolver tool completed successfully', {

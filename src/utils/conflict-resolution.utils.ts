@@ -24,6 +24,7 @@ export interface ConflictResolution {
  */
 export async function analyzeConflicts(
     repoPath: string,
+    runNpmInstall: boolean,
     packageJson: PackageJson,
     plannedUpdates: Array<{ name: string; version: string; isDev: boolean }>
 ): Promise<ConflictResolution> {
@@ -32,16 +33,18 @@ export async function analyzeConflicts(
     
     // #region Dependency Installation for Conflict Analysis
     // Before starting conflict analysis, ensure installDependencies has been run to populate node_modules
-    try {
-        logger.debug('Installing dependencies to populate node_modules for conflict analysis');
-        await installDependencies(repoPath);
-        logger.info('Successfully installed dependencies before conflict analysis');
-    } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        logger.error('Failed to install dependencies before conflict analysis - aborting', {
-            error: errorMessage
-        });
-        throw new Error(`Cannot perform conflict analysis: dependency installation failed - ${errorMessage}`);
+    if (runNpmInstall) {
+        try {
+            logger.debug('Installing dependencies to populate node_modules for conflict analysis');
+            await installDependencies(repoPath);
+            logger.info('Successfully installed dependencies before conflict analysis');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            logger.error('Failed to install dependencies before conflict analysis - aborting', {
+                error: errorMessage
+            });
+            throw new Error(`Cannot perform conflict analysis: dependency installation failed - ${errorMessage}`);
+        }
     }
     // #endregion
     

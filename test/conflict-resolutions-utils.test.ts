@@ -85,7 +85,7 @@ describe('analyzeConflicts', function () {
         fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
         
         // Act
-        const result: ConflictResolution = await analyzeConflicts(testRepoPath, packageJson, plannedUpdates);
+        const result: ConflictResolution = await analyzeConflicts(testRepoPath, true, packageJson, plannedUpdates);
         
         // Assert
         expect(result).to.be.an('object');
@@ -278,7 +278,7 @@ describe('analyzeConflicts', function () {
         fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
         // Act
-        const result: ConflictResolution = await analyzeConflicts(testRepoPath, packageJson, plannedUpdates);
+        const result: ConflictResolution = await analyzeConflicts(testRepoPath, true, packageJson, plannedUpdates);
 
         // Assert
         expect(result).to.be.an('object');
@@ -473,7 +473,7 @@ describe('analyzeConflicts', function () {
         fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
         // Act
-        const result: ConflictResolution = await analyzeConflicts(testRepoPath, packageJson, plannedUpdates);
+        const result: ConflictResolution = await analyzeConflicts(testRepoPath, true, packageJson, plannedUpdates);
 
         // Assert
         expect(result).to.be.an('object');
