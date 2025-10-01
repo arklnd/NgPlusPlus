@@ -1,4 +1,4 @@
-name: Run Angular Upgrade Test
+name: Run a specific test
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ on:
         type: string
 
 jobs:
-  test:
+  TestCase:
     runs-on: self-hosted
 
     steps:
