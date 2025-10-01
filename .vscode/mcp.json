@@ -1,21 +1,21 @@
 {
-  "inputs": [],
-  "servers": {
-    // "NgPlusPlus": {
-    //   "type": "stdio",
-    //   "command": "node",
-    //   "args": [
-    //     "${workspaceFolder}\\build\\index.js"
-    //   ]
-    // },
-    "NgPlusPlus": {
-      "type": "stdio",
-      "command": "npm",
-      "args": [
-        "run",
-        "dev"
-      ],
-      "cwd": "${workspaceFolder}"
+    "inputs": [],
+    "servers": {
+        // "NgPlusPlus": {
+        //   "type": "stdio",
+        //   "command": "node",
+        //   "args": [
+        //     "${workspaceFolder}\\build\\index.js"
+        //   ]
+        // },
+        "NgPlusPlus": {
+            "type": "stdio",
+            "command": "npm",
+            "args": [
+                "run",
+                "dev"
+            ],
+            "cwd": "${workspaceFolder}"
+        }
     }
-  }
 }

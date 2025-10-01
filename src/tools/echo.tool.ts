@@ -8,7 +8,7 @@ import { getLogger } from '../utils/index.js';
  */
 export function registerEchoTools(server: McpServer) {
     const logger = getLogger().child('echo-tool');
-    
+
     logger.info('Registering echo tools');
     // Register echo tool
     server.registerTool(
@@ -18,26 +18,13 @@ export function registerEchoTools(server: McpServer) {
             description: 'Echo back the provided text string',
             inputSchema: {
                 text: z.string().describe('The text to echo back'),
-                repeat: z
-                    .number()
-                    .min(1)
-                    .max(10)
-                    .default(1)
-                    .describe(
-                        'Number of times to repeat the text (default: 1)'
-                    ),
-                prefix: z
-                    .string()
-                    .default('')
-                    .describe('Optional prefix to add before the echoed text'),
-                suffix: z
-                    .string()
-                    .default('')
-                    .describe('Optional suffix to add after the echoed text'),
+                repeat: z.number().min(1).max(10).default(1).describe('Number of times to repeat the text (default: 1)'),
+                prefix: z.string().default('').describe('Optional prefix to add before the echoed text'),
+                suffix: z.string().default('').describe('Optional suffix to add after the echoed text'),
             },
         },
         async ({ text, repeat, prefix, suffix }) => {
-            logger.info('Echo tool invoked',{ text, repeat, prefix, suffix });
+            logger.info('Echo tool invoked', { text, repeat, prefix, suffix });
             // Build the echoed result
             const echoedTexts: string[] = [];
             for (let i = 0; i < repeat; i++) {
@@ -64,43 +51,31 @@ export function registerEchoTools(server: McpServer) {
             title: 'Multi Echo Tool',
             description: 'Echo back multiple text strings',
             inputSchema: {
-                texts: z
-                    .array(z.string())
-                    .min(1)
-                    .max(20)
-                    .describe('Array of texts to echo back'),
-                separator: z
-                    .string()
-                    .default('\n')
-                    .describe(
-                        'Separator between echoed texts (default: newline)'
-                    ),
-                numbered: z
-                    .boolean()
-                    .default(false)
-                    .describe('Whether to number the echoed texts'),
+                texts: z.array(z.string()).min(1).max(20).describe('Array of texts to echo back'),
+                separator: z.string().default('\n').describe('Separator between echoed texts (default: newline)'),
+                numbered: z.boolean().default(false).describe('Whether to number the echoed texts'),
             },
         },
         async ({ texts, separator, numbered }) => {
             const requestId = Math.random().toString(36).substring(2, 9);
-            logger.info('Multi echo tool invoked', { 
+            logger.info('Multi echo tool invoked', {
                 requestId,
-                textsCount: texts.length, 
-                separator, 
+                textsCount: texts.length,
+                separator,
                 numbered,
-                texts: texts.slice(0, 3) // Log first 3 texts for debugging
+                texts: texts.slice(0, 3), // Log first 3 texts for debugging
             });
-            
+
             // Build the result
             const echoedTexts = texts.map((text, index) => {
                 return numbered ? `${index + 1}. ${text}` : text;
             });
 
             const result = echoedTexts.join(separator);
-            
-            logger.debug('Multi echo tool completed', { 
+
+            logger.debug('Multi echo tool completed', {
                 requestId,
-                resultLength: result.length 
+                resultLength: result.length,
             });
 
             return {
@@ -122,27 +97,11 @@ export function registerEchoTools(server: McpServer) {
             description: 'Echo text with various formatting options',
             inputSchema: {
                 text: z.string().describe('The text to echo back'),
-                format: z
-                    .enum([
-                        'uppercase',
-                        'lowercase',
-                        'title',
-                        'reverse',
-                        'none',
-                    ])
-                    .default('none')
-                    .describe('Text formatting option'),
+                format: z.enum(['uppercase', 'lowercase', 'title', 'reverse', 'none']).default('none').describe('Text formatting option'),
                 wrap: z
                     .object({
-                        width: z
-                            .number()
-                            .min(10)
-                            .max(200)
-                            .describe('Text wrap width in characters'),
-                        indent: z
-                            .string()
-                            .default('')
-                            .describe('Indentation string for wrapped lines'),
+                        width: z.number().min(10).max(200).describe('Text wrap width in characters'),
+                        indent: z.string().default('').describe('Indentation string for wrapped lines'),
                     })
                     .optional()
                     .describe('Text wrapping options'),
@@ -150,13 +109,13 @@ export function registerEchoTools(server: McpServer) {
         },
         async ({ text, format, wrap }) => {
             const requestId = Math.random().toString(36).substring(2, 9);
-            logger.info('Echo formatted tool invoked', { 
+            logger.info('Echo formatted tool invoked', {
                 requestId,
-                textLength: text.length, 
-                format, 
-                wrap: wrap ? { width: wrap.width, hasIndent: !!wrap.indent } : null
+                textLength: text.length,
+                format,
+                wrap: wrap ? { width: wrap.width, hasIndent: !!wrap.indent } : null,
             });
-            
+
             let formattedText = text;
 
             // Apply formatting
@@ -168,12 +127,7 @@ export function registerEchoTools(server: McpServer) {
                     formattedText = text.toLowerCase();
                     break;
                 case 'title':
-                    formattedText = text.replace(
-                        /\w\S*/g,
-                        (txt) =>
-                            txt.charAt(0).toUpperCase() +
-                            txt.substring(1).toLowerCase()
-                    );
+                    formattedText = text.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
                     break;
                 case 'reverse':
                     formattedText = text.split('').reverse().join('');
@@ -183,22 +137,22 @@ export function registerEchoTools(server: McpServer) {
                     formattedText = text;
                     break;
             }
-            
-            logger.trace('Text formatting applied', { 
+
+            logger.trace('Text formatting applied', {
                 requestId,
-                format, 
-                originalLength: text.length, 
-                formattedLength: formattedText.length 
+                format,
+                originalLength: text.length,
+                formattedLength: formattedText.length,
             });
 
             // Apply wrapping if specified
             if (wrap && wrap.width) {
-                logger.trace('Applying text wrapping', { 
+                logger.trace('Applying text wrapping', {
                     requestId,
-                    width: wrap.width, 
-                    indent: wrap.indent 
+                    width: wrap.width,
+                    indent: wrap.indent,
                 });
-                
+
                 const lines: string[] = [];
                 const words = formattedText.split(' ');
                 let currentLine = '';
@@ -220,16 +174,16 @@ export function registerEchoTools(server: McpServer) {
                 }
 
                 formattedText = lines.join('\n');
-                
-                logger.trace('Text wrapping completed', { 
+
+                logger.trace('Text wrapping completed', {
                     requestId,
-                    linesCreated: lines.length 
+                    linesCreated: lines.length,
                 });
             }
-            
-            logger.debug('Echo formatted tool completed', { 
+
+            logger.debug('Echo formatted tool completed', {
                 requestId,
-                finalTextLength: formattedText.length 
+                finalTextLength: formattedText.length,
             });
 
             return {
@@ -251,43 +205,24 @@ export function registerEchoTools(server: McpServer) {
             description: 'Echo text with AI-powered enhancements like grammar correction, style improvement, or translation',
             inputSchema: {
                 text: z.string().describe('The text to enhance and echo back'),
-                enhancement: z
-                    .enum([
-                        'grammar_fix',
-                        'style_improve',
-                        'make_formal',
-                        'make_casual',
-                        'summarize',
-                        'expand',
-                        'translate_to_spanish',
-                        'translate_to_french',
-                        'none',
-                    ])
-                    .default('none')
-                    .describe('Type of AI enhancement to apply'),
-                customPrompt: z
-                    .string()
-                    .optional()
-                    .describe('Custom instruction for AI enhancement (overrides enhancement type)'),
-                includeOriginal: z
-                    .boolean()
-                    .default(false)
-                    .describe('Whether to include the original text alongside the enhanced version'),
+                enhancement: z.enum(['grammar_fix', 'style_improve', 'make_formal', 'make_casual', 'summarize', 'expand', 'translate_to_spanish', 'translate_to_french', 'none']).default('none').describe('Type of AI enhancement to apply'),
+                customPrompt: z.string().optional().describe('Custom instruction for AI enhancement (overrides enhancement type)'),
+                includeOriginal: z.boolean().default(false).describe('Whether to include the original text alongside the enhanced version'),
             },
         },
         async ({ text, enhancement, customPrompt, includeOriginal }) => {
             const requestId = Math.random().toString(36).substring(2, 9);
-            logger.info('AI enhanced echo tool invoked', { 
+            logger.info('AI enhanced echo tool invoked', {
                 requestId,
-                textLength: text.length, 
-                enhancement, 
+                textLength: text.length,
+                enhancement,
                 hasCustomPrompt: !!customPrompt,
-                includeOriginal
+                includeOriginal,
             });
-            
+
             try {
                 const openAI = getOpenAIService();
-                
+
                 if (!openAI.isConfigured()) {
                     logger.warn('OpenAI not configured', { requestId });
                     return {
@@ -301,14 +236,14 @@ export function registerEchoTools(server: McpServer) {
                 }
 
                 let enhancedText = text;
-                
+
                 if (enhancement !== 'none' || customPrompt) {
-                    logger.debug('Processing AI enhancement', { 
+                    logger.debug('Processing AI enhancement', {
                         requestId,
-                        enhancement, 
-                        hasCustomPrompt: !!customPrompt 
+                        enhancement,
+                        hasCustomPrompt: !!customPrompt,
                     });
-                    
+
                     let systemPrompt = 'You are a helpful text enhancement assistant.';
                     let userPrompt = '';
 
@@ -344,11 +279,11 @@ export function registerEchoTools(server: McpServer) {
                             default:
                                 userPrompt = text;
                         }
-                        
-                        logger.trace('Generated prompt for enhancement', { 
+
+                        logger.trace('Generated prompt for enhancement', {
                             requestId,
-                            enhancement, 
-                            promptLength: userPrompt.length 
+                            enhancement,
+                            promptLength: userPrompt.length,
                         });
                     }
 
@@ -359,13 +294,13 @@ export function registerEchoTools(server: McpServer) {
                         temperature: 0.3, // Lower temperature for more consistent results
                     });
                     const enhancementTime = Date.now() - startTime;
-                    
-                    logger.info('AI enhancement completed', { 
+
+                    logger.info('AI enhancement completed', {
                         requestId,
-                        enhancement, 
+                        enhancement,
                         originalLength: text.length,
                         enhancedLength: enhancedText.length,
-                        enhancementTimeMs: enhancementTime
+                        enhancementTimeMs: enhancementTime,
                     });
                 } else {
                     logger.trace('No enhancement requested', { requestId });
@@ -378,10 +313,10 @@ export function registerEchoTools(server: McpServer) {
                 } else {
                     result = enhancedText;
                 }
-                
-                logger.debug('AI enhanced echo tool completed successfully', { 
+
+                logger.debug('AI enhanced echo tool completed successfully', {
                     requestId,
-                    finalResultLength: result.length 
+                    finalResultLength: result.length,
                 });
 
                 return {
@@ -393,11 +328,11 @@ export function registerEchoTools(server: McpServer) {
                     ],
                 };
             } catch (error) {
-                logger.error('AI enhanced echo tool failed', { 
+                logger.error('AI enhanced echo tool failed', {
                     requestId,
-                    error: error instanceof Error ? error.message : String(error) 
+                    error: error instanceof Error ? error.message : String(error),
                 });
-                
+
                 return {
                     content: [
                         {
@@ -409,6 +344,6 @@ export function registerEchoTools(server: McpServer) {
             }
         }
     );
-    
+
     logger.info('Echo tools registered successfully');
 }

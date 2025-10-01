@@ -3,11 +3,9 @@ import { describe, it, beforeEach, afterEach } from 'mocha';
 import { getAllDependent } from '../src/utils/package-json.utils.js';
 
 describe('Package JSON Utils', function () {
-    beforeEach(function () {
-    });
+    beforeEach(function () {});
 
-    afterEach(function () {
-    });
+    afterEach(function () {});
 
     it('should find dependents of a package in current project', async function () {
         this.timeout(10000); // npm ls can take time

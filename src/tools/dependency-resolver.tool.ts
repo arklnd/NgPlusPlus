@@ -2,15 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import {
-    readPackageJson,
-    writePackageJson,
-    updateDependency,
-    analyzeConflicts,
-    resolveConflicts,
-    updateTransitiveDependencies,
-    getLogger
-} from '../utils/index.js';
+import { readPackageJson, writePackageJson, updateDependency, analyzeConflicts, resolveConflicts, updateTransitiveDependencies, getLogger } from '../utils/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,17 +13,13 @@ const __dirname = path.dirname(__filename);
  * @param plannedUpdates Array of dependency updates to apply
  * @returns String with all operation results
  */
-export async function updatePackageWithDependencies(
-    repoPath: string,
-    runNpmInstall: boolean,
-    plannedUpdates: Array<{ name: string; version: string; isDev: boolean }>
-): Promise<string> {
+export async function updatePackageWithDependencies(repoPath: string, runNpmInstall: boolean, plannedUpdates: Array<{ name: string; version: string; isDev: boolean }>): Promise<string> {
     const logger = getLogger().child(` ${__filename} `);
-    
+
     logger.info('Starting dependency update process', {
         repoPath,
         plannedUpdatesCount: plannedUpdates.length,
-        plannedUpdates: plannedUpdates.map(u => `${u.name}@${u.version} (${u.isDev ? 'devDep' : 'dirDep'})`)
+        plannedUpdates: plannedUpdates.map((u) => `${u.name}@${u.version} (${u.isDev ? 'devDep' : 'dirDep'})`),
     });
 
     try {
@@ -42,9 +30,9 @@ export async function updatePackageWithDependencies(
             hasName: !!packageJson.name,
             hasVersion: !!packageJson.version,
             existingDepsCount: Object.keys(packageJson.dependencies || {}).length,
-            existingDevDepsCount: Object.keys(packageJson.devDependencies || {}).length
+            existingDevDepsCount: Object.keys(packageJson.devDependencies || {}).length,
         });
-        
+
         const results: string[] = [];
 
         // Phase 1: Analyze conflicts
@@ -66,15 +54,15 @@ export async function updatePackageWithDependencies(
             conflictsFound: conflicts.length,
             resolutionsGenerated: conflictAnalysisResults.length,
             analysisTimeMs: conflictAnalysisTime,
-            conflicts: conflicts.map(c => ({ 
-                package: c.packageName, 
-                current: c.currentVersion, 
+            conflicts: conflicts.map((c) => ({
+                package: c.packageName,
+                current: c.currentVersion,
                 conflictsWithPackageName: c.conflictsWithPackageName,
                 conflictsWithVersion: c.conflictsWithVersion,
-                reason: c.reason 
-            }))
+                reason: c.reason,
+            })),
         });
-        
+
         results.push(...conflictAnalysisResults);
 
         // Phase 2: Resolve conflicts
@@ -89,15 +77,15 @@ export async function updatePackageWithDependencies(
         if (conflicts.length > 0) {
             logger.info('Phase 2: Starting conflict resolution', { conflictCount: conflicts.length });
             const resolutionStart = Date.now();
-            
+
             const resolutionResults = await resolveConflicts(packageJson, conflicts);
-            
+
             const resolutionTime = Date.now() - resolutionStart;
             logger.info('Phase 2: Conflict resolution completed', {
                 resolutionsApplied: resolutionResults.length,
-                resolutionTimeMs: resolutionTime
+                resolutionTimeMs: resolutionTime,
             });
-            
+
             results.push(...resolutionResults);
         } else {
             logger.info('Phase 2: Skipping conflict resolution - no conflicts detected');
@@ -113,21 +101,21 @@ export async function updatePackageWithDependencies(
         // - Ensures proper categorization between production and development dependencies
         logger.info('Phase 3: Starting dependency updates');
         const updateStart = Date.now();
-        
+
         for (const { name, version, isDev } of plannedUpdates) {
             logger.debug('Updating dependency', { name, version, isDev });
-            
+
             updateDependency(packageJson, name, version, isDev);
             const updateMessage = `✓ Updated ${name} to ${version} (${isDev ? 'devDependencies' : 'dependencies'})`;
             results.push(updateMessage);
-            
+
             logger.trace('Dependency updated successfully', { name, version, isDev });
         }
-        
+
         const updateTime = Date.now() - updateStart;
         logger.info('Phase 3: Dependency updates completed', {
             updatesApplied: plannedUpdates.length,
-            updateTimeMs: updateTime
+            updateTimeMs: updateTime,
         });
 
         // Phase 4: Update transitive dependencies
@@ -141,15 +129,15 @@ export async function updatePackageWithDependencies(
         // - Handling of optional dependencies and peer dependency requirements
         logger.info('Phase 4: Starting transitive dependency updates');
         const transitiveStart = Date.now();
-        
+
         const transitiveResults = await updateTransitiveDependencies(packageJson, plannedUpdates);
-        
+
         const transitiveTime = Date.now() - transitiveStart;
         logger.info('Phase 4: Transitive dependency updates completed', {
             transitiveUpdatesCount: transitiveResults.length,
-            transitiveTimeMs: transitiveTime
+            transitiveTimeMs: transitiveTime,
         });
-        
+
         results.push(...transitiveResults);
 
         // Phase 5: Write package.json
@@ -163,18 +151,18 @@ export async function updatePackageWithDependencies(
         // - Ensures atomic write operation to prevent corruption
         logger.info('Phase 5: Writing updated package.json');
         const writeStart = Date.now();
-        
+
         writePackageJson(repoPath, packageJson);
-        
+
         const writeTime = Date.now() - writeStart;
         logger.info('Phase 5: package.json written successfully', {
             writeTimeMs: writeTime,
             finalDepsCount: Object.keys(packageJson.dependencies || {}).length,
-            finalDevDepsCount: Object.keys(packageJson.devDependencies || {}).length
+            finalDevDepsCount: Object.keys(packageJson.devDependencies || {}).length,
         });
-        
+
         results.push('✅ package.json updated successfully');
-        
+
         const totalTime = Date.now() - conflictAnalysisStart;
         logger.info('Dependency update process completed successfully', {
             totalOperations: results.length,
@@ -184,10 +172,10 @@ export async function updatePackageWithDependencies(
                 conflictResolution: conflicts.length > 0 ? Date.now() - conflictAnalysisStart - conflictAnalysisTime : 0,
                 dependencyUpdates: updateTime,
                 transitiveUpdates: transitiveTime,
-                fileWrite: writeTime
-            }
+                fileWrite: writeTime,
+            },
         });
-        
+
         return results.join('\n');
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -195,18 +183,18 @@ export async function updatePackageWithDependencies(
             error: errorMessage,
             stack: error instanceof Error ? error.stack : undefined,
             repoPath,
-            plannedUpdatesCount: plannedUpdates.length
+            plannedUpdatesCount: plannedUpdates.length,
         });
-        
+
         throw new Error(`Failed to update dependencies: ${errorMessage}`);
     }
 }
 
 export function registerDependencyResolverTools(server: McpServer) {
     const logger = getLogger().child(`dependency-resolver-tool:${__dirname}`);
-    
+
     logger.info('Registering dependency resolver tools');
-    
+
     server.registerTool(
         'dependency_resolver_update',
         {
@@ -215,12 +203,16 @@ export function registerDependencyResolverTools(server: McpServer) {
             inputSchema: {
                 repo_path: z.string().describe('Path to the repository/project root directory that contains package.json'),
                 run_npm_install: z.boolean().default(false).describe('Whether to run npm install during the process to fetch latest dependency info'),
-                dependencies: z.array(z.object({
-                    name: z.string().describe('Package name'),
-                    version: z.string().describe('Target version'),
-                    isDev: z.boolean().default(false).describe('Whether this is a dev dependency')
-                })).describe('List of dependencies to update with their target versions')
-            }
+                dependencies: z
+                    .array(
+                        z.object({
+                            name: z.string().describe('Package name'),
+                            version: z.string().describe('Target version'),
+                            isDev: z.boolean().default(false).describe('Whether this is a dev dependency'),
+                        })
+                    )
+                    .describe('List of dependencies to update with their target versions'),
+            },
         },
         async ({ repo_path, run_npm_install, dependencies }) => {
             const requestId = Math.random().toString(36).substring(2, 9);
@@ -228,51 +220,51 @@ export function registerDependencyResolverTools(server: McpServer) {
                 requestId,
                 repo_path,
                 dependenciesCount: dependencies.length,
-                dependencies: dependencies.map(d => `${d.name}@${d.version} (${d.isDev ? 'devDep' : 'dirDep'})`)
+                dependencies: dependencies.map((d) => `${d.name}@${d.version} (${d.isDev ? 'devDep' : 'dirDep'})`),
             });
-            
+
             try {
                 const startTime = Date.now();
                 const result = await updatePackageWithDependencies(repo_path, run_npm_install, dependencies);
                 const executionTime = Date.now() - startTime;
-                
+
                 logger.info('Dependency resolver tool completed successfully', {
                     requestId,
                     executionTimeMs: executionTime,
-                    resultLength: result.length
+                    resultLength: result.length,
                 });
-                
+
                 return {
                     content: [
                         {
                             type: 'text',
-                            text: result
-                        }
-                    ]
+                            text: result,
+                        },
+                    ],
                 };
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
-                
+
                 logger.error('Dependency resolver tool failed', {
                     requestId,
                     error: errorMessage,
                     stack: error instanceof Error ? error.stack : undefined,
                     repo_path,
-                    dependenciesCount: dependencies.length
+                    dependenciesCount: dependencies.length,
                 });
-                
+
                 return {
                     content: [
                         {
                             type: 'text',
-                            text: `Error: ${errorMessage}`
-                        }
+                            text: `Error: ${errorMessage}`,
+                        },
                     ],
-                    isError: true
+                    isError: true,
                 };
             }
         }
     );
-    
+
     logger.info('Dependency resolver tools registered successfully');
 }

@@ -34,7 +34,7 @@ export class OpenAIService {
     constructor(config?: Partial<OpenAIConfig>) {
         // Merge provided config with defaults
         this.config = { ...DEFAULT_CONFIG, ...config };
-        
+
         // Validate configuration
         const validatedConfig = OpenAIConfigSchema.parse(this.config);
         this.config = { ...DEFAULT_CONFIG, ...validatedConfig };
@@ -60,7 +60,7 @@ export class OpenAIService {
     updateConfig(newConfig: Partial<OpenAIConfig>): void {
         const validatedConfig = OpenAIConfigSchema.parse({ ...this.config, ...newConfig });
         this.config = { ...this.config, ...validatedConfig };
-        
+
         // Recreate client if API-related settings changed
         if (newConfig.apiKey || newConfig.baseURL || newConfig.timeout) {
             this.client = new OpenAI({
@@ -85,7 +85,7 @@ export class OpenAIService {
     ): Promise<string> {
         try {
             const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
-            
+
             // Add system message if provided
             if (options?.systemPrompt) {
                 messages.push({
@@ -93,7 +93,7 @@ export class OpenAIService {
                     content: options.systemPrompt,
                 });
             }
-            
+
             // Add user message
             messages.push({
                 role: 'user',
@@ -152,14 +152,14 @@ export class OpenAIService {
     ): AsyncGenerator<string, void, unknown> {
         try {
             const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
-            
+
             if (options?.systemPrompt) {
                 messages.push({
                     role: 'system',
                     content: options.systemPrompt,
                 });
             }
-            
+
             messages.push({
                 role: 'user',
                 content: prompt,

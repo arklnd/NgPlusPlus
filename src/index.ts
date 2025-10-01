@@ -22,7 +22,7 @@ const server = new McpServer({
 
 logger.info('NgPlusPlus MCP Server initializing', 'main', {
     name: 'ngplusplus',
-    version: '0.0.0'
+    version: '0.0.0',
 });
 
 // Register all tools
@@ -39,16 +39,16 @@ async function main() {
         logger.info('Starting MCP server transport', 'main');
         const transport = new StdioServerTransport();
         await server.connect(transport);
-        
+
         logger.info('NgPlusPlus MCP Server running on stdio', 'main', {
-            logFile: logger.getLogFilePath()
+            logFile: logger.getLogFilePath(),
         });
-        
+
         console.error('NgPlusPlus MCP Server running on stdio');
     } catch (error) {
         logger.error('Failed to start MCP server', 'main', {
             error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
+            stack: error instanceof Error ? error.stack : undefined,
         });
         throw error;
     }
@@ -57,9 +57,9 @@ async function main() {
 main().catch((error) => {
     logger.error('Fatal error in main()', 'main', {
         error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
     });
-    
+
     console.error('Fatal error in main():', error);
     process.exit(1);
 });

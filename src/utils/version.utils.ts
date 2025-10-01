@@ -8,24 +8,24 @@ import { getLogger } from './logger.utils.js';
  */
 export function getCleanVersion(spec: string): string | null {
     const logger = getLogger().child('Version');
-    
+
     logger.trace('Parsing version specification', { spec });
-    
+
     try {
         const coerced = semver.coerce(spec);
         const result = coerced ? coerced.version : null;
-        
+
         if (result) {
             logger.trace('Successfully parsed version', { spec, result });
         } else {
             logger.warn('Failed to parse version specification', { spec });
         }
-        
+
         return result;
     } catch (error) {
-        logger.error('Error parsing version specification', { 
-            spec, 
-            error: error instanceof Error ? error.message : String(error) 
+        logger.error('Error parsing version specification', {
+            spec,
+            error: error instanceof Error ? error.message : String(error),
         });
         return null;
     }
@@ -39,32 +39,32 @@ export function getCleanVersion(spec: string): string | null {
  */
 export function satisfiesVersionRange(version: string, range: string): boolean {
     const logger = getLogger().child('Version');
-    
+
     logger.trace('Checking version compatibility', { version, range });
-    
+
     try {
         const cleanVersion = semver.coerce(version);
         if (!cleanVersion) {
             logger.warn('Could not coerce version for version compatibility check', { version, range });
             return false;
         }
-        
+
         // Let semver handle all range types natively
         const satisfies = semver.satisfies(cleanVersion.version, range);
-        
-        logger.trace('Version compatibility check result', { 
-            version, 
-            range, 
-            cleanVersion: cleanVersion.version, 
-            satisfies 
+
+        logger.trace('Version compatibility check result', {
+            version,
+            range,
+            cleanVersion: cleanVersion.version,
+            satisfies,
         });
-        
+
         return satisfies;
     } catch (error) {
-        logger.error('Error checking version compatibility', { 
-            version, 
-            range, 
-            error: error instanceof Error ? error.message : String(error) 
+        logger.error('Error checking version compatibility', {
+            version,
+            range,
+            error: error instanceof Error ? error.message : String(error),
         });
         return false;
     }
@@ -78,35 +78,35 @@ export function satisfiesVersionRange(version: string, range: string): boolean {
  */
 export function findCompatibleVersion(availableVersions: string[], requiredRange: string): string | null {
     const logger = getLogger().child('Version');
-    
-    logger.debug('Finding compatible version', { 
-        availableCount: availableVersions.length, 
-        requiredRange 
+
+    logger.debug('Finding compatible version', {
+        availableCount: availableVersions.length,
+        requiredRange,
     });
-    
+
     try {
         const sortedVersions = availableVersions.sort(semver.rcompare);
         const result = semver.maxSatisfying(sortedVersions, requiredRange);
-        
+
         if (result) {
-            logger.debug('Found compatible version', { 
-                result, 
-                requiredRange, 
-                searchedVersions: availableVersions.length 
+            logger.debug('Found compatible version', {
+                result,
+                requiredRange,
+                searchedVersions: availableVersions.length,
             });
         } else {
-            logger.warn('No compatible version found', { 
-                requiredRange, 
-                availableVersions: availableVersions.slice(0, 5) // Log first 5 versions for debugging
+            logger.warn('No compatible version found', {
+                requiredRange,
+                availableVersions: availableVersions.slice(0, 5), // Log first 5 versions for debugging
             });
         }
-        
+
         return result;
     } catch (error) {
-        logger.error('Error finding compatible version', { 
-            requiredRange, 
+        logger.error('Error finding compatible version', {
+            requiredRange,
             availableCount: availableVersions.length,
-            error: error instanceof Error ? error.message : String(error) 
+            error: error instanceof Error ? error.message : String(error),
         });
         return null;
     }

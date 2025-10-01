@@ -9,20 +9,20 @@ import { getLogger } from '../utils/index.js';
  */
 export function registerAllTools(server: McpServer) {
     const logger = getLogger().child('tools');
-    
+
     logger.info('Starting tool registration');
-    
+
     logger.debug('Registering echo tools');
     registerEchoTools(server);
-    
+
     logger.debug('Registering NCU tools');
     registerNcuTools(server);
-    
+
     logger.debug('Registering dependency resolver tools');
     registerDependencyResolverTools(server);
 
     logger.info('All tools registered successfully');
-    
+
     // Add more tool registrations here as you create them
     // registerOtherTools(server);
 }

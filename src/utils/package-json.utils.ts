@@ -147,7 +147,7 @@ export async function getAllDependent(repoPath: string, packageName: string): Pr
         // Execute npm ls command to get dependency tree with proper timeout handling
         const dependencyTree = await new Promise<any>((resolve, reject) => {
             let completed = false;
-            
+
             const child = spawn('npm', ['ls', packageName, '--json'], {
                 stdio: ['pipe', 'pipe', 'pipe'],
                 shell: true,
@@ -179,7 +179,7 @@ export async function getAllDependent(repoPath: string, packageName: string): Pr
                 if (!completed) {
                     completed = true;
                     clearTimeout(timeoutId);
-                    
+
                     // npm ls can return non-zero exit code even for successful queries
                     // when there are warnings (like peer dependency issues)
                     try {
@@ -277,7 +277,7 @@ export async function installDependencies(repoPath: string): Promise<void> {
     try {
         const processPromise = new Promise<void>((resolve, reject) => {
             let completed = false;
-            
+
             const child = spawn('npm', ['install'], {
                 stdio: ['pipe', 'pipe', 'pipe'],
                 shell: true,
@@ -310,7 +310,7 @@ export async function installDependencies(repoPath: string): Promise<void> {
                 if (!completed) {
                     completed = true;
                     clearTimeout(timeoutId);
-                    
+
                     if (code === 0) {
                         logger.info('Successfully installed dependencies', {
                             repoPath,
@@ -343,7 +343,6 @@ export async function installDependencies(repoPath: string): Promise<void> {
         });
 
         return await processPromise;
-
     } catch (error) {
         logger.error('Failed to install dependencies', {
             repoPath,
