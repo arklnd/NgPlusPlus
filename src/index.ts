@@ -3,6 +3,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { registerAllTools } from './tools/index.js';
+import { registerAllResources } from './resources/index.js';
 import { initializeLogger, LogLevel } from './utils/logger.utils.js';
 
 // Initialize logger with appropriate configuration
@@ -27,6 +28,10 @@ logger.info('NgPlusPlus MCP Server initializing', 'main', {
 // Register all tools
 registerAllTools(server);
 logger.info('All tools registered successfully', 'main');
+
+// Register all resources
+registerAllResources(server);
+logger.info('All resources registered successfully', 'main');
 
 // Start the server
 async function main() {
