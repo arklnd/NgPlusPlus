@@ -143,7 +143,7 @@ describe('updatePackageWithDependencies', function () {
         ];
         
         // Act
-        const result = await updatePackageWithDependencies(testRepoPath, true, plannedUpdates);
+        const result = await updatePackageWithDependencies(testRepoPath, false, plannedUpdates);
         
         // Assert
         expect(result).to.be.a('string');
