@@ -44,7 +44,7 @@ jobs:
         const runNumber = process.argv[2];
         const cleanName = testPattern.replace(/\\s/g, '_');
         const artifactName = cleanName + '__logs-' + runNumber;
-        require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'name=' + artifactName + '\\n');
+        require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'name=' + artifactName);
         " '${{ github.event.inputs.test_pattern }}' '${{ github.run_number }}'
 
     - name: Upload logs as artifacts
