@@ -266,6 +266,8 @@ export async function installDependencies(repoPath: string): Promise<void> {
 
     try {
         const processPromise = new Promise<void>((resolve, reject) => {
+            let completed = false;
+            
             const child = spawn('npm', ['install'], {
                 stdio: ['pipe', 'pipe', 'pipe'],
                 shell: true,
@@ -284,52 +286,50 @@ export async function installDependencies(repoPath: string): Promise<void> {
                 stderr += chunk.toString();
             });
 
+            // Set timeout that will abort the process and reject the promise
+            const timeoutId = setTimeout(() => {
+                if (!completed) {
+                    completed = true;
+                    logger.warn('npm install timeout', { repoPath });
+                    abortController.abort(); // This will terminate the child process
+                    reject(new Error('npm install timed out after 60 minutes'));
+                }
+            }, 3600000);
+
             child.on('close', (code: number | null) => {
-                if (code === 0) {
-                    logger.info('Successfully installed dependencies', {
-                        repoPath,
-                        stdout: stdout.trim(),
-                    });
-                    resolve();
-                } else {
-                    const errorMessage = `npm install failed with exit code ${code}`;
-                    logger.error(errorMessage, {
-                        repoPath,
-                        stderr: stderr.trim(),
-                        stdout: stdout.trim(),
-                    });
-                    reject(new Error(`${errorMessage}: ${stderr || stdout}`));
+                if (!completed) {
+                    completed = true;
+                    clearTimeout(timeoutId);
+                    
+                    if (code === 0) {
+                        logger.info('Successfully installed dependencies', {
+                            repoPath,
+                            stdout: stdout.trim(),
+                        });
+                        resolve();
+                    } else {
+                        const errorMessage = `npm install failed with exit code ${code}`;
+                        logger.error(errorMessage, {
+                            repoPath,
+                            stderr: stderr.trim(),
+                            stdout: stdout.trim(),
+                        });
+                        reject(new Error(`${errorMessage}: ${stderr || stdout}`));
+                    }
                 }
             });
 
             child.on('error', (error: Error) => {
-                logger.error('Failed to spawn npm install process', {
-                    repoPath,
-                    error: error.message,
-                });
-                reject(new Error(`Failed to spawn npm install process: ${error.message}`));
+                if (!completed) {
+                    completed = true;
+                    clearTimeout(timeoutId);
+                    logger.error('Failed to spawn npm install process', {
+                        repoPath,
+                        error: error.message,
+                    });
+                    reject(new Error(`Failed to spawn npm install process: ${error.message}`));
+                }
             });
-
-            // Set timeout that will abort the process and reject the promise
-            const timeoutId = setTimeout(() => {
-                logger.warn('npm install timeout', { repoPath });
-                abortController.abort(); // This will terminate the child process
-                reject(new Error('npm install timed out after 60 minutes'));
-            }, 3600000);
-
-            // Clear timeout when the process completes (either success or error)
-            const originalResolve = resolve;
-            const originalReject = reject;
-            
-            resolve = (...args) => {
-                clearTimeout(timeoutId);
-                originalResolve(...args);
-            };
-            
-            reject = (...args) => {
-                clearTimeout(timeoutId);
-                originalReject(...args);
-            };
         });
 
         return await processPromise;
