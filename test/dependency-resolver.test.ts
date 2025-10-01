@@ -180,7 +180,7 @@ describe('updatePackageWithDependencies', function () {
         expect(updatedPackageJson.devDependencies).to.have.property('@angular/language-service', '^20.0.0');
     });
 
-    it('should update HYUI9 Angular dependencies to version 20.0.0 and install', async function () {
+    it('should update HYUI9 Angular dependencies to version 20 and install', async function () {
         // Increase timeout for npm operations
         this.timeout(3600000); // 60 minutes
 
