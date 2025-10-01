@@ -146,7 +146,7 @@ describe('updatePackageWithDependencies', function () {
         ];
         
         // Act
-        const result = await updatePackageWithDependencies(testRepoPath, plannedUpdates);
+        const result = await updatePackageWithDependencies(testRepoPath, true, plannedUpdates);
         
         // Assert
         expect(result).to.be.a('string');
@@ -198,7 +198,7 @@ describe('updatePackageWithDependencies', function () {
         ];
         
         // Act
-        const result = await updatePackageWithDependencies(testRepoPath, plannedUpdates);
+        const result = await updatePackageWithDependencies(testRepoPath, true, plannedUpdates);
         
         // Assert
         expect(result).to.include('✅ package.json updated successfully');
@@ -232,7 +232,7 @@ describe('updatePackageWithDependencies', function () {
         ];
         
         // Act
-        const result = await updatePackageWithDependencies(testRepoPath, plannedUpdates);
+        const result = await updatePackageWithDependencies(testRepoPath, true, plannedUpdates);
         
         // Assert
         const lines = result.split('\n');
@@ -270,7 +270,7 @@ describe('updatePackageWithDependencies', function () {
         ];
         
         // Act
-        const result = await updatePackageWithDependencies(testRepoPath, plannedUpdates);
+        const result = await updatePackageWithDependencies(testRepoPath, true, plannedUpdates);
         
         // Assert
         const packageJsonPath = path.join(testRepoPath, 'package.json');
