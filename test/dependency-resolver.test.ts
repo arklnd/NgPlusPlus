@@ -35,27 +35,24 @@ describe('updatePackageWithDependencies', function () {
         }
     });
     
-    it('should update Angular dependencies to version 20.0.0', async function () {
-        // Arrange
-        const initialPackageJson: PackageJson = {
-            name: "hy-ui-rel9",
-            version: "1.0.0",
-            dependencies: {
-                "@angular/animations": "^19.0.0",
-                "@angular/common": "^19.0.0",
-                "@angular/core": "^19.0.0",
-                "rxjs": "~7.8.0"
-            },
-            devDependencies: {
-                "@angular/cli": "^19.0.0",
-                "@angular/compiler-cli": "^19.0.0",
-                "typescript": "~5.6.0"
-            }
-        };
-        
-        // Create initial package.json
-        const packageJsonPath = path.join(testRepoPath, 'package.json');
-        fs.writeFileSync(packageJsonPath, JSON.stringify(initialPackageJson, null, 2));
+    it('should update HYUI9 Angular dependencies to version 20.0.0', async function () {
+            // Increase timeout for npm operations
+            this.timeout(3600000); // 60 minutes
+    
+            // Arrange - Copy asset files to test directory
+            const assetsDir = path.join(__dirname, 'assets');
+            const sourcePackageJsonPath = path.join(assetsDir, 'package_hy  ui9.json');
+            const sourcePackageLockPath = path.join(assetsDir, 'package-lock_hyui9.json');
+            
+            const targetPackageJsonPath = path.join(testRepoPath, 'package.json');
+            const targetPackageLockPath = path.join(testRepoPath, 'package-lock.json');
+            
+            // Copy the asset files to test directory
+            fs.copyFileSync(sourcePackageJsonPath, targetPackageJsonPath);
+            fs.copyFileSync(sourcePackageLockPath, targetPackageLockPath);
+            
+            // Read the actual package.json from assets
+            const packageJson: PackageJson = JSON.parse(fs.readFileSync(sourcePackageJsonPath, 'utf8'));
         
         const plannedUpdates: PackageUpdate[] = [
             {
@@ -153,7 +150,7 @@ describe('updatePackageWithDependencies', function () {
         expect(result).to.include('✅ package.json updated successfully');
         
         // Verify the package.json was updated correctly
-        const updatedContent = fs.readFileSync(packageJsonPath, 'utf8');
+        const updatedContent = fs.readFileSync(targetPackageJsonPath, 'utf8');
         const updatedPackageJson: PackageJson = JSON.parse(updatedContent);
         
         // Check production dependencies
