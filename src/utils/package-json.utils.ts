@@ -1,15 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 import { spawn } from 'child_process';
-import { getLogger } from './logger.utils.js';
-
-export interface PackageJson {
-    name: string;
-    version: string;
-    dependencies?: Record<string, string>;
-    devDependencies?: Record<string, string>;
-    [key: string]: any;
-}
+import { getLogger } from '@U/logger.utils.js';
+import { PackageJson } from '@I/package-json.interfaces.js';
 
 /**
  * Reads and parses package.json from a given repository path

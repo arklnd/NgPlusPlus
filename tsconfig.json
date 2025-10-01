@@ -17,8 +17,20 @@
             "@T/*": [
                 "src/tools/*"
             ],
+            "@R/*": [
+                "src/resources/*"
+            ],
+            "@P/*": [
+                "src/prompts/*"
+            ],
             "@U/*": [
                 "src/utils/*"
+            ],
+            "@S/*": [
+                "src/services/*"
+            ],
+            "@I/*": [
+                "src/interfaces/*"
             ]
         }
     },

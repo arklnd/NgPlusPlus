@@ -1,20 +1,10 @@
-import { getPackageData, getPackageVersionData, getPackageVersions, RegistryData } from './package-registry.utils.js';
-import { getCleanVersion, satisfiesVersionRange, findCompatibleVersion } from './version.utils.js';
-import { PackageJson, getAllDependencies, getAllDependent, isDevDependency, updateDependency, installDependencies } from './package-json.utils.js';
-import { getLogger } from './logger.utils.js';
-
-export interface ConflictInfo {
-    packageName: string;
-    currentVersion: string;
-    conflictsWithPackageName: string;
-    conflictsWithVersion: string;
-    reason: string;
-}
-
-export interface ConflictResolution {
-    conflicts: ConflictInfo[];
-    resolutions: string[];
-}
+import { getPackageData, getPackageVersionData, getPackageVersions } from '@U/package-registry.utils.js';
+import { getCleanVersion, satisfiesVersionRange, findCompatibleVersion } from '@U/version.utils.js';
+import { getAllDependencies, getAllDependent, isDevDependency, updateDependency, installDependencies } from '@U/package-json.utils.js';
+import { getLogger } from '@U/logger.utils.js';
+import { ConflictInfo, ConflictResolution } from '@I/conflict-resolution.interfaces.js';
+import { PackageJson } from '@I/package-json.interfaces.js';
+import { RegistryData } from '@I/package-registry.interfaces.js';
 
 /**
  * Analyzes potential conflicts between existing dependencies and planned updates
