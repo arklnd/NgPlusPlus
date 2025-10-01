@@ -11,7 +11,8 @@
                 "copilot/gemini-2.5-pro",
                 "copilot/gpt-4o",
                 "copilot/o3-mini",
-                "copilot/o4-mini"
+                "copilot/o4-mini",
+                "copilot/gpt-5"
             ]
         }
     }
