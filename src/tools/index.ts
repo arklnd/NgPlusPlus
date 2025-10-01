@@ -1,8 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerEchoTools } from './echo.tool.js';
-import { registerNcuTools } from './ncu.tool.js';
-import { registerDependencyResolverTools } from './dependency-resolver.tool.js';
-import { getLogger } from '../utils/index.js';
+import { registerEchoTools } from '@T/echo.tool';
+import { registerNcuTools } from '@T/ncu.tool';
+import { registerDependencyResolverTools } from '@T/dependency-resolver.tool';
+import { getLogger } from '@U/logger.utils';
 
 /**
  * Register all tools with the MCP server

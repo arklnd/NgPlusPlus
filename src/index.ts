@@ -2,10 +2,10 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { registerAllTools } from '@T/index.js';
-import { registerAllResources } from '@R/index.js';
-import { initializeLogger } from '@U/logger.utils.js';
-import { LogLevel } from '@I/logger.interfaces.js';
+import { registerAllTools } from '@T/index';
+import { registerAllResources } from '@R/index';
+import { initializeLogger } from '@U/logger.utils';
+import { LogLevel } from '@I/logger.interfaces';
 
 // Initialize logger with appropriate configuration
 const logger = initializeLogger({

@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerDemoResources } from '@R/demo.resource.js';
-import { getLogger } from '@U/index.js';
+import { registerDemoResources } from '@R/demo.resource';
+import { getLogger } from '@U/index';
 
 /**
  * Register all resources with the MCP server

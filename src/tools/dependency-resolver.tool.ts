@@ -2,7 +2,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { readPackageJson, writePackageJson, updateDependency, analyzeConflicts, resolveConflicts, updateTransitiveDependencies, getLogger, validatePackageVersionsExist, ValidationResult } from '@U/index.js';
+import { readPackageJson, writePackageJson, updateDependency, analyzeConflicts, resolveConflicts, updateTransitiveDependencies, getLogger, validatePackageVersionsExist } from '@U/index';
+import { ValidationResult } from '@I/index';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 import { spawn } from 'child_process';
-import { getLogger } from '@U/logger.utils.js';
-import { PackageJson } from '@I/package-json.interfaces.js';
+import { getLogger } from '@U/index';
+import { PackageJson } from '@I/index';
 
 /**
  * Reads and parses package.json from a given repository path
