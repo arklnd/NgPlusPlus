@@ -35,11 +35,19 @@ jobs:
       if: always()
       run: echo "Test execution completed with pattern - ${{ github.event.inputs.test_pattern }}"
 
+    - name: Prepare artifact name
+      if: always()
+      id: artifact_name
+      run: |
+        CLEAN_NAME="${{ github.event.inputs.test_pattern }}"
+        CLEAN_NAME="${CLEAN_NAME// /_}"
+        echo "name=${CLEAN_NAME}__logs-${{ github.run_number }}" >> $GITHUB_OUTPUT
+
     - name: Upload logs as artifacts
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: test-logs-${{ github.run_number }}
+        name: ${{ steps.artifact_name.outputs.name }}
         path: |
           logs/
           src/logs/
