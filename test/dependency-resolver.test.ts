@@ -41,7 +41,7 @@ describe('updatePackageWithDependencies', function () {
     
             // Arrange - Copy asset files to test directory
             const assetsDir = path.join(__dirname, 'assets');
-            const sourcePackageJsonPath = path.join(assetsDir, 'package_hy  ui9.json');
+            const sourcePackageJsonPath = path.join(assetsDir, 'package_hyui9.json');
             const sourcePackageLockPath = path.join(assetsDir, 'package-lock_hyui9.json');
             
             const targetPackageJsonPath = path.join(testRepoPath, 'package.json');
