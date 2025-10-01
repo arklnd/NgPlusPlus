@@ -144,8 +144,10 @@ export async function getAllDependent(repoPath: string, packageName: string): Pr
     logger.debug('Getting dependents for package', { packageName, repoPath });
 
     try {
-        // Execute npm ls command to get dependency tree using Promise.race()
-        const processPromise = new Promise<any>((resolve, reject) => {
+        // Execute npm ls command to get dependency tree with proper timeout handling
+        const dependencyTree = await new Promise<any>((resolve, reject) => {
+            let completed = false;
+            
             const child = spawn('npm', ['ls', packageName, '--json'], {
                 stdio: ['pipe', 'pipe', 'pipe'],
                 shell: true,
@@ -163,32 +165,40 @@ export async function getAllDependent(repoPath: string, packageName: string): Pr
                 stderr += chunk.toString();
             });
 
+            // Set timeout that will reject after 60 minutes
+            const timeoutId = setTimeout(() => {
+                if (!completed) {
+                    completed = true;
+                    logger.warn('npm ls timeout', { packageName, repoPath });
+                    child.kill(); // Kill the process
+                    reject(new Error('npm ls timed out after 60 minutes'));
+                }
+            }, 3600000);
+
             child.on('close', (code: number | null) => {
-                // npm ls can return non-zero exit code even for successful queries
-                // when there are warnings (like peer dependency issues)
-                try {
-                    const parsedData = JSON.parse(stdout);
-                    resolve(parsedData);
-                } catch (parseError) {
-                    reject(new Error(`Failed to parse npm ls output: ${parseError}`));
+                if (!completed) {
+                    completed = true;
+                    clearTimeout(timeoutId);
+                    
+                    // npm ls can return non-zero exit code even for successful queries
+                    // when there are warnings (like peer dependency issues)
+                    try {
+                        const parsedData = JSON.parse(stdout);
+                        resolve(parsedData);
+                    } catch (parseError) {
+                        reject(new Error(`Failed to parse npm ls output: ${parseError}`));
+                    }
                 }
             });
 
             child.on('error', (error: Error) => {
-                reject(new Error(`Failed to spawn npm process: ${error.message}`));
+                if (!completed) {
+                    completed = true;
+                    clearTimeout(timeoutId);
+                    reject(new Error(`Failed to spawn npm process: ${error.message}`));
+                }
             });
         });
-
-        // Timeout promise that rejects after 60 minutes
-        const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => {
-                logger.warn('npm ls timeout', { packageName, repoPath });
-                reject(new Error('npm ls timed out after 60 minutes'));
-            }, 3600000);
-        });
-
-        // Race between process completion and timeout
-        const dependencyTree = await Promise.race([processPromise, timeoutPromise]);
 
         // Parse the dependency tree to find dependents
         const result: Record<string, PackageJson[]> = {};
