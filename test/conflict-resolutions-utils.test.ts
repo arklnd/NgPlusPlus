@@ -101,129 +101,20 @@ describe('analyzeConflicts', function () {
         // Increase timeout for npm operations
         this.timeout(3600000); // 60 minutes
 
-        // Arrange
-        const packageJson: PackageJson = {
-            name: "hyui-9-project",
-            version: "1.0.0",
-            dependencies: {
-                "@angular-eslint/builder": "18.3.1",
-                "@angular/animations": "18.2.5",
-                "@angular/cdk": "18.2.5",
-                "@angular/common": "18.2.5",
-                "@angular/compiler": "18.2.5",
-                "@angular/core": "18.2.5",
-                "@angular/forms": "18.2.5",
-                "@angular/material": "18.2.5",
-                "@angular/platform-browser": "18.2.5",
-                "@angular/platform-browser-dynamic": "18.2.5",
-                "@angular/router": "18.2.5",
-                "@hylandsoftware/design-tokens": "^2.0.0-rc.2",
-                "@hylandsoftware/hy-ui-icons": "^4.1.1",
-                "@igniteui/material-icons-extended": "^3.0.2",
-                "@jsverse/transloco": "^7.4.0",
-                "@infragistics/igniteui-angular": "npm:igniteui-angular@18.1.13",
-                "@juggle/resize-observer": "^3.4.0",
-                "@storybook/core-server": "^8.2.9",
-                "angular-imask": "^7.6.1",
-                "angular-oauth2-oidc": "^18.0.0",
-                "angular-split": "18.0.0-beta.1",
-                "hammerjs": "^2.0.8",
-                "igniteui-theming": "11.0.0",
-                "ignore-not-found-export-webpack-plugin": "^1.0.2",
-                "ngx-color": "^9.0.0",
-                "rxjs": "^7.8.1",
-                "shelljs-exec-proxy": "^0.2.1",
-                "tslib": "^2.7.0",
-                "zone.js": "^0.14.10"
-            },
-            devDependencies: {
-                "@angular-devkit/architect": "0.1802.5",
-                "@angular-devkit/build-angular": "18.2.5",
-                "@angular-devkit/core": "18.2.5",
-                "@angular-eslint/eslint-plugin": "18.3.1",
-                "@angular-eslint/eslint-plugin-template": "18.3.1",
-                "@angular-eslint/template-parser": "18.3.1",
-                "@angular/cli": "18.2.5",
-                "@angular/compiler-cli": "18.2.5",
-                "@angular/elements": "18.2.5",
-                "@angular/language-service": "18.2.5",
-                "@commitlint/cli": "19.4.1",
-                "@commitlint/config-conventional": "19.4.1",
-                "@commitlint/prompt-cli": "19.4.1",
-                "@compodoc/compodoc": "^1.1.25",
-                "@cypress/code-coverage": "^3.13.2",
-                "@cypress/grep": "^4.1.0",
-                "@cypress/schematic": "^2.5.2",
-                "@hylandsoftware/eslint-plugin-hy-ui-standards": "^7.0.0-rc.3",
-                "@hylandsoftware/hy-ui-devkit": "^7.0.0",
-                "@hylandsoftware/hy-ui-standards": "^7.0.0-rc.3",
-                "@istanbuljs/nyc-config-typescript": "^1.0.2",
-                "@jsdevtools/coverage-istanbul-loader": "^3.0.5",
-                "@storybook/addon-a11y": "^8.2.9",
-                "@storybook/addon-actions": "^8.2.9",
-                "@storybook/addon-docs": "^8.2.9",
-                "@storybook/addon-essentials": "^8.2.9",
-                "@storybook/addon-themes": "^8.2.9",
-                "@storybook/addon-viewport": "^8.2.9",
-                "@storybook/angular": "^8.2.9",
-                "@storybook/channels": "^8.2.9",
-                "@storybook/cli": "^8.2.9",
-                "@storybook/components": "^8.2.9",
-                "@storybook/manager-api": "^8.2.9",
-                "@storybook/preview-api": "^8.2.9",
-                "@storybook/theming": "^8.2.9",
-                "@types/gulp": "^4.0.17",
-                "@types/hammerjs": "^2.0.45",
-                "@types/node": "22.5.4",
-                "@types/react": "^18.3.5",
-                "@typescript-eslint/eslint-plugin": "^8.4.0",
-                "@typescript-eslint/parser": "^8.4.0",
-                "accessibility-insights-scan": "^3.0.0",
-                "angular-http-server": "^1.12.0",
-                "axe-core": "~4.10.0",
-                "backstopjs": "6.3.25",
-                "core-js": "^3.38.1",
-                "cpx2": "^7.0.1",
-                "cypress": "13.14.2",
-                "cypress-axe": "^1.5.0",
-                "cypress-fail-fast": "^7.1.1",
-                "cypress-file-upload": "^5.0.8",
-                "cypress-mochawesome-reporter": "^3.8.2",
-                "cypress-multi-reporters": "^1.6.4",
-                "cypress-plugin-tab": "^1.0.5",
-                "cypress-real-events": "^1.13.0",
-                "eslint": "^8.18.0",
-                "eslint-config-prettier": "^8.5.0",
-                "eslint-config-stylelint": "^22.0.0",
-                "eslint-plugin-import": "2.30.0",
-                "eslint-plugin-no-only-tests": "^3.3.0",
-                "eslint-plugin-storybook": "^0.8.0",
-                "gulp": "~5.0.0",
-                "gulp-replace": "^1.1.4",
-                "husky": "^8.0.3",
-                "istanbul-lib-coverage": "^3.2.2",
-                "lint-staged": "^15.2.10",
-                "mocha-junit-reporter": "^2.2.1",
-                "ng-packagr": "18.2.1",
-                "npm-audit-resolver": "^3.0.0-RC.0",
-                "npm-run-all": "~4.1.5",
-                "nyc": "^17.0.0",
-                "prettier": "^3.3.3",
-                "pretty-quick": "^4.0.0",
-                "shelljs": "^0.8.5",
-                "source-map-explorer": "^2.5.3",
-                "standard-version": "^9.5.0",
-                "storybook": "^8.2.9",
-                "storybook-addon-rtl": "^1.0.1",
-                "style-loader": "^4.0.0",
-                "stylelint-config-prettier": "^9.0.5",
-                "terser-webpack-plugin": "^5.3.10",
-                "ts-node": "10.9.2",
-                "typescript": "~5.5.4",
-                "wait-on": "^8.0.0",
-                "webpack": "^5.94.0"
-            }
-        };
+        // Arrange - Copy asset files to test directory
+        const assetsDir = path.join(__dirname, 'assets');
+        const sourcePackageJsonPath = path.join(assetsDir, 'package_hyui9.json');
+        const sourcePackageLockPath = path.join(assetsDir, 'package-lock_hyui9.json');
+        
+        const targetPackageJsonPath = path.join(testRepoPath, 'package.json');
+        const targetPackageLockPath = path.join(testRepoPath, 'package-lock.json');
+        
+        // Copy the asset files to test directory
+        fs.copyFileSync(sourcePackageJsonPath, targetPackageJsonPath);
+        fs.copyFileSync(sourcePackageLockPath, targetPackageLockPath);
+        
+        // Read the actual package.json from assets
+        const packageJson: PackageJson = JSON.parse(fs.readFileSync(sourcePackageJsonPath, 'utf8'));
 
         const plannedUpdates: PackageUpdate[] = [
             {
@@ -273,12 +164,8 @@ describe('analyzeConflicts', function () {
             }
         ];
 
-        // Create package.json file
-        const packageJsonPath = path.join(testRepoPath, 'package.json');
-        fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
-
         // Act
-        const result: ConflictResolution = await analyzeConflicts(testRepoPath, true, packageJson, plannedUpdates);
+        const result: ConflictResolution = await analyzeConflicts(testRepoPath, false, packageJson, plannedUpdates);
 
         // Assert
         expect(result).to.be.an('object');
