@@ -13,6 +13,12 @@
         "paths": {
             "@/*": [
                 "src/*"
+            ],
+            "@T/*": [
+                "src/tools/*"
+            ],
+            "@U/*": [
+                "src/utils/*"
             ]
         }
     },
@@ -21,6 +27,7 @@
         "experimentalSpecifierResolution": "node"
     },
     "include": [
-        "src/**/*"
+        "src/**/*",
+        "test/**/*"
     ]
 }

@@ -3,8 +3,8 @@ import { describe, it, beforeEach, afterEach } from 'mocha';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { updatePackageWithDependencies } from '../src/tools/dependency-resolver.tool.js';
-import { PackageJson, installDependencies } from '../src/utils/package-json.utils.js';
+import { updatePackageWithDependencies } from '@T/dependency-resolver.tool.js';
+import { PackageJson, installDependencies } from '@U/package-json.utils.js';
 
 interface PackageUpdate {
     name: string;

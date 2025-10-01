@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { validatePackageVersionsExist } from '../src/utils/package-registry.utils.js';
+import { validatePackageVersionsExist } from '@U/package-registry.utils.js';
 
 describe('Package Version Validation', () => {
     it('should validate existing package versions', async () => {

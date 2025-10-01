@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { describe, it, beforeEach, afterEach } from 'mocha';
-import { getAllDependent } from '../src/utils/package-json.utils.js';
+import { getAllDependent } from '@U/package-json.utils.js';
 
 describe('Package JSON Utils', function () {
     beforeEach(function () {});

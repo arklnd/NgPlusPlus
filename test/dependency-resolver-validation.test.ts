@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { updatePackageWithDependencies } from '../src/tools/dependency-resolver.tool.js';
+import { updatePackageWithDependencies } from '@T/dependency-resolver.tool.js';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
