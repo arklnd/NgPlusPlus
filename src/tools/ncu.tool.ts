@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { existsSync, readFileSync } from 'fs';
 import { join, resolve } from 'path';
 import { spawn } from 'child_process';
-import { getLogger } from '../utils/index.js';
+import { getLogger } from '@U/index';
 
 /**
  * Base schema for NCU operations that require a repository path

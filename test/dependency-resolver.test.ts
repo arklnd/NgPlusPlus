@@ -3,9 +3,9 @@ import { describe, it, beforeEach, afterEach } from 'mocha';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { updatePackageWithDependencies } from '@T/dependency-resolver.tool.js';
-import { installDependencies } from '@U/package-json.utils.js';
-import { PackageJson } from '@U/index.js';
+import { updatePackageWithDependencies } from '@T/dependency-resolver.tool';
+import { installDependencies } from '@U/index';
+import { PackageJson } from '@I/index';
 
 interface PackageUpdate {
     name: string;

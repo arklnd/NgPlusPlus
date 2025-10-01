@@ -1,11 +1,3 @@
-export interface LogEntry {
-    timestamp: string;
-    level: string;
-    message: string;
-    context?: string;
-    metadata?: Record<string, any>;
-}
-
 export interface LoggerConfig {
     level: LogLevel;
     enableFileLogging: boolean;

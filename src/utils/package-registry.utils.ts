@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
-import { getLogger } from '@U/logger.utils.js';
-import { RegistryData, PackageVersionData, ValidationResult } from '@I/package-registry.interfaces.js';
+import { getLogger } from '@U/index';
+import { RegistryData, PackageVersionData, ValidationResult } from '@I/index';
 
 /**
  * Fetches package metadata using npm view command (respects .npmrc auth)

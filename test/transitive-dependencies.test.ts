@@ -3,8 +3,7 @@ import { describe, it, beforeEach, afterEach } from 'mocha';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { updateTransitiveDependencies } from '@U/transitive-dependencies.utils.js';
-import { readPackageJson } from '@U/package-json.utils.js';
+import { updateTransitiveDependencies, readPackageJson } from '@U/index';
 
 interface PackageJson {
     name: string;

@@ -1,10 +1,7 @@
-import { getPackageData, getPackageVersionData, getPackageVersions } from '@U/package-registry.utils.js';
-import { getCleanVersion, satisfiesVersionRange, findCompatibleVersion } from '@U/version.utils.js';
-import { getAllDependencies, getAllDependent, isDevDependency, updateDependency, installDependencies } from '@U/package-json.utils.js';
-import { getLogger } from '@U/logger.utils.js';
-import { ConflictInfo, ConflictResolution } from '@I/conflict-resolution.interfaces.js';
-import { PackageJson } from '@I/package-json.interfaces.js';
-import { RegistryData } from '@I/package-registry.interfaces.js';
+import { getPackageData, getPackageVersionData, getPackageVersions } from '@U/package-registry.utils';
+import { getCleanVersion, satisfiesVersionRange, findCompatibleVersion } from '@U/version.utils';
+import { getAllDependencies, getAllDependent, isDevDependency, updateDependency, installDependencies, getLogger } from '@U/index';
+import { ConflictInfo, ConflictResolution, PackageJson } from '@I/index';
 
 /**
  * Analyzes potential conflicts between existing dependencies and planned updates

@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { getOpenAIService } from '../services/index.js';
-import { getLogger } from '../utils/index.js';
+import { getOpenAIService } from '@S/index';
+import { getLogger } from '@U/index';
 
 /**
  * Register echo tools with the MCP server

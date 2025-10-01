@@ -3,8 +3,8 @@ import { describe, it, beforeEach, afterEach } from 'mocha';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { analyzeConflicts } from '@U/conflict-resolution.utils.js';
-import { ConflictResolution, PackageJson } from '@U/index.js';
+import { analyzeConflicts } from '@U/index';
+import { ConflictResolution, PackageJson } from '@I/index';
 
 interface PackageUpdate {
     name: string;

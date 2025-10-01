@@ -1,8 +1,8 @@
-import { getPackageData, getPackageVersionData } from '@U/package-registry.utils.js';
-import { getCleanVersion, satisfiesVersionRange, findCompatibleVersion } from '@U/version.utils.js';
-import { getAllDependencies, isDevDependency, updateDependency } from '@U/package-json.utils.js';
-import { getLogger } from '@U/logger.utils.js';
-import { PackageJson } from '@I/package-json.interfaces.js';
+import { getPackageData, getPackageVersionData } from '@U/package-registry.utils';
+import { getCleanVersion, satisfiesVersionRange, findCompatibleVersion } from '@U/version.utils';
+import { getAllDependencies, isDevDependency, updateDependency } from '@U/package-json.utils';
+import { getLogger } from '@U/logger.utils';
+import { PackageJson } from '@I/package-json.interfaces';
 
 /**
  * TRANSITIVE DEPENDENCY RESOLUTION ENGINE

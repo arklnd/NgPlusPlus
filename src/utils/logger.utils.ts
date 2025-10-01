@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { LogEntry, LoggerConfig, LogLevel } from '@I/logger.interfaces.js';
+import { LoggerConfig, LogLevel } from '@I/index';
 
 /**
  * Simple file-based logger utility for NgPlusPlus MCP
