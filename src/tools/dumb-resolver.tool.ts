@@ -79,7 +79,20 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         let success = false;
 
         // Initialize chat history for maintaining context across installation attempts
-        const systemMessage = `You are an expert npm dependency resolver. Your task is to analyze dependency conflicts and suggest alternative versions that are compatible. Here the target is to apply updates requested by user, keep tendency to more and more latest versions. Always respond with valid JSON format containing suggestions and analysis.`;
+        const systemMessage = `You are an expert npm dependency resolver with a PRIMARY GOAL of upgrading packages to newer versions. Your task is to analyze dependency conflicts and suggest alternative versions that resolve conflicts while ALWAYS making progress towards newer, more recent versions.
+
+CRITICAL INSTRUCTIONS:
+1. NEVER suggest downgrading to older versions unless absolutely no other option exists
+2. ALWAYS prioritize newer versions over older ones when resolving conflicts
+3. If a conflict exists, find the NEWEST compatible versions that resolve it
+4. Look for ways to upgrade transitive dependencies that might unlock newer versions
+5. Consider using version ranges (^, ~) that allow for newer patch/minor versions
+6. When multiple solutions exist, ALWAYS choose the one with newer package versions
+7. If you must suggest an older version, explain why and suggest a path to upgrade later
+
+Your suggestions should demonstrate clear progress towards more recent package versions. The user's intent is to modernize their dependency tree, not maintain old versions.
+
+Always respond with valid JSON format containing suggestions and analysis.`;
         let chatHistory: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
             { role: 'system', content: systemMessage }
         ];
