@@ -64,6 +64,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
 
         // Step 2: Read and update package.json with target dependencies
         let packageJson = readPackageJson(tempDir);
+        const originalPackageJson = JSON.stringify(packageJson); // Deep clone for AI context
 
         for (const dep of update_dependencies) {
             updateDependency(packageJson, dep.name, dep.version, dep.isDev);
@@ -94,7 +95,14 @@ Your suggestions should demonstrate clear progress towards more recent package v
 
 Always respond with valid JSON format containing suggestions and analysis.`;
         let chatHistory: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-            { role: 'system', content: systemMessage }
+            { role: 'system', content: systemMessage },
+            { 
+                role: 'user', 
+                content: `ORIGINAL PACKAGE.JSON DEPENDENCIES CONTEXT:
+${originalPackageJson}
+
+This is the current state of dependencies before any updates. Use this context to make informed upgrade decisions.` 
+            }
         ];
 
         while (attempt < maxAttempts && !success) {
@@ -135,7 +143,7 @@ ${installError}
 Standard output:
 ${installOutput}
 
-Please suggest alternative versions or solutions to resolve this dependency conflict. Respond with JSON format:
+Please suggest alternative versions or solutions to resolve this dependency conflict. Use the original package.json context provided earlier to make informed upgrade decisions. Respond with JSON format:
 {
   "suggestions": [
     {
