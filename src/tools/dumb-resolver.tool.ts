@@ -7,6 +7,7 @@ import { promisify } from 'util';
 import { readPackageJson, writePackageJson, updateDependency, installDependencies } from '@U/package-json.utils';
 import { getOpenAIService } from '@S/openai.service';
 import { getLogger } from '@U/index';
+import OpenAI from 'openai';
 
 // Schema definitions
 export const dependencyUpdateSchema = z.object({
@@ -28,7 +29,7 @@ const cpAsync = promisify(cp);
 export const dumbResolverHandler = async (input: DumbResolverInput) => {
     const { repo_path, update_dependencies } = input;
     const logger = getLogger().child('dumb-resolver');
-    const maxAttempts = 3;
+    const maxAttempts = 30;
     let attempt = 0;
     let tempDir: string | null = null;
 
@@ -77,6 +78,12 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         let installError = '';
         let success = false;
 
+        // Initialize chat history for maintaining context across installation attempts
+        const systemMessage = `You are an expert npm dependency resolver. Your task is to analyze dependency conflicts and suggest alternative versions that are compatible. Always respond with valid JSON format containing suggestions and analysis.`;
+        let chatHistory: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+            { role: 'system', content: systemMessage }
+        ];
+
         while (attempt < maxAttempts && !success) {
             attempt++;
             logger.info(`Installation attempt ${attempt}/${maxAttempts}`);
@@ -103,8 +110,8 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
             if (!success && attempt < maxAttempts) {
                 logger.info('Asking OpenAI for alternative solutions');
 
-                let prompt = `
-The following npm install failed:
+                const userMessage = `
+The following npm install failed. Attempt: ${attempt}/${maxAttempts} failed:
 
 Dependencies being updated:
 ${update_dependencies.map((dep) => `${dep.name}@${dep.version} (${dep.isDev ? 'dev' : 'prod'})`).join('\n')}
@@ -128,8 +135,10 @@ Please suggest alternative versions or solutions to resolve this dependency conf
   "analysis": "brief analysis of the conflict"
 }
 
-For each suggestion, set isDev to true if it's a development dependency (like typescript, @types/*, testing tools, build tools, linters, and definitely not limited to these only) or false if it's a production dependency.
-`;
+For each suggestion, set isDev to true if it's a development dependency (like typescript, @types/*, testing tools, build tools, linters, and definitely not limited to these only) or false if it's a production dependency.`;
+
+                // Add current failure to chat history
+                chatHistory.push({ role: 'user', content: userMessage });
 
                 // Try to get valid suggestions from OpenAI (with retry on invalid structure)
                 let aiRetryAttempt = 0;
@@ -138,11 +147,15 @@ For each suggestion, set isDev to true if it's a development dependency (like ty
 
                 while (aiRetryAttempt < maxAiRetries && !validSuggestions) {
                     aiRetryAttempt++;
+                    let response = '';
                     try {
-                        const response = await openai.generateText(prompt, {
+                        response = await openai.generateTextWithHistory(chatHistory, {
                             temperature: 0.3,
                             maxTokens: 1000,
                         });
+
+                        // Add successful assistant response to chat history for future context
+                        chatHistory.push({ role: 'assistant', content: response });
 
                         // Extract JSON from markdown code blocks if present
                         let jsonString = response.trim();
@@ -201,13 +214,21 @@ For each suggestion, set isDev to true if it's a development dependency (like ty
                         }
 
                         writePackageJson(tempDir, packageJson);
+                        
+                        // Add summary of applied changes to chat history for next iteration context
+                        const appliedChanges = suggestions.suggestions.map((s: any) => `${s.name}@${s.version}`).join(', ');
+                        chatHistory.push({ 
+                            role: 'user', 
+                            content: `Applied suggestions: ${appliedChanges}. Will now attempt installation with these changes.` 
+                        });
                     } catch (aiError) {
                         const errorMsg = aiError instanceof Error ? aiError.message : String(aiError);
                         logger.warn(`OpenAI attempt ${aiRetryAttempt} failed`, { error: errorMsg });
 
                         if (aiRetryAttempt < maxAiRetries) {
-                            // Update prompt for retry to be more specific about format
-                            prompt += `\n\nIMPORTANT: Previous response was invalid. Please ensure your response is valid JSON with this exact structure:
+                            // Add assistant response and user retry message to chat history
+                            // chatHistory.push({ role: 'assistant', content: response || 'Failed to generate response' });
+                            const retryMessage = `IMPORTANT: Previous response was invalid. Please ensure your response is valid JSON with this exact structure:
 {
   "suggestions": [
     {
@@ -221,6 +242,8 @@ For each suggestion, set isDev to true if it's a development dependency (like ty
 }
 
 For each suggestion, set isDev to true if it's a development dependency (like typescript, @types/*, testing tools, build tools, linters, and definitely not limited to these only) or false if it's a production dependency.`;
+                            
+                            chatHistory.push({ role: 'user', content: retryMessage });
                         } else {
                             logger.error('Failed to get valid OpenAI suggestions after retries', { error: errorMsg });
                         }
