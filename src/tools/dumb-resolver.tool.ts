@@ -79,7 +79,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         let success = false;
 
         // Initialize chat history for maintaining context across installation attempts
-        const systemMessage = `You are an expert npm dependency resolver. Your task is to analyze dependency conflicts and suggest alternative versions that are compatible. Always respond with valid JSON format containing suggestions and analysis.`;
+        const systemMessage = `You are an expert npm dependency resolver. Your task is to analyze dependency conflicts and suggest alternative versions that are compatible. Here the target is to apply updates requested by user, keep tendency to more and more latest versions. Always respond with valid JSON format containing suggestions and analysis.`;
         let chatHistory: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
             { role: 'system', content: systemMessage }
         ];
