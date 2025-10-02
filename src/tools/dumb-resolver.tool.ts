@@ -4,35 +4,28 @@ import { tmpdir } from 'os';
 import { mkdtemp, cp, existsSync, rmSync } from 'fs';
 import { join, resolve } from 'path';
 import { promisify } from 'util';
-import { 
-    readPackageJson, 
-    writePackageJson, 
-    updateDependency,
-    installDependencies 
-} from '@U/package-json.utils';
+import { readPackageJson, writePackageJson, updateDependency, installDependencies } from '@U/package-json.utils';
 import { getOpenAIService } from '@S/openai.service';
 import { getLogger } from '@U/index';
 
 // Schema definitions
-const dependencyUpdateSchema = z.object({
+export const dependencyUpdateSchema = z.object({
     name: z.string().describe('Package name'),
     version: z.string().describe('Target version'),
     isDev: z.boolean().default(false).describe('Whether this is a dev dependency'),
 });
 
-const dumbResolverInputSchema = z.object({
+export const dumbResolverInputSchema = z.object({
     repo_path: z.string().describe('Path to the repository/project root directory that contains package.json'),
-    update_dependencies: z
-        .array(dependencyUpdateSchema)
-        .describe('List of dependencies to update with their target versions'),
+    update_dependencies: z.array(dependencyUpdateSchema).describe('List of dependencies to update with their target versions'),
 });
 
-type DumbResolverInput = z.infer<typeof dumbResolverInputSchema>;
+export type DumbResolverInput = z.infer<typeof dumbResolverInputSchema>;
 
 const mkdtempAsync = promisify(mkdtemp);
 const cpAsync = promisify(cp);
 
-const dumbResolverHandler = async (input: DumbResolverInput) => {
+export const dumbResolverHandler = async (input: DumbResolverInput) => {
     const { repo_path, update_dependencies } = input;
     const logger = getLogger().child('dumb-resolver');
     const maxAttempts = 3;
@@ -40,9 +33,9 @@ const dumbResolverHandler = async (input: DumbResolverInput) => {
     let tempDir: string | null = null;
 
     try {
-        logger.info('Starting dependency resolution', { 
-            repoPath: repo_path, 
-            dependencies: update_dependencies 
+        logger.info('Starting dependency resolution', {
+            repoPath: repo_path,
+            dependencies: update_dependencies,
         });
 
         // Step 1: Create temporary directory and copy package.json
@@ -70,7 +63,7 @@ const dumbResolverHandler = async (input: DumbResolverInput) => {
 
         // Step 2: Read and update package.json with target dependencies
         let packageJson = readPackageJson(tempDir);
-        
+
         for (const dep of update_dependencies) {
             updateDependency(packageJson, dep.name, dep.version, dep.isDev);
         }
@@ -114,7 +107,7 @@ const dumbResolverHandler = async (input: DumbResolverInput) => {
 The following npm install failed:
 
 Dependencies being updated:
-${update_dependencies.map(dep => `${dep.name}@${dep.version} (${dep.isDev ? 'dev' : 'prod'})`).join('\n')}
+${update_dependencies.map((dep) => `${dep.name}@${dep.version} (${dep.isDev ? 'dev' : 'prod'})`).join('\n')}
 
 Error output:
 ${installError}
@@ -145,26 +138,24 @@ Please suggest alternative versions or solutions to resolve this dependency conf
                     try {
                         const response = await openai.generateText(prompt, {
                             temperature: 0.3,
-                            maxTokens: 1000
+                            maxTokens: 1000,
                         });
 
                         // Parse and validate OpenAI response structure
                         const suggestions = JSON.parse(response);
-                        
+
                         // Validate response structure
                         if (!suggestions || typeof suggestions !== 'object') {
                             throw new Error('Invalid response: not an object');
                         }
-                        
+
                         if (!suggestions.suggestions || !Array.isArray(suggestions.suggestions)) {
                             throw new Error('Invalid response: missing or invalid suggestions array');
                         }
 
                         // Validate each suggestion
-                        const invalidSuggestions = suggestions.suggestions.filter((s: any) => 
-                            !s || typeof s !== 'object' || !s.name || !s.version
-                        );
-                        
+                        const invalidSuggestions = suggestions.suggestions.filter((s: any) => !s || typeof s !== 'object' || !s.name || !s.version);
+
                         if (invalidSuggestions.length > 0) {
                             throw new Error(`Invalid suggestions found: ${invalidSuggestions.length} items missing name or version`);
                         }
@@ -174,25 +165,24 @@ Please suggest alternative versions or solutions to resolve this dependency conf
 
                         // Update package.json with suggested versions
                         packageJson = readPackageJson(tempDir);
-                        
+
                         for (const suggestion of suggestions.suggestions) {
-                            const targetDep = update_dependencies.find(dep => dep.name === suggestion.name);
+                            const targetDep = update_dependencies.find((dep) => dep.name === suggestion.name);
                             if (targetDep) {
                                 updateDependency(packageJson, suggestion.name, suggestion.version, targetDep.isDev);
-                                logger.info('Applied OpenAI suggestion', { 
-                                    package: suggestion.name, 
+                                logger.info('Applied OpenAI suggestion', {
+                                    package: suggestion.name,
                                     version: suggestion.version,
-                                    reason: suggestion.reason 
+                                    reason: suggestion.reason,
                                 });
                             }
                         }
 
                         writePackageJson(tempDir, packageJson);
-
                     } catch (aiError) {
                         const errorMsg = aiError instanceof Error ? aiError.message : String(aiError);
                         logger.warn(`OpenAI attempt ${aiRetryAttempt} failed`, { error: errorMsg });
-                        
+
                         if (aiRetryAttempt < maxAiRetries) {
                             // Update prompt for retry to be more specific about format
                             prompt += `\n\nIMPORTANT: Previous response was invalid. Please ensure your response is valid JSON with this exact structure:
@@ -229,38 +219,33 @@ Please suggest alternative versions or solutions to resolve this dependency conf
                 content: [
                     {
                         type: 'text' as const,
-                        text: `✅ Successfully updated dependencies after ${attempt} attempt(s):\n\n` +
-                              `Updated packages:\n${update_dependencies.map(dep => `- ${dep.name}@${dep.version}`).join('\n')}\n\n` +
-                              `Installation output:\n${installOutput.slice(-500)}` // Last 500 chars to avoid overflow
-                    }
-                ]
+                        text: `✅ Successfully updated dependencies after ${attempt} attempt(s):\n\n` + `Updated packages:\n${update_dependencies.map((dep) => `- ${dep.name}@${dep.version}`).join('\n')}\n\n` + `Installation output:\n${installOutput.slice(-500)}`, // Last 500 chars to avoid overflow
+                    },
+                ],
             };
         } else {
-            const errorMessage = `❌ Failed to resolve dependencies after ${maxAttempts} attempts.\n\n` +
-                               `Last error:\n${installError}\n\n` +
-                               `Please check the dependency versions and try again with compatible versions.`;
-            
+            const errorMessage = `❌ Failed to resolve dependencies after ${maxAttempts} attempts.\n\n` + `Last error:\n${installError}\n\n` + `Please check the dependency versions and try again with compatible versions.`;
+
             return {
                 content: [
                     {
                         type: 'text' as const,
-                        text: errorMessage
-                    }
-                ]
+                        text: errorMessage,
+                    },
+                ],
             };
         }
-
     } catch (error) {
         const errorMessage = `❌ Dependency resolution failed: ${error instanceof Error ? error.message : String(error)}`;
         logger.error('Dependency resolution failed', { error: errorMessage });
-        
+
         return {
             content: [
                 {
                     type: 'text' as const,
-                    text: errorMessage
-                }
-            ]
+                    text: errorMessage,
+                },
+            ],
         };
     } finally {
         // Cleanup temporary directory
@@ -269,9 +254,9 @@ Please suggest alternative versions or solutions to resolve this dependency conf
                 rmSync(tempDir, { recursive: true, force: true });
                 logger.debug('Successfully cleaned up temporary directory', { tempDir });
             } catch (cleanupError) {
-                logger.warn('Failed to cleanup temporary directory', { 
-                    tempDir, 
-                    error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError) 
+                logger.warn('Failed to cleanup temporary directory', {
+                    tempDir,
+                    error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
                 });
             }
         }
