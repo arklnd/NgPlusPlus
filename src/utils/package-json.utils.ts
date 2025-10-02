@@ -260,15 +260,16 @@ export async function getAllDependent(repoPath: string, packageName: string): Pr
 /**
  * do npm install in the given repo path
  * @param repoPath Path to the repository
+ * @returns Promise with stdout, stderr, and success status (only resolves on success, rejects on failure)
  */
-export async function installDependencies(repoPath: string): Promise<void> {
+export async function installDependencies(repoPath: string): Promise<{ stdout: string; stderr: string; success: boolean }> {
     const logger = getLogger().child('PackageJson');
     logger.debug('Installing dependencies', { repoPath });
 
     const abortController = new AbortController();
 
     try {
-        const processPromise = new Promise<void>((resolve, reject) => {
+        const processPromise = new Promise<{ stdout: string; stderr: string; success: boolean }>((resolve, reject) => {
             let completed = false;
 
             const child = spawn('npm', ['install'], {
@@ -297,25 +298,28 @@ export async function installDependencies(repoPath: string): Promise<void> {
                     abortController.abort(); // This will terminate the child process
                     reject(new Error('npm install timed out after 60 minutes'));
                 }
-            }, 3600000);
+            }, 3600000); // 60 minutes timeout
 
             child.on('close', (code: number | null) => {
                 if (!completed) {
                     completed = true;
                     clearTimeout(timeoutId);
 
-                    if (code === 0) {
+                    const success = code === 0;
+                    
+                    if (success) {
                         logger.info('Successfully installed dependencies', {
                             repoPath,
                             stdout: stdout.trim(),
                         });
-                        resolve();
+                        resolve({ stdout, stderr, success: true });
                     } else {
                         const errorMessage = `npm install failed with exit code ${code}`;
                         logger.error(errorMessage, {
                             repoPath,
                             stderr: stderr.trim(),
                             stdout: stdout.trim(),
+                            exitCode: code
                         });
                         reject(new Error(`${errorMessage}: ${stderr || stdout}`));
                     }
