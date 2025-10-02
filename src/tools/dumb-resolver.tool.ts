@@ -110,7 +110,7 @@ const dumbResolverHandler = async (input: DumbResolverInput) => {
             if (!success && attempt < maxAttempts) {
                 logger.info('Asking OpenAI for alternative solutions');
 
-                const prompt = `
+                let prompt = `
 The following npm install failed:
 
 Dependencies being updated:
@@ -135,40 +135,81 @@ Please suggest alternative versions or solutions to resolve this dependency conf
 }
 `;
 
-                try {
-                    const response = await openai.generateText(prompt, {
-                        temperature: 0.3,
-                        maxTokens: 1000
-                    });
+                // Try to get valid suggestions from OpenAI (with retry on invalid structure)
+                let aiRetryAttempt = 0;
+                const maxAiRetries = 2;
+                let validSuggestions = false;
 
-                    // Parse OpenAI response and apply suggestions
-                    const suggestions = JSON.parse(response);
-                    logger.info('Received OpenAI suggestions', { suggestions });
+                while (aiRetryAttempt < maxAiRetries && !validSuggestions) {
+                    aiRetryAttempt++;
+                    try {
+                        const response = await openai.generateText(prompt, {
+                            temperature: 0.3,
+                            maxTokens: 1000
+                        });
 
-                    if (suggestions.suggestions && Array.isArray(suggestions.suggestions)) {
+                        // Parse and validate OpenAI response structure
+                        const suggestions = JSON.parse(response);
+                        
+                        // Validate response structure
+                        if (!suggestions || typeof suggestions !== 'object') {
+                            throw new Error('Invalid response: not an object');
+                        }
+                        
+                        if (!suggestions.suggestions || !Array.isArray(suggestions.suggestions)) {
+                            throw new Error('Invalid response: missing or invalid suggestions array');
+                        }
+
+                        // Validate each suggestion
+                        const invalidSuggestions = suggestions.suggestions.filter((s: any) => 
+                            !s || typeof s !== 'object' || !s.name || !s.version
+                        );
+                        
+                        if (invalidSuggestions.length > 0) {
+                            throw new Error(`Invalid suggestions found: ${invalidSuggestions.length} items missing name or version`);
+                        }
+
+                        logger.info('Received valid OpenAI suggestions', { suggestions, attempt: aiRetryAttempt });
+                        validSuggestions = true;
+
                         // Update package.json with suggested versions
                         packageJson = readPackageJson(tempDir);
                         
                         for (const suggestion of suggestions.suggestions) {
-                            if (suggestion.name && suggestion.version) {
-                                const targetDep = update_dependencies.find(dep => dep.name === suggestion.name);
-                                if (targetDep) {
-                                    updateDependency(packageJson, suggestion.name, suggestion.version, targetDep.isDev);
-                                    logger.info('Applied OpenAI suggestion', { 
-                                        package: suggestion.name, 
-                                        version: suggestion.version,
-                                        reason: suggestion.reason 
-                                    });
-                                }
+                            const targetDep = update_dependencies.find(dep => dep.name === suggestion.name);
+                            if (targetDep) {
+                                updateDependency(packageJson, suggestion.name, suggestion.version, targetDep.isDev);
+                                logger.info('Applied OpenAI suggestion', { 
+                                    package: suggestion.name, 
+                                    version: suggestion.version,
+                                    reason: suggestion.reason 
+                                });
                             }
                         }
 
                         writePackageJson(tempDir, packageJson);
+
+                    } catch (aiError) {
+                        const errorMsg = aiError instanceof Error ? aiError.message : String(aiError);
+                        logger.warn(`OpenAI attempt ${aiRetryAttempt} failed`, { error: errorMsg });
+                        
+                        if (aiRetryAttempt < maxAiRetries) {
+                            // Update prompt for retry to be more specific about format
+                            prompt += `\n\nIMPORTANT: Previous response was invalid. Please ensure your response is valid JSON with this exact structure:
+{
+  "suggestions": [
+    {
+      "name": "package-name",
+      "version": "suggested-version", 
+      "reason": "explanation for this version"
+    }
+  ],
+  "analysis": "brief analysis of the conflict"
+}`;
+                        } else {
+                            logger.error('Failed to get valid OpenAI suggestions after retries', { error: errorMsg });
+                        }
                     }
-                } catch (aiError) {
-                    logger.error('Failed to get OpenAI suggestions', { 
-                        error: aiError instanceof Error ? aiError.message : String(aiError) 
-                    });
                 }
             }
         }
