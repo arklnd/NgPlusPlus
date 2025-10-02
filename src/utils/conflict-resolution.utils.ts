@@ -79,10 +79,10 @@ export async function analyzeConflicts(repoPath: string, runNpmInstall: boolean,
                     if (!dependentVersionClean) continue;
 
                     const dependentVersionData = await getPackageVersionData(dependent.name, dependentVersionClean);
-                    if (!dependentVersionData?.dependencies) continue;
+                    if (!dependentVersionData?.dependencies && !dependentVersionData?.peerDependencies) continue;
 
                     // Check if this dependent has a dependency on the package we're updating
-                    const depVersion = dependentVersionData.dependencies[updateName];
+                    const depVersion = dependentVersionData.dependencies?.[updateName] ?? dependentVersionData.peerDependencies?.[updateName];
                     if (!depVersion) continue;
 
                     // Clean the planned update version for comparison
