@@ -29,7 +29,7 @@ const cpAsync = promisify(cp);
 export const dumbResolverHandler = async (input: DumbResolverInput) => {
     const { repo_path, update_dependencies } = input;
     const logger = getLogger().child('dumb-resolver');
-    const maxAttempts = 30;
+    const maxAttempts = 50;
     let attempt = 0;
     let tempDir: string | null = null;
 
@@ -164,7 +164,7 @@ For each suggestion, set isDev to true if it's a development dependency (like ty
 
                 // Try to get valid suggestions from OpenAI (with retry on invalid structure)
                 let aiRetryAttempt = 0;
-                const maxAiRetries = 2;
+                const maxAiRetries = 5;
                 let validSuggestions = false;
 
                 while (aiRetryAttempt < maxAiRetries && !validSuggestions) {
