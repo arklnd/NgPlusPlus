@@ -121,11 +121,14 @@ Please suggest alternative versions or solutions to resolve this dependency conf
     {
       "name": "package-name",
       "version": "suggested-version",
+      "isDev": true/false,
       "reason": "explanation for this version"
     }
   ],
   "analysis": "brief analysis of the conflict"
 }
+
+For each suggestion, set isDev to true if it's a development dependency (like typescript, @types/*, testing tools, build tools, linters, and definitely not limited to these only) or false if it's a production dependency.
 `;
 
                 // Try to get valid suggestions from OpenAI (with retry on invalid structure)
@@ -141,8 +144,15 @@ Please suggest alternative versions or solutions to resolve this dependency conf
                             maxTokens: 1000,
                         });
 
+                        // Extract JSON from markdown code blocks if present
+                        let jsonString = response.trim();
+                        const jsonMatch = jsonString.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+                        if (jsonMatch) {
+                            jsonString = jsonMatch[1].trim();
+                        }
+
                         // Parse and validate OpenAI response structure
-                        const suggestions = JSON.parse(response);
+                        const suggestions = JSON.parse(jsonString);
 
                         // Validate response structure
                         if (!suggestions || typeof suggestions !== 'object') {
@@ -154,10 +164,10 @@ Please suggest alternative versions or solutions to resolve this dependency conf
                         }
 
                         // Validate each suggestion
-                        const invalidSuggestions = suggestions.suggestions.filter((s: any) => !s || typeof s !== 'object' || !s.name || !s.version);
+                        const invalidSuggestions = suggestions.suggestions.filter((s: any) => !s || typeof s !== 'object' || !s.name || !s.version || typeof s.isDev !== 'boolean');
 
                         if (invalidSuggestions.length > 0) {
-                            throw new Error(`Invalid suggestions found: ${invalidSuggestions.length} items missing name or version`);
+                            throw new Error(`Invalid suggestions found: ${invalidSuggestions.length} items missing name, version, or isDev`);
                         }
 
                         logger.info('Received valid OpenAI suggestions', { suggestions, attempt: aiRetryAttempt });
@@ -167,13 +177,25 @@ Please suggest alternative versions or solutions to resolve this dependency conf
                         packageJson = readPackageJson(tempDir);
 
                         for (const suggestion of suggestions.suggestions) {
+                            updateDependency(packageJson, suggestion.name, suggestion.version, suggestion.isDev);
                             const targetDep = update_dependencies.find((dep) => dep.name === suggestion.name);
                             if (targetDep) {
-                                updateDependency(packageJson, suggestion.name, suggestion.version, targetDep.isDev);
-                                logger.info('Applied OpenAI suggestion', {
+                                // Update existing dependency with suggested version
+                                targetDep.version = suggestion.version;
+                                logger.info('Applied OpenAI suggestion (updated existing)', {
                                     package: suggestion.name,
                                     version: suggestion.version,
                                     reason: suggestion.reason,
+                                    isDev: targetDep.isDev,
+                                });
+                            } else {
+                                // Add new dependency suggested by OpenAI
+                                update_dependencies.push(suggestion);
+                                logger.info('Applied OpenAI suggestion (added new)', {
+                                    package: suggestion.name,
+                                    version: suggestion.version,
+                                    reason: suggestion.reason,
+                                    isDev: suggestion.isDev,
                                 });
                             }
                         }
@@ -190,12 +212,15 @@ Please suggest alternative versions or solutions to resolve this dependency conf
   "suggestions": [
     {
       "name": "package-name",
-      "version": "suggested-version", 
+      "version": "suggested-version",
+      "isDev": true/false,
       "reason": "explanation for this version"
     }
   ],
   "analysis": "brief analysis of the conflict"
-}`;
+}
+
+For each suggestion, set isDev to true if it's a development dependency (like typescript, @types/*, testing tools, build tools, linters, and definitely not limited to these only) or false if it's a production dependency.`;
                         } else {
                             logger.error('Failed to get valid OpenAI suggestions after retries', { error: errorMsg });
                         }
