@@ -612,7 +612,7 @@ class ResolverErrorHandler {
 export const dumbResolverHandler = async (input: DumbResolverInput) => {
     const { repo_path, update_dependencies } = input;
     const logger = getLogger().child('dumb-resolver');
-    const maxAttempts = 50;
+    const maxAttempts = 200;
     let attempt = 0;
     let tempDir: string | null = null;
 
@@ -758,7 +758,7 @@ This is the current state before any updates. Focus on achieving these target up
 
                 // Try to get valid suggestions from OpenAI (with retry on invalid structure)
                 let aiRetryAttempt = 0;
-                const maxAiRetries = 5;
+                const maxAiRetries = 20;
                 let validSuggestions = false;
 
                 while (aiRetryAttempt < maxAiRetries && !validSuggestions) {
