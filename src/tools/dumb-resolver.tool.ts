@@ -111,6 +111,16 @@ This is the current state of dependencies before any updates. Use this context t
             logger.info(`Installation attempt ${attempt}/${maxAttempts}`);
 
             try {
+                // Remove package-lock.json from tempDir before running installDependencies to prevent 
+                // stale or conflicting package-lock files from interfering with the install process
+                if (existsSync(tempPackageLockPath)) {
+                    rmSync(tempPackageLockPath, { force: true });
+                    logger.debug('Removed existing package-lock.json before install attempt', { 
+                        attempt, 
+                        tempPackageLockPath 
+                    });
+                }
+
                 // Run npm install using enhanced utility
                 const { stdout, stderr, success: installSuccess } = await installDependencies(tempDir);
                 installOutput = stdout;
