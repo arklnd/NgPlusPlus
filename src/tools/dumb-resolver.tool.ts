@@ -692,8 +692,13 @@ This is the current state before any updates. Focus on achieving these target up
             logger.info(`Installation attempt ${attempt}/${maxAttempts}`);
 
             try {
+                // Remove package-lock.json from tempDir before installation to force fresh resolution
+                if (existsSync(tempPackageLockPath)) {
+                    rmSync(tempPackageLockPath, { force: true });
+                    logger.debug('Removed package-lock.json from temp directory for fresh resolution');
+                }
+                
                 // Run npm install using enhanced utility
-                // TODO: remove package-lock.json from tempDir before installDependencies
                 const { stdout, stderr, success: installSuccess } = await installDependencies(tempDir);
                 installOutput = stdout;
                 installError = stderr;
