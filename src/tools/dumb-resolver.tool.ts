@@ -640,10 +640,10 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         logger.debug('Copied package.json to temp directory');
 
         // Copy package-lock.json if it exists
-        if (existsSync(originalPackageLockPath)) {
-            await cpAsync(originalPackageLockPath, tempPackageLockPath);
-            logger.debug('Copied package-lock.json to temp directory');
-        }
+        // if (existsSync(originalPackageLockPath)) {
+        //    await cpAsync(originalPackageLockPath, tempPackageLockPath);
+        //    logger.debug('Copied package-lock.json to temp directory');
+        // }
 
         // Step 2: Read and update package.json with target dependencies
         let packageJson = readPackageJson(tempDir);
@@ -693,6 +693,7 @@ This is the current state before any updates. Focus on achieving these target up
 
             try {
                 // Run npm install using enhanced utility
+                // TODO: remove package-lock.json from tempDir before installDependencies
                 const { stdout, stderr, success: installSuccess } = await installDependencies(tempDir);
                 installOutput = stdout;
                 installError = stderr;
