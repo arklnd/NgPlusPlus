@@ -1,4 +1,6 @@
-# ng++
+<img width="200" height="200" alt="698bb407-be37-4b3b-8664-f1b50d33c51c" src="https://github.com/user-attachments/assets/a99ebc08-1694-48bf-930e-8fb7eaabcd4c" />
+
+---
 
 An Angular version upgrade helper built as a Model Context Protocol (MCP) server that provides intelligent dependency management and upgrade assistance.
 
