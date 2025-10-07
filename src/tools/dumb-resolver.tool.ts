@@ -58,10 +58,10 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         logger.debug('Copied package.json to temp directory');
 
         // Copy package-lock.json if it exists
-        if (existsSync(originalPackageLockPath)) {
-            await cpAsync(originalPackageLockPath, tempPackageLockPath);
-            logger.debug('Copied package-lock.json to temp directory');
-        }
+        // if (existsSync(originalPackageLockPath)) {
+        //     await cpAsync(originalPackageLockPath, tempPackageLockPath);
+        //     logger.debug('Copied package-lock.json to temp directory');
+        // }
         // #endregion
 
         // #region Step 2: Read and update package.json with target dependencies
