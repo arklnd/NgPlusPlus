@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerEchoTools } from '@T/echo.tool';
 import { registerNcuTools } from '@T/ncu.tool';
+import { registerDumbTools } from '@T/dumb-resolver.tool';
 import { registerDependencyResolverTools } from '@T/dependency-resolver.tool';
 import { getLogger } from '@U/logger.utils';
 
@@ -20,6 +21,9 @@ export function registerAllTools(server: McpServer) {
 
     logger.debug('Registering dependency resolver tools');
     registerDependencyResolverTools(server);
+
+    logger.debug('Registering dumb tools');
+    registerDumbTools(server);
 
     logger.info('All tools registered successfully');
 
