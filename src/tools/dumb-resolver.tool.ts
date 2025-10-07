@@ -39,7 +39,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
             dependencies: update_dependencies,
         });
 
-        // Step 1: Create temporary directory and copy package.json
+        // #region Step 1: Create temporary directory and copy package.json
         tempDir = await mkdtempAsync(join(tmpdir(), 'dumb-resolver-'));
         logger.debug('Created temporary directory', { tempDir });
 
@@ -61,8 +61,9 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
             await cpAsync(originalPackageLockPath, tempPackageLockPath);
             logger.debug('Copied package-lock.json to temp directory');
         }
+        // #endregion
 
-        // Step 2: Read and update package.json with target dependencies
+        // #region Step 2: Read and update package.json with target dependencies
         let packageJson = readPackageJson(tempDir);
         const originalPackageJson = JSON.stringify(packageJson); // Deep clone for AI context
 
@@ -72,8 +73,9 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
 
         writePackageJson(tempDir, packageJson);
         logger.info('Updated dependencies in temp package.json');
+        // #endregion
 
-        // Step 3: Attempt installation with retry logic
+        // #region Step 3: Attempt installation with retry logic
         const openai = getOpenAIService();
         openai.updateConfig({ model: 'copilot-gpt-4', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
         let installOutput = '';
@@ -273,8 +275,9 @@ For each suggestion, set isDev to true if it's a development dependency (like ty
                 }
             }
         }
+        // #endregion
 
-        // Step 4: Handle final result
+        // #region Step 4: Handle final result
         if (success) {
             // Copy updated files back to original location
             await cpAsync(tempPackageJsonPath, originalPackageJsonPath);
@@ -305,6 +308,7 @@ For each suggestion, set isDev to true if it's a development dependency (like ty
                 ],
             };
         }
+        // #endregion
     } catch (error) {
         const errorMessage = `❌ Dependency resolution failed: ${error instanceof Error ? error.message : String(error)}`;
         logger.error('Dependency resolution failed', { error: errorMessage });
