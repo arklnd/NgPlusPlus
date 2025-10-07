@@ -1,0 +1,43 @@
+STRATEGIC DEPENDENCY RESOLUTION - ATTEMPT {{attempt}}/{{maxAttempts}}
+
+TARGET UPGRADES: {{targetPackages}}
+{{#if blockers}}
+IDENTIFIED BLOCKERS: {{blockers}}
+{{else}}
+No specific blockers identified from error analysis.
+{{/if}}
+
+CONSTRAINT ANALYSIS:
+{{#each constraints}}
+- {{this.dependent}} requires {{this.package}} {{this.constraint}}
+{{/each}}
+{{#if strategies}}
+
+RECOMMENDED STRATEGIES:
+{{#each strategies}}
+- {{this.rationale}} (confidence: {{this.confidence}})
+{{/each}}
+{{/if}}
+
+INSTALLATION ERROR:
+{{errorOutput}}
+
+STRATEGIC INSTRUCTIONS:
+1. If blockers are identified, suggest upgrading them to newer versions that support target packages
+2. For Angular/Storybook conflicts: Upgrade Storybook to latest version supporting Angular
+3. For TypeScript conflicts: Upgrade to latest compatible version
+4. Only suggest target package downgrades as LAST RESORT
+
+Respond with JSON containing strategic upgrade suggestions:
+{
+  "suggestions": [
+    {
+      "name": "package-name",
+      "version": "suggested-version",
+      "isDev": true/false,
+      "reason": "strategic rationale for this upgrade",
+      "priority": "blocker|target|ecosystem"
+    }
+  ],
+  "analysis": "strategic analysis of the conflict and resolution approach"
+}
