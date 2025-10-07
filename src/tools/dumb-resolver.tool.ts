@@ -30,7 +30,7 @@ const cpAsync = promisify(cp);
 export const dumbResolverHandler = async (input: DumbResolverInput) => {
     const { repo_path, update_dependencies } = input;
     const logger = getLogger().child('dumb-resolver');
-    const maxAttempts = 50;
+    const maxAttempts = 200;
     let attempt = 0;
     let tempDir: string | null = null;
 
