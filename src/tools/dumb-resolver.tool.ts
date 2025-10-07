@@ -8,7 +8,7 @@ import { readPackageJson, writePackageJson, updateDependency, installDependencie
 import { getOpenAIService } from '@S/openai.service';
 import { getLogger } from '@U/index';
 import OpenAI from 'openai';
-import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis } from '@U/dumb-resolver-helper';
+import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility } from '@U/dumb-resolver-helper';
 
 // Schema definitions
 export const dependencyUpdateSchema = z.object({
@@ -225,32 +225,69 @@ This is the current state before any updates. Focus on achieving these target up
                             throw new Error(`Invalid suggestions found: ${invalidSuggestions.length} items missing name, version, or isDev`);
                         }
 
-                        logger.info('Received valid OpenAI suggestions', { suggestions, attempt: aiRetryAttempt });
+                        logger.info('Received valid strategic suggestions', {
+                            suggestions: suggestions.suggestions.map((s: any) => ({
+                                name: s.name,
+                                version: s.version,
+                                priority: s.priority || 'target',
+                                reason: s.reason,
+                            })),
+                            attempt: aiRetryAttempt,
+                        });
                         validSuggestions = true;
 
-                        // Update package.json with suggested versions
+                        // Apply suggestions with strategic prioritization
                         packageJson = readPackageJson(tempDir);
 
-                        for (const suggestion of suggestions.suggestions) {
+                        // Sort suggestions by priority (blocker > target > ecosystem)
+                        const priorityOrder = { blocker: 1, target: 2, ecosystem: 3 };
+                        const sortedSuggestions = suggestions.suggestions.sort((a: any, b: any) => {
+                            const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 2;
+                            const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 2;
+                            return aPriority - bPriority;
+                        });
+
+                        for (const suggestion of sortedSuggestions) {
+                            // Check version compatibility before applying
+                            const compatibilityCheck = checkCompatibility(suggestion.name, suggestion.version, update_dependencies);
+
+                            if (!compatibilityCheck.compatible) {
+                                logger.warn('Compatibility issues detected', {
+                                    package: suggestion.name,
+                                    version: suggestion.version,
+                                    conflicts: compatibilityCheck.conflicts,
+                                    recommendations: compatibilityCheck.recommendations,
+                                });
+                            }
+
                             updateDependency(packageJson, suggestion.name, suggestion.version, suggestion.isDev);
                             const targetDep = update_dependencies.find((dep) => dep.name === suggestion.name);
                             if (targetDep) {
                                 // Update existing dependency with suggested version
                                 targetDep.version = suggestion.version;
-                                logger.info('Applied OpenAI suggestion (updated existing)', {
+                                logger.info('Applied strategic suggestion (updated existing)', {
                                     package: suggestion.name,
                                     version: suggestion.version,
                                     reason: suggestion.reason,
+                                    priority: suggestion.priority || 'target',
                                     isDev: targetDep.isDev,
+                                    compatibilityStatus: compatibilityCheck.compatible ? 'compatible' : 'potential-issues',
                                 });
                             } else {
-                                // Add new dependency suggested by OpenAI
-                                update_dependencies.push(suggestion);
-                                logger.info('Applied OpenAI suggestion (added new)', {
+                                // Add new dependency suggested by strategic analysis
+                                const newDep = {
+                                    name: suggestion.name,
+                                    version: suggestion.version,
+                                    isDev: suggestion.isDev,
+                                };
+                                update_dependencies.push(newDep);
+                                logger.info('Applied strategic suggestion (added new)', {
                                     package: suggestion.name,
                                     version: suggestion.version,
                                     reason: suggestion.reason,
+                                    priority: suggestion.priority || 'target',
                                     isDev: suggestion.isDev,
+                                    compatibilityStatus: compatibilityCheck.compatible ? 'compatible' : 'potential-issues',
                                 });
                             }
                         }
