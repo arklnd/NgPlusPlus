@@ -5,6 +5,7 @@ import { mkdtemp, cp, existsSync, rmSync } from 'fs';
 import { join, resolve } from 'path';
 import { promisify } from 'util';
 import { readPackageJson, writePackageJson, updateDependency, installDependencies } from '@U/package-json.utils';
+import { validatePackageVersionsExist } from '@U/package-registry.utils';
 import { getOpenAIService } from '@S/openai.service';
 import { getLogger } from '@U/index';
 import OpenAI from 'openai';
@@ -38,6 +39,24 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         logger.info('Starting dependency resolution', {
             repoPath: repo_path,
             dependencies: update_dependencies,
+        });
+
+        // Validate initial target dependency versions exist in registry before proceeding
+        logger.info('Validating initial target dependency versions exist in registry');
+        const validationResults = await validatePackageVersionsExist(update_dependencies);
+        const nonExistentVersions = validationResults.filter((r) => !r.exists);
+
+        if (nonExistentVersions.length > 0) {
+            const errorMessage = `Cannot proceed: Some target dependency versions do not exist in registry:\n${nonExistentVersions.map((r) => `- ${r.packageName}@${r.version}: ${r.error || 'Version not found'}`).join('\n')}`;
+            logger.error('Target initial dependency validation failed', {
+                nonExistentVersions: nonExistentVersions.map((r) => `${r.packageName}@${r.version}`),
+                errors: nonExistentVersions.map((r) => r.error).filter(Boolean),
+            });
+            throw new Error(errorMessage);
+        }
+
+        logger.info('All target dependency versions exist in registry', {
+            validatedPackages: validationResults.map((r) => `${r.packageName}@${r.version}`),
         });
 
         // #region Step 1: Create temporary directory and copy package.json
@@ -223,6 +242,39 @@ This is the current state before any updates. Focus on achieving these target up
 
                         if (invalidSuggestions.length > 0) {
                             throw new Error(`Invalid suggestions found: ${invalidSuggestions.length} items missing name, version, or isDev`);
+                        }
+
+                        // Validate version existence before applying suggestions
+                        const validationUpdates = suggestions.suggestions.map((s: any) => ({
+                            name: s.name,
+                            version: s.version,
+                            isDev: s.isDev,
+                        }));
+
+                        try {
+                            const validationResults = await validatePackageVersionsExist(validationUpdates);
+                            const nonExistentVersions = validationResults.filter((r) => !r.exists);
+
+                            if (nonExistentVersions.length > 0) {
+                                const errorDetails = nonExistentVersions.map((r) => `${r.packageName}@${r.version}: ${r.error || 'Version not found'}`).join('\n');
+                                const errorMessage = `Package version validation failed. The following suggested versions do not exist in the npm registry:\n${errorDetails}\n\nPlease suggest alternative versions that exist in the registry.`;
+
+                                logger.warn('Some suggested package versions do not exist in registry', {
+                                    nonExistentVersions: nonExistentVersions.map((r) => `${r.packageName}@${r.version}`),
+                                    errors: nonExistentVersions.map((r) => r.error).filter(Boolean),
+                                });
+
+                                // Throw error so AI can handle it in the next iteration with better suggestions
+                                throw new Error(errorMessage);
+                            } else {
+                                logger.info('All suggested package versions exist in registry');
+                            }
+                        } catch (validationError) {
+                            const validationErrorMsg = validationError instanceof Error ? validationError.message : String(validationError);
+                            logger.error('Package version validation failed', { error: validationErrorMsg });
+
+                            // Continue with original suggestions but log the validation failure
+                            logger.warn('Proceeding with unvalidated suggestions due to validation error');
                         }
 
                         logger.info('Received valid strategic suggestions', {
