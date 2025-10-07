@@ -8,6 +8,7 @@ import { readPackageJson, writePackageJson, updateDependency, installDependencie
 import { getOpenAIService } from '@S/openai.service';
 import { getLogger } from '@U/index';
 import OpenAI from 'openai';
+import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis } from '@U/dumb-resolver-helper';
 
 // Schema definitions
 export const dependencyUpdateSchema = z.object({
@@ -82,30 +83,28 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         let installError = '';
         let success = false;
 
+        // Initialize enhanced analysis
+        let currentAnalysis: ResolverAnalysis = {
+            constraints: [],
+            blockers: [],
+            strategies: [],
+            recommendations: [],
+        };
+
         // Initialize chat history for maintaining context across installation attempts
-        const systemMessage = `You are an expert npm dependency resolver with a PRIMARY GOAL of upgrading packages to newer versions. Your task is to analyze dependency conflicts and suggest alternative versions that resolve conflicts while ALWAYS making progress towards newer, more recent versions.
-
-CRITICAL INSTRUCTIONS:
-1. NEVER suggest downgrading to older versions unless absolutely no other option exists
-2. ALWAYS prioritize newer versions over older ones when resolving conflicts
-3. If a conflict exists, find the NEWEST compatible versions that resolve it
-4. Look for ways to upgrade transitive dependencies that might unlock newer versions
-5. Consider using version ranges (^, ~) that allow for newer patch/minor versions
-6. When multiple solutions exist, ALWAYS choose the one with newer package versions
-7. If you must suggest an older version, explain why and suggest a path to upgrade later
-
-Your suggestions should demonstrate clear progress towards more recent package versions. The user's intent is to modernize their dependency tree, not maintain old versions.
-
-Always respond with valid JSON format containing suggestions and analysis.`;
+        const systemMessage = createEnhancedSystemPrompt();
         let chatHistory: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
             { role: 'system', content: systemMessage },
-            { 
-                role: 'user', 
+            {
+                role: 'user',
                 content: `ORIGINAL PACKAGE.JSON DEPENDENCIES CONTEXT:
 ${originalPackageJson}
 
-This is the current state of dependencies before any updates. Use this context to make informed upgrade decisions.` 
-            }
+TARGET UPGRADE GOALS:
+${update_dependencies.map((dep) => `- ${dep.name}@${dep.version} (${dep.isDev ? 'dev' : 'prod'})`).join('\n')}
+
+This is the current state before any updates. Focus on achieving these target upgrades through strategic blocker resolution.`,
+            },
         ];
 
         while (attempt < maxAttempts && !success) {
@@ -130,39 +129,52 @@ This is the current state of dependencies before any updates. Use this context t
                 logger.warn('Installation failed', { attempt, error: installError });
             }
 
-            // If installation failed and we have more attempts, ask OpenAI for suggestions
+            // If installation failed and we have more attempts, perform strategic analysis
             if (!success && attempt < maxAttempts) {
-                logger.info('Asking OpenAI for alternative solutions');
+                logger.info('Performing strategic dependency analysis');
 
-                const userMessage = `
-The following npm install failed. Attempt: ${attempt}/${maxAttempts} failed:
+                // Analyze the error output for constraints and blockers
+                currentAnalysis.constraints = analyzeDependencyConstraints(installError);
+                currentAnalysis.blockers = identifyBlockingPackages(
+                    currentAnalysis.constraints,
+                    update_dependencies.map((dep) => dep.name)
+                );
 
-Dependencies being updated:
-${update_dependencies.map((dep) => `${dep.name}@${dep.version} (${dep.isDev ? 'dev' : 'prod'})`).join('\n')}
+                // Categorize error for better handling
+                const errorAnalysis = categorizeError(installError);
 
-Error output:
-${installError}
+                // Generate strategic upgrade strategies
+                currentAnalysis.strategies = await generateUpgradeStrategies(
+                    currentAnalysis.constraints,
+                    currentAnalysis.blockers,
+                    update_dependencies.map((dep) => dep.name),
+                    packageJson
+                );
 
-Standard output:
-${installOutput}
+                // Enhanced strategic logging
+                logStrategicAnalysis(logger, currentAnalysis, attempt);
 
-Please suggest alternative versions or solutions to resolve this dependency conflict. Use the original package.json context provided earlier to make informed upgrade decisions. Respond with JSON format:
-{
-  "suggestions": [
-    {
-      "name": "package-name",
-      "version": "suggested-version",
-      "isDev": true/false,
-      "reason": "explanation for this version"
-    }
-  ],
-  "analysis": "brief analysis of the conflict"
-}
+                logger.info('Error categorization', {
+                    category: errorAnalysis.category,
+                    severity: errorAnalysis.severity,
+                    actionable: errorAnalysis.actionable,
+                    suggestions: errorAnalysis.suggestions,
+                });
 
-For each suggestion, set isDev to true if it's a development dependency (like typescript, @types/*, testing tools, build tools, linters, and definitely not limited to these only) or false if it's a production dependency.`;
+                // Add error analysis to recommendations
+                currentAnalysis.recommendations = errorAnalysis.suggestions;
 
-                // Add current failure to chat history
-                chatHistory.push({ role: 'user', content: userMessage });
+                // Create strategic prompt with analysis context
+                const strategicPrompt = createStrategicPrompt(
+                    installError,
+                    currentAnalysis,
+                    update_dependencies.map((dep) => dep.name),
+                    attempt,
+                    maxAttempts
+                );
+
+                // Add current failure and analysis to chat history
+                chatHistory.push({ role: 'user', content: strategicPrompt });
 
                 // Try to get valid suggestions from OpenAI (with retry on invalid structure)
                 let aiRetryAttempt = 0;
@@ -238,12 +250,12 @@ For each suggestion, set isDev to true if it's a development dependency (like ty
                         }
 
                         writePackageJson(tempDir, packageJson);
-                        
+
                         // Add summary of applied changes to chat history for next iteration context
                         const appliedChanges = suggestions.suggestions.map((s: any) => `${s.name}@${s.version}`).join(', ');
-                        chatHistory.push({ 
-                            role: 'user', 
-                            content: `Applied suggestions: ${appliedChanges}. Will now attempt installation with these changes.` 
+                        chatHistory.push({
+                            role: 'user',
+                            content: `Applied suggestions: ${appliedChanges}. Will now attempt installation with these changes.`,
                         });
                     } catch (aiError) {
                         const errorMsg = aiError instanceof Error ? aiError.message : String(aiError);
@@ -259,14 +271,15 @@ For each suggestion, set isDev to true if it's a development dependency (like ty
       "name": "package-name",
       "version": "suggested-version",
       "isDev": true/false,
-      "reason": "explanation for this version"
+      "reason": "strategic rationale for this upgrade",
+      "priority": "blocker|target|ecosystem"
     }
   ],
-  "analysis": "brief analysis of the conflict"
+  "analysis": "strategic analysis of the conflict and resolution approach"
 }
 
 For each suggestion, set isDev to true if it's a development dependency (like typescript, @types/*, testing tools, build tools, linters, and definitely not limited to these only) or false if it's a production dependency.`;
-                            
+
                             chatHistory.push({ role: 'user', content: retryMessage });
                         } else {
                             logger.error('Failed to get valid OpenAI suggestions after retries', { error: errorMsg });
