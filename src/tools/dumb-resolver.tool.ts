@@ -97,8 +97,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         // #endregion
 
         // #region Step 3: Attempt installation with retry logic
-        const openai = getOpenAIService();
-        openai.updateConfig({ model: 'copilot-gpt-4', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
+        const openai = getOpenAIService({ model: 'copilot-gpt-4', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
         let installOutput = '';
         let installError = '';
         let success = false;
