@@ -84,6 +84,13 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         }
         // #endregion
 
+        // #region Step 1.5: ensure node_modules integrity in tempDir
+        const { success: initialInstall } = await installDependencies(tempDir);
+        if (!initialInstall) {
+            throw new Error('initial npm install in temp directory failed, cannot ensure node_modules integrity');
+        }
+        // endregion
+
         // #region Step 2: Read and update package.json with target dependencies
         let packageJson = readPackageJson(tempDir);
         const originalPackageJson = JSON.stringify(packageJson); // Deep clone for AI context
