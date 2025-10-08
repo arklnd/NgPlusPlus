@@ -251,30 +251,22 @@ This is the current state before any updates. Focus on achieving these target up
                             isDev: s.isDev,
                         }));
 
-                        try {
-                            const validationResults = await validatePackageVersionsExist(validationUpdates);
-                            const nonExistentVersions = validationResults.filter((r) => !r.exists);
+                        const validationResults = await validatePackageVersionsExist(validationUpdates);
+                        const nonExistentVersions = validationResults.filter((r) => !r.exists);
 
-                            if (nonExistentVersions.length > 0) {
-                                const errorDetails = nonExistentVersions.map((r) => `${r.packageName}@${r.version}: ${r.error || 'Version not found'}`).join('\n');
-                                const errorMessage = `Package version validation failed. The following suggested versions do not exist in the npm registry:\n${errorDetails}\n\nPlease suggest alternative versions that exist in the registry.`;
+                        if (nonExistentVersions.length > 0) {
+                            const errorDetails = nonExistentVersions.map((r) => `${r.packageName}@${r.version}: ${r.error || 'Version not found'}`).join('\n');
+                            const errorMessage = `Package version validation failed. The following suggested versions do not exist in the npm registry:\n${errorDetails}\n\nPlease suggest alternative versions that exist in the registry.`;
 
-                                logger.warn('Some suggested package versions do not exist in registry', {
-                                    nonExistentVersions: nonExistentVersions.map((r) => `${r.packageName}@${r.version}`),
-                                    errors: nonExistentVersions.map((r) => r.error).filter(Boolean),
-                                });
+                            logger.warn('Some suggested package versions do not exist in registry', {
+                                nonExistentVersions: nonExistentVersions.map((r) => `${r.packageName}@${r.version}`),
+                                errors: nonExistentVersions.map((r) => r.error).filter(Boolean),
+                            });
 
-                                // Throw error so AI can handle it in the next iteration with better suggestions
-                                throw new Error(errorMessage);
-                            } else {
-                                logger.info('All suggested package versions exist in registry');
-                            }
-                        } catch (validationError) {
-                            const validationErrorMsg = validationError instanceof Error ? validationError.message : String(validationError);
-                            logger.error('Package version validation failed', { error: validationErrorMsg });
-
-                            // Continue with original suggestions but log the validation failure
-                            logger.warn('Proceeding with unvalidated suggestions due to validation error');
+                            // Throw error so AI can handle it in the next iteration with better suggestions
+                            throw new Error(errorMessage);
+                        } else {
+                            logger.info('All suggested package versions exist in registry');
                         }
 
                         logger.info('Received valid strategic suggestions', {
