@@ -10,21 +10,7 @@ import { getOpenAIService } from '@S/openai.service';
 import { getLogger } from '@U/index';
 import OpenAI from 'openai';
 import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility } from '@U/dumb-resolver-helper';
-
-// Custom exception classes
-class AIResponseFormatError extends Error {
-    constructor(message: string) {
-        super(message);
-        this.name = 'AIResponseFormatError';
-    }
-}
-
-class PackageVersionValidationError extends Error {
-    constructor(message: string) {
-        super(message);
-        this.name = 'PackageVersionValidationError';
-    }
-}
+import { AIResponseFormatError, PackageVersionValidationError } from '@E/index';
 
 // Schema definitions
 export const dependencyUpdateSchema = z.object({
@@ -365,37 +351,11 @@ This is the current state before any updates. Focus on achieving these target up
 
                         if (aiRetryAttempt < maxAiRetries) {
                             let retryMessage = '';
-                            
+
                             if (aiError instanceof AIResponseFormatError) {
-                                retryMessage = `IMPORTANT: Previous response had formatting issues. Please ensure your response is valid JSON with this exact structure:
-{
-  "suggestions": [
-    {
-      "name": "package-name",
-      "version": "suggested-version",
-      "isDev": true/false,
-      "reason": "strategic rationale for this upgrade",
-      "priority": "blocker|target|ecosystem"
-    }
-  ],
-  "analysis": "strategic analysis of the conflict and resolution approach"
-}
-
-For each suggestion, set isDev to true if it's a development dependency (like typescript, @types/*, testing tools, build tools, linters, and definitely not limited to these only) or false if it's a production dependency.
-
-Error details: ${errorMsg}`;
+                                retryMessage = aiError.getRetryMessage();
                             } else if (aiError instanceof PackageVersionValidationError) {
-                                retryMessage = `PACKAGE VERSION VALIDATION FAILED: Some of the suggested package versions do not exist in the npm registry. 
-
-${errorMsg}
-
-Please provide alternative suggestions with versions that actually exist in the npm registry. You can suggest:
-- Earlier stable versions that are known to exist
-- Latest stable versions from major version lines
-- LTS (Long Term Support) versions
-- Check your suggestions against actual npm registry data
-
-Ensure all suggested versions are valid and available for installation.`;
+                                retryMessage = aiError.getRetryMessage();
                             } else {
                                 // Generic error handling for other types of errors
                                 retryMessage = `An error occurred while processing your response: ${errorMsg}

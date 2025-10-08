@@ -1,7 +1,12 @@
-import * as Handlebars from 'handlebars';
+import Handlebars from 'handlebars';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ResolverAnalysis } from './dependency-analyzer.utils';
+import { fileURLToPath } from 'url';
+
+// ES module compatibility
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Lazy-loaded compiled templates cache
@@ -65,4 +70,20 @@ export function createStrategicPrompt(errorOutput: string, analysis: ResolverAna
     };
 
     return template(templateData);
+}
+
+/**
+ * Creates an AI response format error retry message
+ */
+export function createAIResponseFormatErrorMessage(errorMessage?: string): string {
+    const template = loadTemplate('ai-response-format-error');
+    return template({ errorMessage });
+}
+
+/**
+ * Creates a package version validation error retry message
+ */
+export function createPackageValidationErrorMessage(errorMessage: string, additionalGuidance?: string): string {
+    const template = loadTemplate('package-validation-error');
+    return template({ errorMessage, additionalGuidance });
 }

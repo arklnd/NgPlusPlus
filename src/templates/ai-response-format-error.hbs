@@ -1,0 +1,19 @@
+IMPORTANT: Previous response had formatting issues. Please ensure your response is valid JSON with this exact structure:
+{
+  "suggestions": [
+    {
+      "name": "package-name",
+      "version": "suggested-version",
+      "isDev": true/false,
+      "reason": "strategic rationale for this upgrade",
+      "priority": "blocker|target|ecosystem"
+    }
+  ],
+  "analysis": "strategic analysis of the conflict and resolution approach"
+}
+
+For each suggestion, set isDev to true if it's a development dependency (like typescript, @types/*, testing tools, build tools, linters, and definitely not limited to these only) or false if it's a production dependency.
+
+{{#if errorMessage}}
+Error details: {{errorMessage}}
+{{/if}}
