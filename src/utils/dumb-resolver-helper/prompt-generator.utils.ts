@@ -16,7 +16,7 @@ function loadTemplate(templateName: string): HandlebarsTemplateDelegate {
         return templateCache.get(templateName)!;
     }
 
-    const templatePath = path.join(__dirname, 'templates', `${templateName}.hbs`);
+    const templatePath = path.join(__dirname, '../../templates', `${templateName}.hbs`);
     const templateContent = fs.readFileSync(templatePath, 'utf-8');
     const compiledTemplate = Handlebars.compile(templateContent);
     
