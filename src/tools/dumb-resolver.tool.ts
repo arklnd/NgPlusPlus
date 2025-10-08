@@ -11,6 +11,21 @@ import { getLogger } from '@U/index';
 import OpenAI from 'openai';
 import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility } from '@U/dumb-resolver-helper';
 
+// Custom exception classes
+class AIResponseFormatError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'AIResponseFormatError';
+    }
+}
+
+class PackageVersionValidationError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'PackageVersionValidationError';
+    }
+}
+
 // Schema definitions
 export const dependencyUpdateSchema = z.object({
     name: z.string().describe('Package name'),
@@ -230,18 +245,18 @@ This is the current state before any updates. Focus on achieving these target up
 
                         // Validate response structure
                         if (!suggestions || typeof suggestions !== 'object') {
-                            throw new Error('Invalid response: not an object');
+                            throw new AIResponseFormatError('Invalid response: not an object');
                         }
 
                         if (!suggestions.suggestions || !Array.isArray(suggestions.suggestions)) {
-                            throw new Error('Invalid response: missing or invalid suggestions array');
+                            throw new AIResponseFormatError('Invalid response: missing or invalid suggestions array');
                         }
 
                         // Validate each suggestion
                         const invalidSuggestions = suggestions.suggestions.filter((s: any) => !s || typeof s !== 'object' || !s.name || !s.version || typeof s.isDev !== 'boolean');
 
                         if (invalidSuggestions.length > 0) {
-                            throw new Error(`Invalid suggestions found: ${invalidSuggestions.length} items missing name, version, or isDev`);
+                            throw new AIResponseFormatError(`Invalid suggestions found: ${invalidSuggestions.length} items missing name, version, or isDev`);
                         }
 
                         // Validate version existence before applying suggestions
@@ -264,7 +279,7 @@ This is the current state before any updates. Focus on achieving these target up
                             });
 
                             // Throw error so AI can handle it in the next iteration with better suggestions
-                            throw new Error(errorMessage);
+                            throw new PackageVersionValidationError(errorMessage);
                         } else {
                             logger.info('All suggested package versions exist in registry');
                         }
@@ -346,12 +361,13 @@ This is the current state before any updates. Focus on achieving these target up
                         });
                     } catch (aiError) {
                         const errorMsg = aiError instanceof Error ? aiError.message : String(aiError);
-                        logger.warn(`OpenAI attempt ${aiRetryAttempt} failed`, { error: errorMsg });
+                        logger.warn(`OpenAI attempt ${aiRetryAttempt} failed`, { error: errorMsg, errorType: aiError instanceof Error ? aiError.name : 'Unknown' });
 
                         if (aiRetryAttempt < maxAiRetries) {
-                            // Add assistant response and user retry message to chat history
-                            // chatHistory.push({ role: 'assistant', content: response || 'Failed to generate response' });
-                            const retryMessage = `IMPORTANT: Previous response was invalid. Please ensure your response is valid JSON with this exact structure:
+                            let retryMessage = '';
+                            
+                            if (aiError instanceof AIResponseFormatError) {
+                                retryMessage = `IMPORTANT: Previous response had formatting issues. Please ensure your response is valid JSON with this exact structure:
 {
   "suggestions": [
     {
@@ -365,11 +381,31 @@ This is the current state before any updates. Focus on achieving these target up
   "analysis": "strategic analysis of the conflict and resolution approach"
 }
 
-For each suggestion, set isDev to true if it's a development dependency (like typescript, @types/*, testing tools, build tools, linters, and definitely not limited to these only) or false if it's a production dependency.`;
+For each suggestion, set isDev to true if it's a development dependency (like typescript, @types/*, testing tools, build tools, linters, and definitely not limited to these only) or false if it's a production dependency.
+
+Error details: ${errorMsg}`;
+                            } else if (aiError instanceof PackageVersionValidationError) {
+                                retryMessage = `PACKAGE VERSION VALIDATION FAILED: Some of the suggested package versions do not exist in the npm registry. 
+
+${errorMsg}
+
+Please provide alternative suggestions with versions that actually exist in the npm registry. You can suggest:
+- Earlier stable versions that are known to exist
+- Latest stable versions from major version lines
+- LTS (Long Term Support) versions
+- Check your suggestions against actual npm registry data
+
+Ensure all suggested versions are valid and available for installation.`;
+                            } else {
+                                // Generic error handling for other types of errors
+                                retryMessage = `An error occurred while processing your response: ${errorMsg}
+
+Please provide a valid JSON response with the required structure and ensure all package versions exist in the npm registry.`;
+                            }
 
                             chatHistory.push({ role: 'user', content: retryMessage });
                         } else {
-                            logger.error('Failed to get valid OpenAI suggestions after retries', { error: errorMsg });
+                            logger.error('Failed to get valid OpenAI suggestions after retries', { error: errorMsg, errorType: aiError instanceof Error ? aiError.name : 'Unknown' });
                         }
                     }
                 }
