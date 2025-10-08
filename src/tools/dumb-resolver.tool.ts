@@ -78,10 +78,10 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         logger.debug('Copied package.json to temp directory');
 
         // Copy package-lock.json if it exists
-        // if (existsSync(originalPackageLockPath)) {
-        //     await cpAsync(originalPackageLockPath, tempPackageLockPath);
-        //     logger.debug('Copied package-lock.json to temp directory');
-        // }
+        if (existsSync(originalPackageLockPath)) {
+            await cpAsync(originalPackageLockPath, tempPackageLockPath);
+            logger.debug('Copied package-lock.json to temp directory');
+        }
         // #endregion
 
         // #region Step 2: Read and update package.json with target dependencies
@@ -100,7 +100,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         const openai = getOpenAIService({ model: 'copilot-gpt-4', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
         let installOutput = '';
         let installError = '';
-        let success = false;
+        let installSuccess = false;
 
         // Initialize enhanced analysis
         let currentAnalysis: ResolverAnalysis = {
@@ -126,7 +126,7 @@ This is the current state before any updates. Focus on achieving these target up
             },
         ];
 
-        while (attempt < maxAttempts && !success) {
+        while (attempt < maxAttempts && !installSuccess) {
             attempt++;
             logger.info(`Installation attempt ${attempt}/${maxAttempts}`);
 
@@ -138,24 +138,24 @@ This is the current state before any updates. Focus on achieving these target up
                 }
 
                 // Run npm install using enhanced utility
-                const { stdout, stderr, success: installSuccess } = await installDependencies(tempDir);
+                const { stdout, stderr, success } = await installDependencies(tempDir);
                 installOutput = stdout;
                 installError = stderr;
-                success = installSuccess;
+                installSuccess = success;
 
-                if (success) {
+                if (installSuccess) {
                     logger.info('Installation successful', { attempt });
                     break;
                 }
             } catch (error) {
                 // installDependencies throws on failure, so we capture the error
                 installError = error instanceof Error ? error.message : String(error);
-                success = false;
+                installSuccess = false;
                 logger.warn('Installation failed', { attempt, error: installError });
             }
 
             // If installation failed and we have more attempts, perform strategic analysis
-            if (!success && attempt < maxAttempts) {
+            if (!installSuccess && attempt < maxAttempts) {
                 logger.info('Performing strategic dependency analysis');
 
                 // Analyze the error output for constraints and blockers
@@ -373,7 +373,7 @@ Please provide a valid JSON response with the required structure and ensure all 
         // #endregion
 
         // #region Step 4: Handle final result
-        if (success) {
+        if (installSuccess) {
             // Copy updated files back to original location
             await cpAsync(tempPackageJsonPath, originalPackageJsonPath);
             logger.info('Copied updated package.json back to original location');
