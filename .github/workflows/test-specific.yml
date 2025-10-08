@@ -6,7 +6,7 @@ on:
       test_pattern:
         description: 'Test pattern to run'
         required: true
-        default: 'should analyze conflicts for hyui-10 Angular upgrade scenario'
+        default: 'should invoke dumbResolverHandler with HYUI9 Angular dependencies'
         type: string
 
 jobs:
