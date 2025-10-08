@@ -23,10 +23,10 @@ export interface ResolverAnalysis {
 }
 
 // Regex patterns for dependency analysis
-const PEER_DEP_REGEX = /peer\s+([^@\s]+)@?([^"'\s]*)\s*["']?\s*from\s+([^@\s]+)(?:@([^\s]+))?/gi;
-const CONFLICT_REGEX = /Found:\s+([^@\s]+)@([^\s]+).*?Could not resolve dependency:.*?peer\s+([^@\s]+)@([^\s]+)/gis;
-const VERSION_MISMATCH_REGEX = /([^@\s]+)@([^\s]+)\s+.*?requires\s+([^@\s]+)\s*@([^\s,]+)/gi;
-const UNMET_PEER_REGEX = /EBOX_UNMET_PEER_DEP.*?([^@\s]+)@([^\s]+).*?requires\s+a\s+peer\s+of\s+([^@\s]+)@([^\s]+)/gi;
+const PEER_DEP_REGEX = /peer\s+([^\s]+)@?([^"'\s]*)\s*["']?\s*from\s+([^\s]+)(?:@([^\s]+))?/gi;
+const CONFLICT_REGEX = /Found:\s+([^\s]+)@([^\s]+).*?Could not resolve dependency:.*?peer\s+([^\s]+)@([^\s]+)/gis;
+const VERSION_MISMATCH_REGEX = /([^\s]+)@([^\s]+)\s+.*?requires\s+([^\s]+)\s*@([^\s,]+)/gi;
+const UNMET_PEER_REGEX = /EBOX_UNMET_PEER_DEP\s+([^\s]+)@([^\s]+).*?requires\s+a\s+peer\s+of\s+([^\s]+)@([^\s]+)/gi;
 
 /**
  * Analyzes dependency constraints from error output
@@ -122,8 +122,12 @@ export function identifyBlockingPackages(constraints: DependencyConstraint[], ta
 
     constraints.forEach((constraint) => {
         if (constraint.severity === 'blocking') {
-            // Extract package name from dependent (format: "package@version")
-            const dependentPackage = constraint.dependent.split('@')[0];
+            // Extract package name from dependent (format: "package@version" or "@scope/package@version")
+            let dependentPackage = constraint.dependent;
+            const lastAtIndex = dependentPackage.lastIndexOf('@');
+            if (lastAtIndex > 0) {
+                dependentPackage = dependentPackage.substring(0, lastAtIndex);
+            }
 
             // Check if this dependent is blocking any target packages
             if (targetPackages.some((target) => isRelatedPackage(dependentPackage, target) || constraint.package === target)) {
