@@ -29,6 +29,9 @@
             "@S/*": [
                 "src/services/*"
             ],
+            "@E/*": [
+                "src/exceptions/*"
+            ],
             "@I/*": [
                 "src/interfaces/*"
             ]
