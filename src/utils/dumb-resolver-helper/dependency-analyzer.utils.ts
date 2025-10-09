@@ -23,7 +23,7 @@ export interface ResolverAnalysis {
 }
 
 // Regex patterns for dependency analysis
-const PEER_DEP_REGEX = /peer\s+([^\s]+)@?([^"'\s]*)\s*["']?\s*from\s+([^\s]+)(?:@([^\s]+))?/gi;
+const PEER_DEP_REGEX = /peer\s+((?:@[^\/\s]+\/)?[^@\s]+)@?((?:"[^"]*"|'[^']*'|[^\s]+)?)\s*from\s+((?:@[^\/\s]+\/)?[^@\s]+)(?:@([^\s]+))?/gi;
 const CONFLICT_REGEX = /Found:\s+([^\s]+)@([^\s]+).*?Could not resolve dependency:.*?peer\s+([^\s]+)@([^\s]+)/gis;
 const VERSION_MISMATCH_REGEX = /([^\s]+)@([^\s]+)\s+.*?requires\s+([^\s]+)\s*@([^\s,]+)/gi;
 const UNMET_PEER_REGEX = /EBOX_UNMET_PEER_DEP\s+([^\s]+)@([^\s]+).*?requires\s+a\s+peer\s+of\s+([^\s]+)@([^\s]+)/gi;
