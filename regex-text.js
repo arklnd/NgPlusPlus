@@ -31,15 +31,15 @@ npm error
 npm error While resolving: hyland-ui@9.0.4
 npm error Found: typescript@5.5.4
 npm error node_modules/typescript
-npm error   dev typescript@\"~5.5.4\" from the root project
-npm error   peer typescript@\">=5.4 <5.6\" from ng-packagr@18.2.1
+npm error   dev typescript@"~5.5.4" from the root project
+npm error   peer typescript@">=5.4 <5.6" from ng-packagr@18.2.1
 npm error   node_modules/ng-packagr
-npm error     dev ng-packagr@\"18.2.1\" from the root project
+npm error     dev ng-packagr@"18.2.1" from the root project
 npm error
 npm error Could not resolve dependency:
-npm error peer typescript@\">=5.8 <6.0\" from @angular-devkit/build-angular@20.3.4
+npm error peer typescript@">=5.8 <6.0" from @angular-devkit/build-angular@20.3.4
 npm error node_modules/@angular-devkit/build-angular
-npm error   dev @angular-devkit/build-angular@\"^20.0.0\" from the root project
+npm error   dev @angular-devkit/build-angular@"^20.0.0" from the root project
 npm error
 npm error Fix the upstream dependency conflict, or retry
 npm error this command with --no-strict-peer-deps, --force, or --legacy-peer-deps
