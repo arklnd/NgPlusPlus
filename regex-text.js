@@ -58,7 +58,7 @@ const currentVersion = found[2];
 console.log(`\nCurrent ${conflictingPackage}: ${currentVersion} (installed)`);
 
 // Parse all dependencies for the conflicting package using generic regex
-const genericRegex = /peer\s+([^@\s]+)@"([^"]+)"\s+from\s+([@\w\-\/]+)@([^\s]+)/gm;
+const genericRegex = /peer\s+((?:@[^\/\s]+\/)?[^@\s]+)@?((?:"[^"]*"|'[^']*'|[^\s]+)?)\s*from\s+((?:@[^\/\s]+\/)?[^@\s]+)(?:@([^\s]+))?/gi;
 const allMatches = [...npmError.matchAll(genericRegex)];
 
 // Filter dependencies for the conflicting package and remove duplicates
