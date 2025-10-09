@@ -24,6 +24,27 @@ npm ERR! peer typescript@"~4.0.0" from @angular-devkit/build-angular@0.1100.7
 npm ERR! Fix the upstream dependency conflict, or retry
 npm ERR! this command with --force, or --legacy-peer-deps
 npm ERR! to accept an incorrect (and potentially broken) dependency resolution.
+
+npm error code ERESOLVE
+npm error ERESOLVE unable to resolve dependency tree
+npm error
+npm error While resolving: hyland-ui@9.0.4
+npm error Found: typescript@5.5.4
+npm error node_modules/typescript
+npm error   dev typescript@\"~5.5.4\" from the root project
+npm error   peer typescript@\">=5.4 <5.6\" from ng-packagr@18.2.1
+npm error   node_modules/ng-packagr
+npm error     dev ng-packagr@\"18.2.1\" from the root project
+npm error
+npm error Could not resolve dependency:
+npm error peer typescript@\">=5.8 <6.0\" from @angular-devkit/build-angular@20.3.4
+npm error node_modules/@angular-devkit/build-angular
+npm error   dev @angular-devkit/build-angular@\"^20.0.0\" from the root project
+npm error
+npm error Fix the upstream dependency conflict, or retry
+npm error this command with --no-strict-peer-deps, --force, or --legacy-peer-deps
+npm error to accept an incorrect (and potentially broken) dependency resolution.
+
 `;
 
 // Parse project info
@@ -154,7 +175,7 @@ conflictingDeps.forEach(dep => {
     const isCompatible = isVersionCompatible(currentVersion, requirement);
     const status = isCompatible ? '✅' : '❌';
     
-    console.log(`${packageName} requires: ${requirement} ${status} ${getCompatibilityNote(requirement, currentVersion, isCompatible)}`);
+    console.log(`[ ${packageName} ] requires: ${requirement} ${status} ${getCompatibilityNote(requirement, currentVersion, isCompatible)}`);
 });
 
 // Parse and display the specific conflict mentioned in "Could not resolve dependency"
