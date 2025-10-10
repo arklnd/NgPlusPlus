@@ -87,3 +87,11 @@ export function createPackageValidationErrorMessage(errorMessage: string, additi
     const template = loadTemplate('package-validation-error');
     return template({ errorMessage, additionalGuidance });
 }
+
+/**
+ * Creates a parsing prompt for AI to extract dependency constraints from error output
+ */
+export function createDependencyParsingPrompt(errorOutput: string): string {
+    const template = loadTemplate('dependency-parsing-prompt');
+    return template({ errorOutput });
+}

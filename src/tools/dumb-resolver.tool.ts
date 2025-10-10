@@ -9,8 +9,10 @@ import { validatePackageVersionsExist } from '@U/package-registry.utils';
 import { getOpenAIService } from '@S/openai.service';
 import { getLogger } from '@U/index';
 import OpenAI from 'openai';
-import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility } from '@U/dumb-resolver-helper';
+import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility, createDependencyParsingPrompt } from '@U/dumb-resolver-helper';
 import { AIResponseFormatError, PackageVersionValidationError } from '@E/index';
+
+const JSON_RESPONSE_REGEX = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
 
 // Schema definitions
 export const dependencyUpdateSchema = z.object({
@@ -165,8 +167,22 @@ This is the current state before any updates. Focus on achieving these target up
             if (!installSuccess && attempt < maxAttempts) {
                 logger.info('Performing strategic dependency analysis');
 
+                // Create parsing prompt for AI
+                const parsingPrompt = createDependencyParsingPrompt(installError);
+
                 // Analyze the error output for constraints and blockers
-                currentAnalysis.constraints = analyzeDependencyConstraints(installError);
+                let parsingResponse = await openai.generateText(parsingPrompt);
+                parsingResponse = parsingResponse.trim();
+                let jsonString = parsingResponse.trim();
+                const jsonMatch = jsonString.match(JSON_RESPONSE_REGEX);
+                let dependencyConflicts = null;
+                if (jsonMatch) {
+                    jsonString = jsonMatch[1].trim();
+                    dependencyConflicts = JSON.parse(jsonString);
+                }
+
+                // need to update :: start
+                currentAnalysis.constraints = dependencyConflicts?.constraints || [];
                 currentAnalysis.blockers = identifyBlockingPackages(
                     currentAnalysis.constraints,
                     update_dependencies.map((dep) => dep.name)
@@ -204,6 +220,8 @@ This is the current state before any updates. Focus on achieving these target up
                     attempt,
                     maxAttempts
                 );
+                // need to update :: end
+
 
                 // Add current failure and analysis to chat history
                 chatHistory.push({ role: 'user', content: strategicPrompt });
@@ -227,7 +245,7 @@ This is the current state before any updates. Focus on achieving these target up
 
                         // Extract JSON from markdown code blocks if present
                         let jsonString = response.trim();
-                        const jsonMatch = jsonString.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+                        const jsonMatch = jsonString.match(JSON_RESPONSE_REGEX);
                         if (jsonMatch) {
                             jsonString = jsonMatch[1].trim();
                         }
