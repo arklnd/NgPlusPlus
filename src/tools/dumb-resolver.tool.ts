@@ -5,12 +5,13 @@ import { mkdtemp, cp, existsSync, rmSync } from 'fs';
 import { join, resolve } from 'path';
 import { promisify } from 'util';
 import { readPackageJson, writePackageJson, updateDependency, installDependencies } from '@U/package-json.utils';
-import { validatePackageVersionsExist } from '@U/package-registry.utils';
+import { validatePackageVersionsExist, getPackageData } from '@U/package-registry.utils';
 import { getOpenAIService } from '@S/openai.service';
 import { getLogger } from '@U/index';
 import OpenAI from 'openai';
 import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility, createDependencyParsingPrompt } from '@U/dumb-resolver-helper';
 import { AIResponseFormatError, PackageVersionValidationError } from '@E/index';
+import { ConflictAnalysis, ReasoningRecording } from '@I/index';
 
 const JSON_RESPONSE_REGEX = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
 
@@ -112,12 +113,15 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         let installSuccess = false;
 
         // Initialize enhanced analysis
-        let currentAnalysis: ResolverAnalysis = {
-            constraints: [],
-            blockers: [],
-            strategies: [],
-            recommendations: [],
+        let currentAnalysis: ConflictAnalysis = {
+            conflictingPackage: '',
+            conflictingPackageCurrentVersion: '',
+            satisfyingPackages: [],
+            notSatisfying: [],
         };
+
+        // Initialize reasoning recording to track AI upgrade decisions across attempts
+        let reasoningRecording: ReasoningRecording = { updateMade: [] };
 
         // Initialize chat history for maintaining context across installation attempts
         const systemMessage = createEnhancedSystemPrompt();
@@ -175,45 +179,91 @@ This is the current state before any updates. Focus on achieving these target up
                 parsingResponse = parsingResponse.trim();
                 let jsonString = parsingResponse.trim();
                 const jsonMatch = jsonString.match(JSON_RESPONSE_REGEX);
-                let dependencyConflicts = null;
                 if (jsonMatch) {
                     jsonString = jsonMatch[1].trim();
-                    dependencyConflicts = JSON.parse(jsonString);
+                    currentAnalysis = JSON.parse(jsonString);
                 }
 
-                // need to update :: start
-                currentAnalysis.constraints = dependencyConflicts?.constraints || [];
-                currentAnalysis.blockers = identifyBlockingPackages(
-                    currentAnalysis.constraints,
-                    update_dependencies.map((dep) => dep.name)
-                );
+                // Enhance analysis with available versions from registry
+                logger.info('Fetching available versions for packages involved in conflict');
+                try {
+                    // Get unique package names involved in the conflict
+                    const packagesToFetch = new Set<string>();
+                    
+                    // Add conflicting package
+                    if (currentAnalysis.conflictingPackage) {
+                        packagesToFetch.add(currentAnalysis.conflictingPackage);
+                    }
+                    
+                    // Add satisfying packages
+                    currentAnalysis.satisfyingPackages?.forEach(pkg => {
+                        if (pkg.packageName) {
+                            packagesToFetch.add(pkg.packageName);
+                        }
+                    });
+                    
+                    // Add non-satisfying packages
+                    currentAnalysis.notSatisfying?.forEach(pkg => {
+                        if (pkg.packageName) {
+                            packagesToFetch.add(pkg.packageName);
+                        }
+                    });
 
-                // Categorize error for better handling
-                const errorAnalysis = categorizeError(installError);
+                    // Fetch available versions for all packages in parallel
+                    const versionFetchPromises = Array.from(packagesToFetch).map(async (packageName) => {
+                        try {
+                            logger.debug('Fetching available versions for package', { package: packageName });
+                            const registryData = await getPackageData(packageName);
+                            const versions = Object.keys(registryData.versions || {});
+                            logger.trace('Fetched versions for package', { package: packageName, versionCount: versions.length });
+                            return { packageName, versions };
+                        } catch (error) {
+                            logger.warn('Failed to fetch versions for package', { 
+                                package: packageName, 
+                                error: error instanceof Error ? error.message : String(error) 
+                            });
+                            return { packageName, versions: [] };
+                        }
+                    });
 
-                // Generate strategic upgrade strategies
-                currentAnalysis.strategies = await generateUpgradeStrategies(
-                    currentAnalysis.constraints,
-                    currentAnalysis.blockers,
-                    update_dependencies.map((dep) => dep.name),
-                    packageJson
-                );
+                    const versionResults = await Promise.all(versionFetchPromises);
+                    const packageVersionMap = new Map(versionResults.map(result => [result.packageName, result.versions]));
 
-                // Enhanced strategic logging
-                logStrategicAnalysis(logger, currentAnalysis, attempt);
+                    // Enhance conflicting package with available versions
+                    if (currentAnalysis.conflictingPackage && packageVersionMap.has(currentAnalysis.conflictingPackage)) {
+                        currentAnalysis.conflictingPackageAvailableVersions = packageVersionMap.get(currentAnalysis.conflictingPackage);
+                    }
 
-                logger.info('Error categorization', {
-                    category: errorAnalysis.category,
-                    severity: errorAnalysis.severity,
-                    actionable: errorAnalysis.actionable,
-                    suggestions: errorAnalysis.suggestions,
-                });
+                    // Enhance satisfying packages with available versions
+                    currentAnalysis.satisfyingPackages = currentAnalysis.satisfyingPackages?.map(pkg => ({
+                        ...pkg,
+                        availableVersions: packageVersionMap.get(pkg.packageName) || []
+                    })) || [];
 
-                // Add error analysis to recommendations
-                currentAnalysis.recommendations = errorAnalysis.suggestions;
+                    // Enhance non-satisfying packages with available versions
+                    currentAnalysis.notSatisfying = currentAnalysis.notSatisfying?.map(pkg => ({
+                        ...pkg,
+                        availableVersions: packageVersionMap.get(pkg.packageName) || []
+                    })) || [];
 
-                // Create strategic prompt with analysis context
+                    logger.info('Successfully enhanced conflict analysis with available versions', {
+                        conflictingPackage: currentAnalysis.conflictingPackage,
+                        conflictingPackageVersionCount: currentAnalysis.conflictingPackageAvailableVersions?.length || 0,
+                        satisfyingPackagesCount: currentAnalysis.satisfyingPackages?.length || 0,
+                        notSatisfyingPackagesCount: currentAnalysis.notSatisfying?.length || 0,
+                        totalPackagesFetched: packagesToFetch.size
+                    });
+
+                } catch (error) {
+                    logger.error('Failed to enhance conflict analysis with registry data', {
+                        error: error instanceof Error ? error.message : String(error)
+                    });
+                    // Continue with original analysis if registry fetch fails
+                }
+
+                // Create strategic prompt with enhanced analysis context
                 const strategicPrompt = createStrategicPrompt(
+                    reasoningRecording,
                     installError,
                     currentAnalysis,
                     update_dependencies.map((dep) => dep.name),
@@ -221,7 +271,6 @@ This is the current state before any updates. Focus on achieving these target up
                     maxAttempts
                 );
                 // need to update :: end
-
 
                 // Add current failure and analysis to chat history
                 chatHistory.push({ role: 'user', content: strategicPrompt });
@@ -269,6 +318,15 @@ This is the current state before any updates. Focus on achieving these target up
                             throw new AIResponseFormatError(`Invalid suggestions found: ${invalidSuggestions.length} items missing name, version, or isDev`);
                         }
 
+                        // Extract and update reasoning recording from AI response
+                        if (suggestions.reasoning && suggestions.reasoning.updateMade && Array.isArray(suggestions.reasoning.updateMade)) {
+                            reasoningRecording.updateMade.push(...suggestions.reasoning.updateMade);
+                            logger.info('Updated reasoning recording with AI insights', {
+                                newReasoningEntries: suggestions.reasoning.updateMade.length,
+                                totalReasoningEntries: reasoningRecording.updateMade.length
+                            });
+                        }
+
                         // Validate version existence before applying suggestions
                         const validationUpdates = suggestions.suggestions.map((s: any) => ({
                             name: s.name,
@@ -309,14 +367,14 @@ This is the current state before any updates. Focus on achieving these target up
                         packageJson = readPackageJson(tempDir);
 
                         // Sort suggestions by priority (blocker > target > ecosystem)
-                        const priorityOrder = { blocker: 1, target: 2, ecosystem: 3 };
-                        const sortedSuggestions = suggestions.suggestions.sort((a: any, b: any) => {
-                            const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 2;
-                            const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 2;
-                            return aPriority - bPriority;
-                        });
+                        // const priorityOrder = { blocker: 1, target: 2, ecosystem: 3 };
+                        // const sortedSuggestions = suggestions.suggestions.sort((a: any, b: any) => {
+                        //     const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 2;
+                        //     const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 2;
+                        //     return aPriority - bPriority;
+                        // });
 
-                        for (const suggestion of sortedSuggestions) {
+                        for (const suggestion of suggestions.suggestions) {
                             // Check version compatibility before applying
                             const compatibilityCheck = checkCompatibility(suggestion.name, suggestion.version, update_dependencies);
 
@@ -407,6 +465,16 @@ Please provide a valid JSON response with the required structure and ensure all 
                 await cpAsync(tempPackageLockPath, originalPackageLockPath);
                 logger.info('Copied updated package-lock.json back to original location');
             }
+
+            // Log final reasoning chain for analysis
+            logger.info('Final reasoning chain for successful resolution', {
+                totalUpgrades: reasoningRecording.updateMade.length,
+                upgrades: reasoningRecording.updateMade.map(u => ({
+                    package: `${u.package.name} (rank: ${u.package.rank})`,
+                    versionChange: `${u.fromVersion} → ${u.toVersion}`,
+                    dueToConflictWith: `${u.reason.name} (rank: ${u.reason.rank})`
+                }))
+            });
 
             return {
                 content: [

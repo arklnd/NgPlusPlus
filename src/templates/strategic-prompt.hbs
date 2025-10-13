@@ -1,32 +1,50 @@
 STRATEGIC DEPENDENCY RESOLUTION - ATTEMPT {{attempt}}/{{maxAttempts}}
 
-TARGET UPGRADES: {{targetPackages}}
-{{#if blockers}}
-IDENTIFIED BLOCKERS: {{blockers}}
+TARGET UPGRADES USER WANT TO DO: {{targetPackages}}
+
+REASONING:
+{{#if reasoningRecording}}
+- PREVIOUS RECORDING: {{reasoningRecording}}
 {{else}}
-No specific blockers identified from error analysis.
-{{/if}}
-
-CONSTRAINT ANALYSIS:
-{{#each constraints}}
-- {{this.dependent}} requires {{this.package}} {{this.constraint}}
-{{/each}}
-{{#if strategies}}
-
-RECOMMENDED STRATEGIES:
-{{#each strategies}}
-- {{this.rationale}} (confidence: {{this.confidence}})
-{{/each}}
+- No previous reasoning recorded.
 {{/if}}
 
 INSTALLATION ERROR:
 {{errorOutput}}
 
+CONFLICT ANALYSIS:
+{{#if analysis}}
+{{analysis}}
+{{else}}
+- No conflict analysis available.
+{{/if}}
+
 STRATEGIC INSTRUCTIONS:
-1. If blockers are identified, suggest upgrading them to newer versions that support target packages
-2. For Angular/Storybook conflicts: Upgrade Storybook to latest version supporting Angular
-3. For TypeScript conflicts: Upgrade to latest compatible version
-4. Only suggest target package downgrades as LAST RESORT
+1. **Conflict Resolution Priority**: When resolving dependency conflicts, prioritize upgrading non-satisfying packages with the LOWEST rank first. Higher-ranked packages (core frameworks, official libraries) should be kept stable, while lower-ranked packages (utilities, experimental) should be upgraded to resolve conflicts.
+
+2. **Package Ranking Strategy**: 
+   - CORE_FRAMEWORK (1000+): Never downgrade, upgrade dependents instead
+   - OFFICIAL_LIBRARIES (800+): Prefer stability, upgrade only if necessary
+   - POPULAR_UTILITIES (600+): Safe to upgrade if it resolves conflicts
+   - DEPENDENCY_HEAVY (400+): Upgrade cautiously, check for breaking changes
+   - LIGHTWEIGHT (200+): Safe to upgrade aggressively
+   - EXPERIMENTAL (100+): First candidates for upgrades or replacements
+
+3. **Resolution Logic**: Identify all non-satisfying packages from the conflict analysis, upgrade the lowest-ranked packages first to satisfy the higher-ranked dependencies.
+
+4. **Available Versions Strategy**: 
+   - Use the `availableVersions` arrays from the conflict analysis to make informed upgrade decisions
+   - For conflicting packages, choose from `conflictingPackageAvailableVersions` to find compatible versions
+   - For satisfying/non-satisfying packages, use their `availableVersions` to select appropriate versions
+   - Prefer stable/LTS versions when available, avoid pre-release versions unless necessary
+
+5. **Reasoning Recording**: 
+   - Consider the previous reasoning record to understand what upgrades have already been made and why
+   - For each new upgrade suggestion, provide reasoning that explains:
+     * Which package is being upgraded (with its rank)
+     * Which higher-ranked package(s) it's conflicting with that necessitated this upgrade
+     * Why this specific version was chosen to resolve the conflict (from available versions)
+   - Build upon previous reasoning to create a comprehensive upgrade strategy
 
 Respond with JSON containing strategic upgrade suggestions:
 {
@@ -36,8 +54,24 @@ Respond with JSON containing strategic upgrade suggestions:
       "version": "suggested-version",
       "isDev": true/false,
       "reason": "strategic rationale for this upgrade",
-      "priority": "blocker|target|ecosystem"
+      "fromVersion": "current-version"
     }
   ],
-  "analysis": "strategic analysis of the conflict and resolution approach"
+  "analysis": "strategic analysis of the conflict and resolution approach",
+  "reasoning": {
+    "updateMade": [
+      {
+        "package": {
+          "name": "package-being-upgraded",
+          "rank": 200
+        },
+        "fromVersion": "1.0.0",
+        "toVersion": "2.0.0",
+        "reason": {
+          "name": "higher-ranked-package-causing-conflict",
+          "rank": 800
+        }
+      }
+    ]
+  }
 }

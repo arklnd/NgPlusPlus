@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ResolverAnalysis } from './dependency-analyzer.utils';
 import { fileURLToPath } from 'url';
+import { ConflictAnalysis, ReasoningRecording } from '@I/index';
 
 // ES module compatibility
 const __filename = fileURLToPath(import.meta.url);
@@ -24,7 +25,7 @@ function loadTemplate(templateName: string): HandlebarsTemplateDelegate {
     const templatePath = path.join(__dirname, '../../templates', `${templateName}.hbs`);
     const templateContent = fs.readFileSync(templatePath, 'utf-8');
     const compiledTemplate = Handlebars.compile(templateContent);
-    
+
     templateCache.set(templateName, compiledTemplate);
     return compiledTemplate;
 }
@@ -40,33 +41,20 @@ export function createEnhancedSystemPrompt(): string {
 /**
  * Creates a strategic prompt for AI analysis of dependency conflicts
  */
-export function createStrategicPrompt(errorOutput: string, analysis: ResolverAnalysis, targetPackages: string[], attempt: number, maxAttempts: number): string {
+export function createStrategicPrompt(reasoningRecording: ReasoningRecording, errorOutput: string, analysis: ConflictAnalysis, targetPackages: string[], attempt: number, maxAttempts: number): string {
     const template = loadTemplate('strategic-prompt');
-    
-    // Prepare blocking constraints for template
-    const blockingConstraints = analysis.constraints
-        .filter((c) => c.severity === 'blocking')
-        .map((c) => ({
-            dependent: c.dependent,
-            package: c.package,
-            constraint: c.constraint
-        }));
-
-    // Format blockers list
-    const blockersList = analysis.blockers.length > 0 ? analysis.blockers.join(', ') : null;
 
     // Format target packages
     const targetPackagesList = targetPackages.join(', ');
 
     // Prepare template data
     const templateData = {
+        reasoningRecording: JSON.stringify(reasoningRecording, null, 2),
         attempt,
         maxAttempts,
         targetPackages: targetPackagesList,
-        blockers: blockersList,
-        constraints: blockingConstraints,
-        strategies: analysis.strategies.length > 0 ? analysis.strategies : null,
-        errorOutput
+        errorOutput,
+        analysis: JSON.stringify(analysis, null, 2),
     };
 
     return template(templateData);
