@@ -554,7 +554,7 @@ describe('updatePackageWithDependencies', function () {
 
         // Act - Invoke dumbResolverHandler
         const result = await dumbResolverHandler(dumbResolverInput);
-        
+
         fs.copyFileSync(targetPackageJsonPath, sourcePackageJsonPath);
         fs.copyFileSync(targetPackageLockPath, sourcePackageLockPath);
 
@@ -565,15 +565,163 @@ describe('updatePackageWithDependencies', function () {
         expect(result.content).to.have.length(1);
         expect(result.content[0]).to.have.property('type', 'text');
         expect(result.content[0]).to.have.property('text');
-        
+
         const resultText = result.content[0].text;
         expect(resultText).to.be.a('string');
-        
+
         // Check if it's a success or failure message
         if (resultText.includes('✅ Successfully updated dependencies')) {
             expect(resultText).to.include('Successfully updated dependencies');
             expect(resultText).to.include('Updated packages:');
-            
+
+            // Verify the package.json was updated correctly
+            const updatedContent = fs.readFileSync(targetPackageJsonPath, 'utf8');
+            const updatedPackageJson: PackageJson = JSON.parse(updatedContent);
+
+            // Check some key dependencies were updated
+            expect(updatedPackageJson.dependencies).to.have.property('@angular/core', '^20.0.0');
+            expect(updatedPackageJson.devDependencies).to.have.property('@angular/cli', '^20.0.0');
+        } else if (resultText.includes('❌ Failed to resolve dependencies')) {
+            expect(resultText).to.include('Failed to resolve dependencies');
+            console.log('dumbResolverHandler failed as expected, result:', resultText);
+        } else {
+            // Unexpected result format
+            throw new Error(`Unexpected result format: ${resultText}`);
+        }
+    });
+
+    it('should invoke dumbResolverHandler with HYUI8 Angular dependencies', async function () {
+        // Increase timeout for npm operations
+        this.timeout(3600000); // 60 minutes
+
+        // Arrange - Copy asset files to test directory
+        const assetsDir = path.join(__dirname, 'assets');
+        const sourcePackageJsonPath = path.join(assetsDir, 'package_hyui8.json');
+        const sourcePackageLockPath = path.join(assetsDir, 'package-lock_hyui8.json');
+
+        const targetPackageJsonPath = path.join(testRepoPath, 'package.json');
+        const targetPackageLockPath = path.join(testRepoPath, 'package-lock.json');
+
+        // Copy the asset files to test directory
+        fs.copyFileSync(sourcePackageJsonPath, targetPackageJsonPath);
+        fs.copyFileSync(sourcePackageLockPath, targetPackageLockPath);
+
+        // Prepare input data for dumbResolverHandler using same dependencies as selected test
+        const updateDependencies = [
+            {
+                name: '@angular/animations',
+                version: '^19.0.0',
+                isDev: false,
+            },
+            {
+                name: '@angular/common',
+                version: '^19.0.0',
+                isDev: false,
+            },
+            {
+                name: '@angular/compiler',
+                version: '^19.0.0',
+                isDev: false,
+            },
+            {
+                name: '@angular/core',
+                version: '^19.0.0',
+                isDev: false,
+            },
+            {
+                name: '@angular/forms',
+                version: '^19.0.0',
+                isDev: false,
+            },
+            {
+                name: '@angular/platform-browser',
+                version: '^19.0.0',
+                isDev: false,
+            },
+            {
+                name: '@angular/platform-browser-dynamic',
+                version: '^19.0.0',
+                isDev: false,
+            },
+            {
+                name: '@angular/router',
+                version: '^19.0.0',
+                isDev: false,
+            },
+            {
+                name: '@angular/cdk',
+                version: '^19.0.0',
+                isDev: false,
+            },
+            {
+                name: '@angular/material',
+                version: '^19.0.0',
+                isDev: false,
+            },
+            {
+                name: '@angular/cli',
+                version: '^19.0.0',
+                isDev: true,
+            },
+            {
+                name: '@angular/compiler-cli',
+                version: '^19.0.0',
+                isDev: true,
+            },
+            {
+                name: '@angular-devkit/build-angular',
+                version: '^19.0.0',
+                isDev: true,
+            },
+            {
+                name: '@angular-devkit/architect',
+                version: '^0.2000.0',
+                isDev: true,
+            },
+            {
+                name: '@angular-devkit/core',
+                version: '^19.0.0',
+                isDev: true,
+            },
+            {
+                name: '@angular/elements',
+                version: '^19.0.0',
+                isDev: true,
+            },
+            {
+                name: '@angular/language-service',
+                version: '^19.0.0',
+                isDev: true,
+            },
+        ];
+
+        const dumbResolverInput = {
+            repo_path: testRepoPath,
+            update_dependencies: updateDependencies,
+        };
+
+        // Act - Invoke dumbResolverHandler
+        const result = await dumbResolverHandler(dumbResolverInput);
+
+        fs.copyFileSync(targetPackageJsonPath, sourcePackageJsonPath);
+        fs.copyFileSync(targetPackageLockPath, sourcePackageLockPath);
+
+        // Assert
+        expect(result).to.be.an('object');
+        expect(result).to.have.property('content');
+        expect(result.content).to.be.an('array');
+        expect(result.content).to.have.length(1);
+        expect(result.content[0]).to.have.property('type', 'text');
+        expect(result.content[0]).to.have.property('text');
+
+        const resultText = result.content[0].text;
+        expect(resultText).to.be.a('string');
+
+        // Check if it's a success or failure message
+        if (resultText.includes('✅ Successfully updated dependencies')) {
+            expect(resultText).to.include('Successfully updated dependencies');
+            expect(resultText).to.include('Updated packages:');
+
             // Verify the package.json was updated correctly
             const updatedContent = fs.readFileSync(targetPackageJsonPath, 'utf8');
             const updatedPackageJson: PackageJson = JSON.parse(updatedContent);
