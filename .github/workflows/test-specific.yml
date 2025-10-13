@@ -29,6 +29,7 @@ jobs:
       run: npm run build
 
     - name: Run test
+      if: success()
       run: npx mocha -- --grep "${{ github.event.inputs.test_pattern }}"
 
     - name: Display test results
