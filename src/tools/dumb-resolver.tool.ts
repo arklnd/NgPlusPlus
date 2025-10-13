@@ -11,7 +11,7 @@ import { getLogger } from '@U/index';
 import OpenAI from 'openai';
 import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility, createDependencyParsingPrompt } from '@U/dumb-resolver-helper';
 import { AIResponseFormatError, PackageVersionValidationError } from '@E/index';
-import { ConflictAnalysis, ReasoningRecording } from '@I/index';
+import { ConflictAnalysis, ReasoningRecording, updateMade } from '@I/index';
 
 const JSON_RESPONSE_REGEX = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
 
@@ -323,7 +323,13 @@ This is the current state before any updates. Focus on achieving these target up
                             reasoningRecording.updateMade.push(...suggestions.reasoning.updateMade);
                             logger.info('Updated reasoning recording with AI insights', {
                                 newReasoningEntries: suggestions.reasoning.updateMade.length,
-                                totalReasoningEntries: reasoningRecording.updateMade.length
+                                totalReasoningEntries: reasoningRecording.updateMade.length,
+                                updateMadeEntries: suggestions.reasoning.updateMade.map((entry: updateMade) => ({
+                                    package: `${entry.package?.name || 'unknown'} (rank: ${entry.package?.rank || 'N/A'})`,
+                                    versionChange: `${entry.fromVersion || 'unknown'} → ${entry.toVersion || 'unknown'}`,
+                                    conflictReason: `${entry.reason?.name || 'unknown'} (rank: ${entry.reason?.rank || 'N/A'})`,
+                                    strategy: (entry as any).strategy || 'N/A'
+                                }))
                             });
                         }
 

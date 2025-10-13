@@ -33,7 +33,7 @@ export interface PackageRank {
     rank: number;
 }
 
-interface updateMade {
+export interface updateMade {
     package: PackageRank
     fromVersion: string;
     toVersion: string;
