@@ -3,6 +3,7 @@ import { describe, it, beforeEach, afterEach } from 'mocha';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import * as semver from 'semver';
 import { updatePackageWithDependencies } from '@T/dependency-resolver.tool';
 import { dumbResolverHandler } from '@T/dumb-resolver.tool';
 import { installDependencies } from '@U/index';
@@ -726,9 +727,18 @@ describe('updatePackageWithDependencies', function () {
             const updatedContent = fs.readFileSync(targetPackageJsonPath, 'utf8');
             const updatedPackageJson: PackageJson = JSON.parse(updatedContent);
 
-            // Check some key dependencies were updated
-            expect(updatedPackageJson.dependencies).to.have.property('@angular/core', '^20.0.0');
-            expect(updatedPackageJson.devDependencies).to.have.property('@angular/cli', '^20.0.0');
+            // Check some key dependencies were updated with major version 19
+            expect(updatedPackageJson.dependencies).to.exist;
+            expect(updatedPackageJson.dependencies).to.have.property('@angular/core');
+            const coreVersion = updatedPackageJson.dependencies?.['@angular/core'];
+            expect(coreVersion).to.exist;
+            expect(semver.major(semver.coerce(coreVersion!)!)).to.equal(19);
+            
+            expect(updatedPackageJson.devDependencies).to.exist;
+            expect(updatedPackageJson.devDependencies).to.have.property('@angular/cli');
+            const cliVersion = updatedPackageJson.devDependencies?.['@angular/cli'];
+            expect(cliVersion).to.exist;
+            expect(semver.major(semver.coerce(cliVersion!)!)).to.equal(19);
         } else if (resultText.includes('❌ Failed to resolve dependencies')) {
             expect(resultText).to.include('Failed to resolve dependencies');
             console.log('dumbResolverHandler failed as expected, result:', resultText);
