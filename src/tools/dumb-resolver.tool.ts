@@ -324,12 +324,7 @@ This is the current state before any updates. Focus on achieving these target up
                             logger.info('Updated reasoning recording with AI insights', {
                                 newReasoningEntries: suggestions.reasoning.updateMade.length,
                                 totalReasoningEntries: reasoningRecording.updateMade.length,
-                                updateMadeEntries: suggestions.reasoning.updateMade.map((entry: updateMade) => ({
-                                    package: `${entry.package?.name || 'unknown'} (rank: ${entry.package?.rank || 'N/A'})`,
-                                    versionChange: `${entry.fromVersion || 'unknown'} → ${entry.toVersion || 'unknown'}`,
-                                    conflictReason: `${entry.reason?.name || 'unknown'} (rank: ${entry.reason?.rank || 'N/A'})`,
-                                    strategy: (entry as any).strategy || 'N/A'
-                                }))
+                                reasoningRecording: reasoningRecording.updateMade
                             });
                         }
 
@@ -359,39 +354,14 @@ This is the current state before any updates. Focus on achieving these target up
                         }
 
                         logger.info('Received valid strategic suggestions', {
-                            suggestions: suggestions.suggestions.map((s: any) => ({
-                                name: s.name,
-                                version: s.version,
-                                priority: s.priority || 'target',
-                                reason: s.reason,
-                            })),
+                            suggestions: suggestions.suggestions,
                             attempt: aiRetryAttempt,
                         });
                         validSuggestions = true;
 
-                        // Apply suggestions with strategic prioritization
                         packageJson = readPackageJson(tempDir);
 
-                        // Sort suggestions by priority (blocker > target > ecosystem)
-                        // const priorityOrder = { blocker: 1, target: 2, ecosystem: 3 };
-                        // const sortedSuggestions = suggestions.suggestions.sort((a: any, b: any) => {
-                        //     const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 2;
-                        //     const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 2;
-                        //     return aPriority - bPriority;
-                        // });
-
                         for (const suggestion of suggestions.suggestions) {
-                            // Check version compatibility before applying
-                            const compatibilityCheck = checkCompatibility(suggestion.name, suggestion.version, update_dependencies);
-
-                            if (!compatibilityCheck.compatible) {
-                                logger.warn('Compatibility issues detected', {
-                                    package: suggestion.name,
-                                    version: suggestion.version,
-                                    conflicts: compatibilityCheck.conflicts,
-                                    recommendations: compatibilityCheck.recommendations,
-                                });
-                            }
 
                             updateDependency(packageJson, suggestion.name, suggestion.version, suggestion.isDev);
                             const targetDep = update_dependencies.find((dep) => dep.name === suggestion.name);
@@ -404,7 +374,6 @@ This is the current state before any updates. Focus on achieving these target up
                                     reason: suggestion.reason,
                                     priority: suggestion.priority || 'target',
                                     isDev: targetDep.isDev,
-                                    compatibilityStatus: compatibilityCheck.compatible ? 'compatible' : 'potential-issues',
                                 });
                             } else {
                                 // Add new dependency suggested by strategic analysis
@@ -420,7 +389,6 @@ This is the current state before any updates. Focus on achieving these target up
                                     reason: suggestion.reason,
                                     priority: suggestion.priority || 'target',
                                     isDev: suggestion.isDev,
-                                    compatibilityStatus: compatibilityCheck.compatible ? 'compatible' : 'potential-issues',
                                 });
                             }
                         }
@@ -447,8 +415,7 @@ This is the current state before any updates. Focus on achieving these target up
                             } else {
                                 // Generic error handling for other types of errors
                                 retryMessage = `An error occurred while processing your response: ${errorMsg}
-
-Please provide a valid JSON response with the required structure and ensure all package versions exist in the npm registry.`;
+                                \n\nPlease provide a valid JSON response with the required structure and ensure all package versions exist in the npm registry.`;
                             }
 
                             chatHistory.push({ role: 'user', content: retryMessage });
