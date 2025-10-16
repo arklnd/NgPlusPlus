@@ -6,7 +6,7 @@ on:
       test_pattern:
         description: 'Test pattern to run'
         required: true
-        default: 'should invoke dumbResolverHandler with HYUI9 Angular dependencies'
+        default: 'should invoke dumbResolverHandler with HYUI8 Angular dependencies'
         type: string
 
 jobs:
