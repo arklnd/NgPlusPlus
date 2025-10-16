@@ -49,12 +49,12 @@ export function createStrategicPrompt(reasoningRecording: ReasoningRecording, er
 
     // Prepare template data
     const templateData = {
-        reasoningRecording: JSON.stringify(reasoningRecording, null, 2),
+        reasoningRecording: JSON.stringify(reasoningRecording, null, 2).replace(/&quot;/g, '"'),
         attempt,
         maxAttempts,
         targetPackages: targetPackagesList,
         errorOutput,
-        analysis: JSON.stringify(analysis, null, 2),
+        analysis: JSON.stringify(analysis, null, 2).replace(/&quot;/g, '"'),
     };
 
     return template(templateData);
