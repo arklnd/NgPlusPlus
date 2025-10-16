@@ -1,5 +1,13 @@
 {
     "version": "0.2.0",
+    "inputs": [
+        {
+            "id": "mochaGrep",
+            "type": "promptString",
+            "description": "Enter Mocha grep string",
+            "default": "should invoke dumbResolverHandler with HYUI8 Angular dependencies"
+        }
+    ],
     "configurations": [
         {
             "type": "node",
@@ -9,7 +17,9 @@
             "args": [
                 "--config",
                 "${workspaceFolder}/.mocharc.json",
-                "${file}"
+                "${file}",
+                "--grep",
+                "${input:mochaGrep}"
             ],
             "internalConsoleOptions": "openOnSessionStart",
             "skipFiles": [
