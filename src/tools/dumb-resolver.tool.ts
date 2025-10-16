@@ -308,6 +308,7 @@ This is the current state before any updates. Focus on achieving these target up
                 );
                 // need to update :: end
 
+                chatHistory = [{ role: 'system', content: systemMessage }]
                 // Add current failure and analysis to chat history
                 chatHistory.push({ role: 'user', content: strategicPrompt });
 
