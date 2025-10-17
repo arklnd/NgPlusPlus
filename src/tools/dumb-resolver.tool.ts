@@ -302,7 +302,7 @@ This is the current state before any updates. Focus on achieving these target up
                     reasoningRecording,
                     installError,
                     currentAnalysis,
-                    update_dependencies.map((dep) => `- ${dep.name}@${dep.version} (${dep.isDev ? 'dev' : 'prod'})`).join('\n'),
+                    update_dependencies.map((dep) => `- ${dep.name} to version ${dep.version} (${dep.isDev ? 'dev' : 'prod'})`).join('\n'),
                     attempt,
                     maxAttempts
                 );
