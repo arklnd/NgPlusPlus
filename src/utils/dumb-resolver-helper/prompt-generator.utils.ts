@@ -41,18 +41,15 @@ export function createEnhancedSystemPrompt(): string {
 /**
  * Creates a strategic prompt for AI analysis of dependency conflicts
  */
-export function createStrategicPrompt(reasoningRecording: ReasoningRecording, errorOutput: string, analysis: ConflictAnalysis, targetPackages: string[], attempt: number, maxAttempts: number): string {
+export function createStrategicPrompt(reasoningRecording: ReasoningRecording, errorOutput: string, analysis: ConflictAnalysis, targetPackages: string, attempt: number, maxAttempts: number): string {
     const template = loadTemplate('strategic-prompt');
-
-    // Format target packages
-    const targetPackagesList = targetPackages.join(', ');
 
     // Prepare template data
     const templateData = {
         reasoningRecording: JSON.stringify(reasoningRecording, null, 2).replace(/&quot;/g, '"'),
         attempt,
         maxAttempts,
-        targetPackages: targetPackagesList,
+        targetPackages,
         errorOutput,
         analysis: JSON.stringify(analysis, null, 2).replace(/&quot;/g, '"'),
     };
