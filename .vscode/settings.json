@@ -15,5 +15,30 @@
                 "copilot/gpt-5"
             ]
         }
+    },
+    // Matches "spec" in mocharc
+    "mocha.files.glob": "test/**/*.test.ts",
+    // Loads "tsx" at runtime, matching your "import" in mocharc (use "tsx/register" if needed)
+    "mocha.requires": [
+        "tsx"
+    ],
+    // Sets timeout
+    "mocha.timeout": 3600000,
+    // Other options available:
+    "mocha.options": {
+        "timeout": 3600000
+    },
+    // Enable decorations, test lens, etc.
+    "mocha.sideBarOptions": {
+        "lens": true,
+        "decoration": true,
+        "autoUpdateTime": 2000,
+        "showDebugTestStatus": true
+    },
+    // (Optional) Enable parallel runs
+    "mocha.parallelTests": 2, // pick number of parallel tests; default is 1
+    // coverage settings can be added here as well
+    "mocha.coverage": {
+        "enable": false
     }
 }
