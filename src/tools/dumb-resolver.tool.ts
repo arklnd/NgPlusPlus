@@ -302,14 +302,14 @@ This is the current state before any updates. Focus on achieving these target up
                     reasoningRecording,
                     installError,
                     currentAnalysis,
-                    update_dependencies.map((dep) => dep.name),
+                    update_dependencies.map((dep) => `- ${dep.name}@${dep.version} (${dep.isDev ? 'dev' : 'prod'})`).join('\n'),
                     attempt,
                     maxAttempts
                 );
                 // need to update :: end
 
                 // Reset chat history with system message
-                chatHistory = [{ role: 'system', content: systemMessage }]
+                chatHistory = [{ role: 'system', content: systemMessage }];
                 // Add current failure and analysis to chat history
                 chatHistory.push({ role: 'user', content: strategicPrompt });
 
