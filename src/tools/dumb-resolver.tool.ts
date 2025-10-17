@@ -10,7 +10,7 @@ import { getOpenAIService } from '@S/openai.service';
 import { getLogger } from '@U/index';
 import OpenAI from 'openai';
 import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility, createDependencyParsingPrompt } from '@U/dumb-resolver-helper';
-import { AIResponseFormatError, PackageVersionValidationError } from '@E/index';
+import { AIResponseFormatError, NoSuitableVersionFoundError, PackageVersionValidationError } from '@E/index';
 import { ConflictAnalysis, ReasoningRecording, updateMade } from '@I/index';
 import { getCleanVersion } from '@U/version.utils';
 import * as semver from 'semver';
@@ -356,16 +356,6 @@ This is the current state before any updates. Focus on achieving these target up
                             throw new AIResponseFormatError(`Invalid suggestions found: ${invalidSuggestions.length} items missing name, version, or isDev`);
                         }
 
-                        // Extract and update reasoning recording from AI response
-                        if (suggestions.reasoning && suggestions.reasoning.updateMade && Array.isArray(suggestions.reasoning.updateMade)) {
-                            reasoningRecording.updateMade.push(...suggestions.reasoning.updateMade);
-                            logger.info('Updated reasoning recording with AI insights', {
-                                newReasoningEntries: suggestions.reasoning.updateMade.length,
-                                totalReasoningEntries: reasoningRecording.updateMade.length,
-                                reasoningRecordingSuggestions: suggestions.reasoning.updateMade,
-                            });
-                        }
-
                         // Validate version existence before applying suggestions
                         const validationUpdates = suggestions.suggestions.map((s: any) => ({
                             name: s.name,
@@ -397,6 +387,17 @@ This is the current state before any updates. Focus on achieving these target up
                         });
                         validSuggestions = true;
 
+                        // Extract and update reasoning recording from AI response
+                        if (suggestions.reasoning && suggestions.reasoning.updateMade && Array.isArray(suggestions.reasoning.updateMade)) {
+                            reasoningRecording.updateMade.push(...suggestions.reasoning.updateMade);
+                            logger.info('Updated reasoning recording with AI insights', {
+                                newReasoningEntries: suggestions.reasoning.updateMade.length,
+                                totalReasoningEntries: reasoningRecording.updateMade.length,
+                                reasoningRecordingSuggestions: suggestions.reasoning.updateMade,
+                            });
+                        }
+
+                        // Apply suggestions to package.json in tempDir
                         packageJson = readPackageJson(tempDir);
 
                         for (const suggestion of suggestions.suggestions) {
@@ -449,6 +450,8 @@ This is the current state before any updates. Focus on achieving these target up
                                 retryMessage = aiError.getRetryMessage();
                             } else if (aiError instanceof PackageVersionValidationError) {
                                 retryMessage = aiError.getRetryMessage();
+                            } else if (aiError instanceof NoSuitableVersionFoundError) {
+                                throw aiError; // Let the main loop catch and handle this error
                             } else {
                                 // Generic error handling for other types of errors
                                 retryMessage = `An error occurred while processing your response: ${errorMsg}

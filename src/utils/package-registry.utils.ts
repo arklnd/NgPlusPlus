@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import { getLogger } from '@U/index';
 import { RegistryData, PackageVersionData, ValidationResult } from '@I/index';
+import { NoSuitableVersionFoundError } from '@E/NoSuitableVersionFoundError';
 
 /**
  * Fetches package metadata using npm view command (respects .npmrc auth)
@@ -212,6 +213,13 @@ export async function validatePackageVersionsExist(plannedUpdates: Array<{ name:
     // Process packages in parallel for better performance
     const validationPromises = plannedUpdates.map(async (update) => {
         const { name, version } = update;
+
+        // if version is <NULL> throw error
+        if (!version || version.trim() === '') {
+            const errorMessage = `No Suitable Version Found for package: ${name}`;
+            logger.error(errorMessage);
+            throw new NoSuitableVersionFoundError(errorMessage);
+        }
 
         logger.debug('Validating package version', { package: name, version });
 

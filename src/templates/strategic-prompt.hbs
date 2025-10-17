@@ -4,14 +4,34 @@ TARGET UPGRADES USER WANT TO DO: {{targetPackages}}
 
 REASONING:
 {{#if reasoningRecording}}
-- PREVIOUS RECORDING: {{reasoningRecording}}
+{{#if reasoningRecording.updateMade}}
+{{#each reasoningRecording.updateMade}}
+- PREVIOUS UPDATE: {{package.name}} (rank {{package.rank}}) upgraded from {{fromVersion}} to {{toVersion}} to resolve conflict with {{reason.name}} (rank {{reason.rank}})
+{{/each}}
+{{else}}
+- No previous reasoning recorded.
+{{/if}}
 {{else}}
 - No previous reasoning recorded.
 {{/if}}
 
 CONFLICT ANALYSIS:
 {{#if analysis}}
-{{analysis}}
+**CONFLICTING PACKAGE:** "{{analysis.conflictingPackage}}" current version installed v{{analysis.conflictingPackageCurrentVersion}}
+
+**PACKAGES SATISFIED BY CURRENT VERSION:**
+{{#each analysis.satisfyingPackages}}
+- {{packageName}} ({{tier}}, rank {{rank}}) requires {{requiredVersionRange}}
+{{/each}}
+
+**PACKAGES NOT SATISFIED (CAUSING CONFLICT):**
+{{#each analysis.notSatisfying}}
+- {{packageName}} v{{packageVersion}} ({{tier}}, rank {{rank}}) requires {{requiredVersionRange}}
+  Available versions: {{#each availableVersions}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/each}}
+
+**AVAILABLE VERSIONS FOR "{{analysis.conflictingPackage}}":**
+{{#each analysis.conflictingPackageAvailableVersions}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
 {{else}}
 - No conflict analysis available.
 {{/if}}
@@ -26,8 +46,22 @@ STRATEGIC INSTRUCTIONS:
    - DEPENDENCY_HEAVY (400+): Upgrade cautiously, check for breaking changes
    - LIGHTWEIGHT (200+): Safe to upgrade aggressively
    - EXPERIMENTAL (100+): First candidates for upgrades or replacements
+   - Higher rank packages should influence upgrade decisions for lower rank packages.
+   - Higher the rank value, more priority it has in the upgrade decision-making process.
+   - Lower rank packages should be upgraded first to resolve conflicts with higher rank packages.
 
-3. **Resolution Logic**: Identify all non-satisfying packages from the conflict analysis, upgrade the lowest-ranked packages first to satisfy the higher-ranked dependencies.
+3. **Resolution Logic**:
+   - Here the goal is to achieve TARGET UPGRADES USER WANT TO DO.
+   - Identify all non-satisfying packages from the conflict analysis, upgrade the lowest-ranked packages first to satisfy the higher-ranked dependencies.
+   - Choose versions from the available versions lists ONLY that best resolve the conflicts while adhering to the ranking strategy.
+   - If no suitable version is found for a low-rank package, set upgraded version to <NULL>.
+   - e.g. {
+      "name": "package-name",
+      "version": "<NULL>",
+      "isDev": true/false,
+      "reason": "no suitable version found to resolve conflict with higher-ranked package",
+      "fromVersion": "current-version"
+    }
 
 4. **Available Versions Strategy**: 
    - Use the `availableVersions` arrays from the conflict analysis to make informed upgrade decisions
@@ -41,6 +75,7 @@ STRATEGIC INSTRUCTIONS:
      * Which package is being upgraded (with its rank)
      * Which higher-ranked package(s) it's conflicting with that necessitated this upgrade
      * Why this specific version was chosen to resolve the conflict (from available versions)
+   - Never upgrade higher rank packages to satisfy lower rank ones.
    - Build upon previous reasoning to create a comprehensive upgrade strategy
 
 Respond with JSON containing strategic upgrade suggestions:
