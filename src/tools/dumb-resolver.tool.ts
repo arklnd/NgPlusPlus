@@ -308,6 +308,7 @@ This is the current state before any updates. Focus on achieving these target up
                 );
                 // need to update :: end
 
+                // Reset chat history with system message
                 chatHistory = [{ role: 'system', content: systemMessage }]
                 // Add current failure and analysis to chat history
                 chatHistory.push({ role: 'user', content: strategicPrompt });
@@ -361,7 +362,7 @@ This is the current state before any updates. Focus on achieving these target up
                             logger.info('Updated reasoning recording with AI insights', {
                                 newReasoningEntries: suggestions.reasoning.updateMade.length,
                                 totalReasoningEntries: reasoningRecording.updateMade.length,
-                                reasoningRecording: reasoningRecording.updateMade,
+                                reasoningRecordingSuggestions: suggestions.reasoning.updateMade,
                             });
                         }
 
