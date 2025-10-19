@@ -1,0 +1,187 @@
+import { getPackageData } from '@U/package-registry.utils';
+import { getCleanVersion } from '@U/version.utils';
+import { getLogger } from '@U/index';
+import { getOpenAIService } from '@S/openai.service';
+import { ConflictAnalysis } from '@I/index';
+import { createDependencyParsingPrompt } from './prompt-generator.utils';
+import * as semver from 'semver';
+
+const JSON_RESPONSE_REGEX = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
+
+/**
+ * Parses install error output and generates initial conflict analysis using AI
+ *
+ * @param installError - The error output from npm install failure
+ * @returns Initial conflict analysis parsed from the error
+ */
+export async function parseInstallErrorToConflictAnalysis(installError: string): Promise<ConflictAnalysis> {
+    const logger = getLogger().child('conflict-analysis');
+    const openai = getOpenAIService({ model: 'copilot-gpt-4', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
+
+    logger.info('Parsing install error to generate conflict analysis');
+
+    // Create parsing prompt for AI
+    const parsingPrompt = createDependencyParsingPrompt(installError);
+
+    // Analyze the error output for constraints and blockers
+    let parsingResponse = await openai.generateText(parsingPrompt);
+    parsingResponse = parsingResponse.trim();
+    let jsonString = parsingResponse.trim();
+
+    const jsonMatch = jsonString.match(JSON_RESPONSE_REGEX);
+    if (jsonMatch) {
+        jsonString = jsonMatch[1].trim();
+    }
+
+    try {
+        const currentAnalysis: ConflictAnalysis = JSON.parse(jsonString);
+
+        logger.info('Successfully parsed install error to conflict analysis', {
+            conflictingPackage: currentAnalysis.conflictingPackage,
+            satisfyingPackagesCount: currentAnalysis.satisfyingPackages?.length || 0,
+            notSatisfyingPackagesCount: currentAnalysis.notSatisfying?.length || 0,
+        });
+
+        return currentAnalysis;
+    } catch (parseError) {
+        logger.error('Failed to parse AI response as JSON', {
+            error: parseError instanceof Error ? parseError.message : String(parseError),
+            response: jsonString,
+        });
+
+        // Return empty analysis as fallback
+        return {
+            conflictingPackage: '',
+            conflictingPackageCurrentVersion: '',
+            satisfyingPackages: [],
+            notSatisfying: [],
+        };
+    }
+}
+
+/**
+ * Enhances conflict analysis with available versions from the npm registry
+ * Fetches available versions for all packages involved in the conflict and hydrates the analysis object
+ *
+ * @param currentAnalysis - The base conflict analysis to enhance
+ * @returns Enhanced conflict analysis with available versions populated
+ */
+export async function hydrateConflictAnalysisWithRegistryData(currentAnalysis: ConflictAnalysis): Promise<ConflictAnalysis> {
+    const logger = getLogger().child('conflict-analysis');
+
+    logger.info('Fetching available versions for packages involved in conflict');
+
+    try {
+        // Get unique package names involved in the conflict
+        const packagesToFetch = new Map<string, string>();
+
+        // Add conflicting package
+        if (currentAnalysis.conflictingPackage) {
+            packagesToFetch.set(currentAnalysis.conflictingPackage, currentAnalysis.conflictingPackageCurrentVersion);
+        }
+
+        // Add satisfying packages
+        currentAnalysis.satisfyingPackages?.forEach((pkg) => {
+            if (pkg.packageName) {
+                packagesToFetch.set(pkg.packageName, pkg.packageVersion);
+            }
+        });
+
+        // Add non-satisfying packages
+        currentAnalysis.notSatisfying?.forEach((pkg) => {
+            if (pkg.packageName) {
+                packagesToFetch.set(pkg.packageName, pkg.packageVersion);
+            }
+        });
+
+        // Fetch available versions for all packages in parallel
+        const versionFetchPromises = Array.from(packagesToFetch).map(async ([packageName, currentVersion]) => {
+            try {
+                logger.debug('Fetching available versions for package', { package: packageName });
+                const registryData = await getPackageData(packageName);
+                const allVersions = registryData.versions || [];
+
+                // Filter to only include versions newer than current version
+                const cleanCurrentVersion = getCleanVersion(currentVersion);
+                let versions = allVersions;
+
+                if (cleanCurrentVersion) {
+                    versions = allVersions.filter((version) => {
+                        try {
+                            return semver.gt(version, cleanCurrentVersion);
+                        } catch (error) {
+                            logger.warn('Failed to compare versions', {
+                                package: packageName,
+                                version,
+                                currentVersion,
+                                error: error instanceof Error ? error.message : String(error),
+                            });
+                            return false;
+                        }
+                    });
+
+                    logger.debug('Filtered versions to newer ones only', {
+                        package: packageName,
+                        currentVersion,
+                        totalVersions: allVersions.length,
+                        newerVersions: versions.length,
+                    });
+                } else {
+                    logger.warn('Could not parse current version, using all available versions', {
+                        package: packageName,
+                        currentVersion,
+                    });
+                }
+
+                logger.trace('Fetched newer versions for package', { package: packageName, versionCount: versions.length });
+                return { packageName, versions };
+            } catch (error) {
+                logger.warn('Failed to fetch versions for package', {
+                    package: packageName,
+                    error: error instanceof Error ? error.message : String(error),
+                });
+                return { packageName, versions: [] };
+            }
+        });
+
+        const versionResults = await Promise.all(versionFetchPromises);
+        const packageVersionMap = new Map(versionResults.map((result) => [result.packageName, result.versions]));
+
+        // Create enhanced analysis object
+        const enhancedAnalysis: ConflictAnalysis = {
+            ...currentAnalysis,
+            // Hydrate conflicting package with available versions
+            conflictingPackageAvailableVersions: currentAnalysis.conflictingPackage && packageVersionMap.has(currentAnalysis.conflictingPackage) ? packageVersionMap.get(currentAnalysis.conflictingPackage) : currentAnalysis.conflictingPackageAvailableVersions,
+
+            // Hydrate satisfying packages with available versions
+            satisfyingPackages:
+                currentAnalysis.satisfyingPackages?.map((pkg) => ({
+                    ...pkg,
+                    availableVersions: packageVersionMap.get(pkg.packageName) || [],
+                })) || [],
+
+            // Hydrate non-satisfying packages with available versions
+            notSatisfying:
+                currentAnalysis.notSatisfying?.map((pkg) => ({
+                    ...pkg,
+                    availableVersions: packageVersionMap.get(pkg.packageName) || [],
+                })) || [],
+        };
+
+        logger.info('Successfully hydrated conflict analysis with available versions', {
+            conflictingPackage: enhancedAnalysis.conflictingPackage,
+            conflictingPackageVersionCount: enhancedAnalysis.conflictingPackageAvailableVersions?.length || 0,
+            satisfyingPackagesCount: enhancedAnalysis.satisfyingPackages?.length || 0,
+            notSatisfyingPackagesCount: enhancedAnalysis.notSatisfying?.length || 0,
+            totalPackagesFetched: packagesToFetch.size,
+        });
+
+        return enhancedAnalysis;
+    } catch (error) {
+        logger.error('Failed to hydrate conflict analysis with registry data', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        // Return original analysis if registry fetch fails
+        return currentAnalysis;
+    }
+}
