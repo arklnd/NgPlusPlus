@@ -60,6 +60,7 @@ export async function getPackageData(name: string, fields: string[] = []): Promi
     } catch (error) {
         logger.error('Failed to fetch package data via npm', {
             package: name,
+            fields,
             error: error instanceof Error ? error.message : String(error),
         });
         throw error;
