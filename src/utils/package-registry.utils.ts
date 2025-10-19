@@ -8,7 +8,7 @@ import { NoSuitableVersionFoundError } from '@E/NoSuitableVersionFoundError';
  * @param name Package name (can be scoped)
  * @returns Registry data with version information
  */
-export async function getPackageData(name: string): Promise<RegistryData> {
+export async function getPackageData(name: string, fields: string[] = []): Promise<RegistryData> {
     const logger = getLogger().child('PackageRegistry');
 
     logger.debug('Fetching package data via npm', { package: name });
@@ -16,7 +16,7 @@ export async function getPackageData(name: string): Promise<RegistryData> {
     try {
         // Use npm view to get package info - this respects .npmrc authentication
         const data = await new Promise<RegistryData>((resolve, reject) => {
-            const child = spawn('npm', ['view', name, '--json'], {
+            const child = spawn('npm', ['view', name, ...fields, '--json'], {
                 stdio: ['pipe', 'pipe', 'pipe'],
                 shell: true,
             });
