@@ -59,4 +59,5 @@ jobs:
           src/logs/
           src/utils/logs/
           test/assets/
+          package-cache.db
         retention-days: 30

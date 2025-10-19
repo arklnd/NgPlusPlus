@@ -4,6 +4,7 @@ import { getLogger } from '@U/index';
 import { getOpenAIService } from '@S/openai.service';
 import { ConflictAnalysis } from '@I/index';
 import { createDependencyParsingPrompt, createPackageRankingPrompt } from './prompt-generator.utils';
+import { getCachedPackageData, setCachedPackageData } from '@U/cache.utils';
 import * as semver from 'semver';
 
 const JSON_RESPONSE_REGEX = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
@@ -283,13 +284,27 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
 }
 
 /**
- * Get ranking for a single package using AI
+ * Get ranking for a single package using AI with caching support
  */
 export async function getRankingForPackage(packageName: string): Promise<{ rank: number; tier: string } | null> {
-    const openai = getOpenAIService({ model: 'copilot-gpt-4', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
     const logger = getLogger().child('package-ranking');
+    const cacheKey = `ranking:${packageName}`;
+
     try {
-        logger.debug('Getting ranking for package', { package: packageName });
+        // Check cache first
+        const cachedRanking = getCachedPackageData(cacheKey);
+        if (cachedRanking) {
+            logger.debug('Retrieved ranking from cache', {
+                package: packageName,
+                rank: cachedRanking.rank,
+                tier: cachedRanking.tier,
+            });
+            return cachedRanking;
+        }
+
+        logger.debug('Cache miss, getting ranking from AI for package', { package: packageName });
+
+        const openai = getOpenAIService({ model: 'copilot-gpt-4', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
 
         // Create ranking prompt for this specific package
         const rankingPrompt = createPackageRankingPrompt(packageName);
@@ -307,12 +322,18 @@ export async function getRankingForPackage(packageName: string): Promise<{ rank:
         const ranking = JSON.parse(jsonString);
 
         if (ranking && typeof ranking.rank === 'number' && typeof ranking.tier === 'string') {
-            logger.debug('Successfully got ranking for package', {
+            const rankingResult = { rank: ranking.rank, tier: ranking.tier };
+
+            // Cache the successful result for 24 hours (1440 minutes)
+            // Package rankings don't change frequently, so longer TTL is appropriate
+            setCachedPackageData(cacheKey, rankingResult, 1440);
+
+            logger.debug('Successfully got ranking for package and cached result', {
                 package: packageName,
                 rank: ranking.rank,
                 tier: ranking.tier,
             });
-            return { rank: ranking.rank, tier: ranking.tier };
+            return rankingResult;
         } else {
             logger.warn('Invalid ranking response format for package', {
                 package: packageName,
