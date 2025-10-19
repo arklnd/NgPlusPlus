@@ -81,9 +81,9 @@ Given an npm error message in the variable `installError`, analyze the error and
    - Apply adjustments based on package ecosystem position and maintenance status
 
 **Version Compatibility Examples:**
-- typescript@4.1.5 satisfies ">=4.0 <4.2" ✓
-- typescript@4.1.5 does NOT satisfy "~4.0.0" (requires ~4.0.x) ✗  
-- typescript@5.5.4 satisfies ">=5.4 <5.6" ✓
-- typescript@5.5.4 does NOT satisfy ">=5.8 <6.0" ✗
+- somepackage@4.1.5 satisfies ">=4.0 <4.2" ✓
+- somepackage@4.1.5 does NOT satisfy "~4.0.0" (requires ~4.0.x) ✗  
+- somepackage@5.5.4 satisfies ">=5.4 <5.6" ✓
+- somepackage@5.5.4 does NOT satisfy ">=5.8 <6.0" ✗
 
 Analyze the error message and return ONLY the JSON result:
