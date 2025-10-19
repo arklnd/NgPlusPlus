@@ -3,7 +3,7 @@ import { getCleanVersion } from '@U/version.utils';
 import { getLogger } from '@U/index';
 import { getOpenAIService } from '@S/openai.service';
 import { ConflictAnalysis } from '@I/index';
-import { createDependencyParsingPrompt } from './prompt-generator.utils';
+import { createDependencyParsingPrompt, createPackageRankingPrompt } from './prompt-generator.utils';
 import * as semver from 'semver';
 
 const JSON_RESPONSE_REGEX = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
@@ -186,15 +186,144 @@ export async function hydrateConflictAnalysisWithRegistryData(currentAnalysis: C
     }
 }
 
-
 /**
- * Hydrates conflict analysis with package ranking information
- * Assigns ranking tiers and numeric ranks to all packages involved in the conflict
+ * Hydrates conflict analysis with package ranking information using AI
+ * Processes each package individually through AI to get ranking, then manually hydrates the results
  *
  * @param currentAnalysis - The conflict analysis to enhance with ranking
  * @returns Enhanced conflict analysis with ranking information
  */
 export async function hydrateConflictAnalysisWithRanking(currentAnalysis: ConflictAnalysis): Promise<ConflictAnalysis> {
-    // Implement ranking logic here
-    return currentAnalysis;
+    const logger = getLogger().child('conflict-analysis-ranking');
+    const openai = getOpenAIService({ model: 'copilot-gpt-4', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
+
+    logger.info('Adding ranking information to conflict analysis using AI for individual packages');
+
+    /**
+     * Get ranking for a single package using AI
+     */
+    async function getRankingForPackage(packageName: string): Promise<{ rank: number; tier: string } | null> {
+        try {
+            logger.debug('Getting ranking for package', { package: packageName });
+
+            // Create ranking prompt for this specific package
+            const rankingPrompt = createPackageRankingPrompt(packageName);
+
+            // Get AI response for this package
+            let rankingResponse = await openai.generateText(rankingPrompt);
+            rankingResponse = rankingResponse.trim();
+            let jsonString = rankingResponse.trim();
+
+            const jsonMatch = jsonString.match(JSON_RESPONSE_REGEX);
+            if (jsonMatch) {
+                jsonString = jsonMatch[1].trim();
+            }
+
+            const ranking = JSON.parse(jsonString);
+
+            if (ranking && typeof ranking.rank === 'number' && typeof ranking.tier === 'string') {
+                logger.debug('Successfully got ranking for package', {
+                    package: packageName,
+                    rank: ranking.rank,
+                    tier: ranking.tier,
+                });
+                return { rank: ranking.rank, tier: ranking.tier };
+            } else {
+                logger.warn('Invalid ranking response format for package', {
+                    package: packageName,
+                    response: jsonString,
+                });
+                return null;
+            }
+        } catch (error) {
+            logger.warn('Failed to get ranking for package', {
+                package: packageName,
+                error: error instanceof Error ? error.message : String(error),
+            });
+            return null;
+        }
+    }
+
+    try {
+        // Collect all unique package names to rank
+        const packagesToRank = new Set<string>();
+
+        // Add conflicting package
+        if (currentAnalysis.conflictingPackage) {
+            packagesToRank.add(currentAnalysis.conflictingPackage);
+        }
+
+        // Add packages from satisfying packages
+        currentAnalysis.satisfyingPackages?.forEach((pkg) => {
+            if (pkg.packageName) {
+                packagesToRank.add(pkg.packageName);
+            }
+        });
+
+        // Add packages from non-satisfying packages
+        currentAnalysis.notSatisfying?.forEach((pkg) => {
+            if (pkg.packageName) {
+                packagesToRank.add(pkg.packageName);
+            }
+        });
+
+        logger.info('Ranking packages individually', { totalPackages: packagesToRank.size });
+
+        // Get rankings for all packages in parallel
+        const rankingPromises = Array.from(packagesToRank).map(async (packageName) => {
+            const ranking = await getRankingForPackage(packageName);
+            return { packageName, ranking };
+        });
+
+        const rankingResults = await Promise.all(rankingPromises);
+        const packageRankingMap = new Map<string, { rank: number; tier: string }>();
+
+        // Build ranking map
+        rankingResults.forEach(({ packageName, ranking }) => {
+            if (ranking) {
+                packageRankingMap.set(packageName, ranking);
+            }
+        });
+
+        // Create enhanced analysis with ranking information manually hydrated
+        const enhancedAnalysis: ConflictAnalysis = {
+            ...currentAnalysis,
+            satisfyingPackages:
+                currentAnalysis.satisfyingPackages?.map((pkg) => {
+                    const ranking = packageRankingMap.get(pkg.packageName);
+                    return {
+                        ...pkg,
+                        rank: ranking?.rank,
+                        tier: ranking?.tier,
+                    };
+                }) || [],
+            notSatisfying:
+                currentAnalysis.notSatisfying?.map((pkg) => {
+                    const ranking = packageRankingMap.get(pkg.packageName);
+                    return {
+                        ...pkg,
+                        rank: ranking?.rank,
+                        tier: ranking?.tier,
+                    };
+                }) || [],
+        };
+
+        const rankedPackagesCount = Array.from(packageRankingMap.keys()).length;
+
+        logger.info('Successfully added ranking information to conflict analysis', {
+            conflictingPackage: enhancedAnalysis.conflictingPackage,
+            satisfyingPackagesCount: enhancedAnalysis.satisfyingPackages?.length || 0,
+            notSatisfyingPackagesCount: enhancedAnalysis.notSatisfying?.length || 0,
+            totalPackagesRanked: rankedPackagesCount,
+            rankingsApplied: true,
+        });
+
+        return enhancedAnalysis;
+    } catch (error) {
+        logger.error('Failed to add ranking information to conflict analysis', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        // Return original analysis if AI ranking fails
+        return currentAnalysis;
+    }
 }

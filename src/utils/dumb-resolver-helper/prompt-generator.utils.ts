@@ -80,3 +80,11 @@ export function createDependencyParsingPrompt(installError: string): string {
     const template = loadTemplate('dependency-parsing-prompt');
     return template({ installError });
 }
+
+/**
+ * Creates a ranking prompt for AI to analyze and rank a single package
+ */
+export function createPackageRankingPrompt(packageName: string): string {
+    const template = loadTemplate('package-ranking-prompt');
+    return template({ packageName });
+}
