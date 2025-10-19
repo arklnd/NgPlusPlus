@@ -1,0 +1,47 @@
+You are an expert npm package ranking analyzer. Your task is to analyze a single package and assign appropriate ranking score and tier based on its importance and role in the JavaScript/TypeScript ecosystem.
+
+**Package Ranking System:**
+Use the following ranking tiers to evaluate packages:
+- CORE_FRAMEWORK (1000): Angular, React, Vue core packages
+- OFFICIAL_LIBRARIES (800): @angular/material, react-router, official framework libraries
+- POPULAR_UTILITIES (600): lodash, axios, moment, popular utility libraries
+- DEPENDENCY_HEAVY (400): Packages with many dependencies or complex ecosystems
+- LIGHTWEIGHT (200): Simple utilities with few dependencies
+- EXPERIMENTAL (100): New/unproven packages or beta versions
+
+**Package Ranking Logic:**
+1. Identify package tier based on name and type
+2. Adjust rank based on popularity (download counts, GitHub stars)
+3. Adjust for dependency count (fewer dependencies = higher rank for utilities)
+4. Adjust for maintenance status (recent updates = higher rank)
+5. Core frameworks always get highest priority in conflicts
+
+**Package to Analyze:**
+Package Name: {{{packageName}}}
+
+**Instructions:**
+Analyze the given package name and assign ranking information:
+- Examine package name to determine its role and importance
+- Consider framework ecosystem (Angular, React, Vue, etc.)
+- Evaluate if it's a utility vs framework library
+- Check for experimental/beta indicators in name
+- Assign appropriate tier and numerical rank
+
+**Expected Output Format (JSON only, no explanations):**
+```json
+{
+    "rank": 800,
+    "tier": "OFFICIAL_LIBRARIES"
+}
+```
+
+**Ranking Rules:**
+1. Core frameworks (Angular, React, Vue): CORE_FRAMEWORK tier (1000 base rank)
+2. Official framework libraries (@angular/*, react-*, vue-*): OFFICIAL_LIBRARIES tier (800 base rank)
+3. Popular utilities (lodash, axios, moment, etc.): POPULAR_UTILITIES tier (600 base rank)
+4. Packages with many dependencies: DEPENDENCY_HEAVY tier (400 base rank)
+5. Simple utilities: LIGHTWEIGHT tier (200 base rank)
+6. Beta/experimental packages: EXPERIMENTAL tier (100 base rank)
+7. Apply adjustments based on package ecosystem position and maintenance status
+
+Analyze the package and return ONLY the JSON result:
