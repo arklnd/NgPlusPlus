@@ -12,3 +12,6 @@ export * from './version-compatibility.utils';
 
 // Export all resolver error handler utilities
 export * from './resolver-error-handler.utils';
+
+// Export all conflict analysis utilities
+export * from './conflict-analysis.utils';

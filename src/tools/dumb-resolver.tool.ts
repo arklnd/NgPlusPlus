@@ -5,15 +5,14 @@ import { mkdtemp, cp, existsSync, rmSync } from 'fs';
 import { join, resolve } from 'path';
 import { promisify } from 'util';
 import { readPackageJson, writePackageJson, updateDependency, installDependencies } from '@U/package-json.utils';
-import { validatePackageVersionsExist, getPackageData } from '@U/package-registry.utils';
+import { validatePackageVersionsExist } from '@U/package-registry.utils';
 import { getOpenAIService } from '@S/openai.service';
 import { getLogger } from '@U/index';
 import OpenAI from 'openai';
-import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility, createDependencyParsingPrompt } from '@U/dumb-resolver-helper';
+import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility, hydrateConflictAnalysisWithRegistryData, parseInstallErrorToConflictAnalysis } from '@U/dumb-resolver-helper';
 import { AIResponseFormatError, NoSuitableVersionFoundError, PackageVersionValidationError } from '@E/index';
 import { ConflictAnalysis, ReasoningRecording, updateMade } from '@I/index';
-import { getCleanVersion } from '@U/version.utils';
-import * as semver from 'semver';
+
 
 const JSON_RESPONSE_REGEX = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
 
@@ -173,129 +172,11 @@ This is the current state before any updates. Focus on achieving these target up
             if (!installSuccess && attempt < maxAttempts) {
                 logger.info('Performing strategic dependency analysis');
 
-                // Create parsing prompt for AI
-                const parsingPrompt = createDependencyParsingPrompt(installError);
-
-                // Analyze the error output for constraints and blockers
-                let parsingResponse = await openai.generateText(parsingPrompt);
-                parsingResponse = parsingResponse.trim();
-                let jsonString = parsingResponse.trim();
-                const jsonMatch = jsonString.match(JSON_RESPONSE_REGEX);
-                if (jsonMatch) {
-                    jsonString = jsonMatch[1].trim();
-                    currentAnalysis = JSON.parse(jsonString);
-                }
+                // Parse install error to generate initial conflict analysis
+                currentAnalysis = await parseInstallErrorToConflictAnalysis(installError);
 
                 // Enhance analysis with available versions from registry
-                logger.info('Fetching available versions for packages involved in conflict');
-                try {
-                    // Get unique package names involved in the conflict
-                    const packagesToFetch = new Map<string, string>();
-
-                    // Add conflicting package
-                    if (currentAnalysis.conflictingPackage) {
-                        packagesToFetch.set(currentAnalysis.conflictingPackage, currentAnalysis.conflictingPackageCurrentVersion);
-                    }
-
-                    // Add satisfying packages
-                    currentAnalysis.satisfyingPackages?.forEach((pkg) => {
-                        if (pkg.packageName) {
-                            packagesToFetch.set(pkg.packageName, pkg.packageVersion);
-                        }
-                    });
-
-                    // Add non-satisfying packages
-                    currentAnalysis.notSatisfying?.forEach((pkg) => {
-                        if (pkg.packageName) {
-                            packagesToFetch.set(pkg.packageName, pkg.packageVersion);
-                        }
-                    });
-
-                    // Fetch available versions for all packages in parallel
-                    const versionFetchPromises = Array.from(packagesToFetch).map(async ([packageName, currentVersion]) => {
-                        try {
-                            logger.debug('Fetching available versions for package', { package: packageName });
-                            const registryData = await getPackageData(packageName);
-                            const allVersions = registryData.versions || [];
-
-                            // Filter to only include versions newer than current version
-                            const cleanCurrentVersion = getCleanVersion(currentVersion);
-                            let versions = allVersions;
-
-                            if (cleanCurrentVersion) {
-                                versions = allVersions.filter((version) => {
-                                    try {
-                                        return semver.gt(version, cleanCurrentVersion);
-                                    } catch (error) {
-                                        logger.warn('Failed to compare versions', {
-                                            package: packageName,
-                                            version,
-                                            currentVersion,
-                                            error: error instanceof Error ? error.message : String(error),
-                                        });
-                                        return false;
-                                    }
-                                });
-
-                                logger.debug('Filtered versions to newer ones only', {
-                                    package: packageName,
-                                    currentVersion,
-                                    totalVersions: allVersions.length,
-                                    newerVersions: versions.length,
-                                });
-                            } else {
-                                logger.warn('Could not parse current version, using all available versions', {
-                                    package: packageName,
-                                    currentVersion,
-                                });
-                            }
-
-                            logger.trace('Fetched newer versions for package', { package: packageName, versionCount: versions.length });
-                            return { packageName, versions };
-                        } catch (error) {
-                            logger.warn('Failed to fetch versions for package', {
-                                package: packageName,
-                                error: error instanceof Error ? error.message : String(error),
-                            });
-                            return { packageName, versions: [] };
-                        }
-                    });
-
-                    const versionResults = await Promise.all(versionFetchPromises);
-                    const packageVersionMap = new Map(versionResults.map((result) => [result.packageName, result.versions]));
-
-                    // hydrate conflicting package with available versions
-                    if (currentAnalysis.conflictingPackage && packageVersionMap.has(currentAnalysis.conflictingPackage)) {
-                        currentAnalysis.conflictingPackageAvailableVersions = packageVersionMap.get(currentAnalysis.conflictingPackage);
-                    }
-
-                    // hydrate satisfying packages with available versions
-                    currentAnalysis.satisfyingPackages =
-                        currentAnalysis.satisfyingPackages?.map((pkg) => ({
-                            ...pkg,
-                            availableVersions: packageVersionMap.get(pkg.packageName) || [],
-                        })) || [];
-
-                    // hydrate non-satisfying packages with available versions
-                    currentAnalysis.notSatisfying =
-                        currentAnalysis.notSatisfying?.map((pkg) => ({
-                            ...pkg,
-                            availableVersions: packageVersionMap.get(pkg.packageName) || [],
-                        })) || [];
-
-                    logger.info('Successfully hydrated conflict analysis with available versions', {
-                        conflictingPackage: currentAnalysis.conflictingPackage,
-                        conflictingPackageVersionCount: currentAnalysis.conflictingPackageAvailableVersions?.length || 0,
-                        satisfyingPackagesCount: currentAnalysis.satisfyingPackages?.length || 0,
-                        notSatisfyingPackagesCount: currentAnalysis.notSatisfying?.length || 0,
-                        totalPackagesFetched: packagesToFetch.size,
-                    });
-                } catch (error) {
-                    logger.error('Failed to hydrate conflict analysis with registry data', {
-                        error: error instanceof Error ? error.message : String(error),
-                    });
-                    // Continue with original analysis if registry fetch fails
-                }
+                currentAnalysis = await hydrateConflictAnalysisWithRegistryData(currentAnalysis);
 
                 // Create strategic prompt with hydrated analysis context
                 const strategicPrompt = createStrategicPrompt(
