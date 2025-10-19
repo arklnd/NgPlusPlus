@@ -9,7 +9,7 @@ import { validatePackageVersionsExist } from '@U/package-registry.utils';
 import { getOpenAIService } from '@S/openai.service';
 import { getLogger } from '@U/index';
 import OpenAI from 'openai';
-import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility, hydrateConflictAnalysisWithRegistryData, parseInstallErrorToConflictAnalysis } from '@U/dumb-resolver-helper';
+import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility, hydrateConflictAnalysisWithRegistryData, parseInstallErrorToConflictAnalysis, hydrateConflictAnalysisWithRanking } from '@U/dumb-resolver-helper';
 import { AIResponseFormatError, NoSuitableVersionFoundError, PackageVersionValidationError } from '@E/index';
 import { ConflictAnalysis, ReasoningRecording, updateMade } from '@I/index';
 
@@ -174,6 +174,9 @@ This is the current state before any updates. Focus on achieving these target up
 
                 // Parse install error to generate initial conflict analysis
                 currentAnalysis = await parseInstallErrorToConflictAnalysis(installError);
+
+                // Enhance analysis with ranking
+                currentAnalysis = await hydrateConflictAnalysisWithRanking(currentAnalysis);
 
                 // Enhance analysis with available versions from registry
                 currentAnalysis = await hydrateConflictAnalysisWithRegistryData(currentAnalysis);
