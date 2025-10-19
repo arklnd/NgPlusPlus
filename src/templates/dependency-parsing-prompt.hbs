@@ -1,28 +1,11 @@
 You are an expert npm dependency conflict analyzer. Your task is to parse npm ERESOLVE error messages and extract structured information about dependency conflicts.
 
-**Package Ranking System:**
-Use the following ranking tiers to evaluate packages:
-- CORE_FRAMEWORK (1000): Angular, React, Vue core packages
-- OFFICIAL_LIBRARIES (800): @angular/material, react-router, official framework libraries
-- POPULAR_UTILITIES (600): lodash, axios, moment, popular utility libraries
-- DEPENDENCY_HEAVY (400): Packages with many dependencies or complex ecosystems
-- LIGHTWEIGHT (200): Simple utilities with few dependencies
-- EXPERIMENTAL (100): New/unproven packages or beta versions
-
-**Package Ranking Logic:**
-1. Identify package tier based on name and type
-2. Adjust rank based on popularity (download counts, GitHub stars)
-3. Adjust for dependency count (fewer dependencies = higher rank for utilities)
-4. Adjust for maintenance status (recent updates = higher rank)
-5. Core frameworks always get highest priority in conflicts
-
 Given an npm error message in the variable `installError`, analyze the error and extract the following information:
 
 1. **Conflicting Package**: The main package that is causing the conflict (usually found after "Found:")
 2. **Current Version**: The currently installed version of the conflicting package
 3. **Satisfying Packages**: Packages that can work with the current version (their version ranges are satisfied)
 4. **Non-Satisfying Packages**: Packages that cannot work with the current version (their version ranges are NOT satisfied)
-5. **Package Rankings**: Calculate ranking for each package involved in the conflict
 
 **Input Error Message:**
 ```
@@ -45,18 +28,14 @@ Given an npm error message in the variable `installError`, analyze the error and
         {
             "packageName": "package-that-works",
             "packageVersion": "X.Y.Z",
-            "requiredVersionRange": "version-range-that-is-satisfied",
-            "rank": 800,
-            "tier": "OFFICIAL_LIBRARIES"
+            "requiredVersionRange": "version-range-that-is-satisfied"
         }
     ],
     "notSatisfying": [
         {
             "packageName": "package-that-conflicts",
             "packageVersion": "X.Y.Z", 
-            "requiredVersionRange": "version-range-that-is-not-satisfied",
-            "rank": 600,
-            "tier": "POPULAR_UTILITIES"
+            "requiredVersionRange": "version-range-that-is-not-satisfied"
         }
     ]
 }
@@ -70,15 +49,6 @@ Given an npm error message in the variable `installError`, analyze the error and
 3. Focus on the package mentioned in "Could not resolve dependency:" section as the primary conflict
 4. Include only direct peer dependency conflicts, ignore transitive mentions
 5. If multiple conflicts exist, prioritize the one mentioned in "Could not resolve dependency"
-6. **Package Ranking Rules:**
-   - Rank all packages involved in the conflict (conflicting package + all dependents)
-   - Core frameworks (Angular, React, Vue): CORE_FRAMEWORK tier (1000 base rank)
-   - Official framework libraries (@angular/*, react-*, vue-*): OFFICIAL_LIBRARIES tier (800 base rank)
-   - Popular utilities (lodash, axios, moment, etc.): POPULAR_UTILITIES tier (600 base rank)
-   - Packages with many dependencies: DEPENDENCY_HEAVY tier (400 base rank)
-   - Simple utilities: LIGHTWEIGHT tier (200 base rank)
-   - Beta/experimental packages: EXPERIMENTAL tier (100 base rank)
-   - Apply adjustments based on package ecosystem position and maintenance status
 
 **Version Compatibility Examples:**
 - somepackage@4.1.5 satisfies ">=4.0 <4.2" ✓
