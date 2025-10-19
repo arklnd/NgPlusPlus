@@ -1,47 +1,182 @@
-You are an expert npm package ranking analyzer. Your task is to analyze a single package and assign appropriate ranking score and tier based on its importance and role in the JavaScript/TypeScript ecosystem.
+You are an expert npm package ranking analyzer. Your task is to analyze a single package and assign appropriate ranking score and tier based on its importance, ecosystem role, and impact on dependency resolution in JavaScript/TypeScript projects.
 
 **Package Ranking System:**
-Use the following ranking tiers to evaluate packages:
-- CORE_FRAMEWORK (1000): Angular, React, Vue core packages
-- OFFICIAL_LIBRARIES (800): @angular/material, react-router, official framework libraries
-- POPULAR_UTILITIES (600): lodash, axios, moment, popular utility libraries
-- DEPENDENCY_HEAVY (400): Packages with many dependencies or complex ecosystems
-- LIGHTWEIGHT (200): Simple utilities with few dependencies
-- EXPERIMENTAL (100): New/unproven packages or beta versions
+Use the following ranking tiers to evaluate packages (higher rank = higher priority in conflict resolution):
 
-**Package Ranking Logic:**
-1. Identify package tier based on name and type
-2. Adjust rank based on popularity (download counts, GitHub stars)
-3. Adjust for dependency count (fewer dependencies = higher rank for utilities)
-4. Adjust for maintenance status (recent updates = higher rank)
-5. Core frameworks always get highest priority in conflicts
+**TIER 1 - CRITICAL INFRASTRUCTURE (1000-1200):**
+- CORE_FRAMEWORK (1200): Framework cores - @angular/core, react, vue, @nestjs/core
+- BUILD_ESSENTIALS (1100): Critical build tools - typescript, webpack, vite, rollup
+- RUNTIME_CORE (1000): Essential runtime - node types, core-js, tslib
+
+**TIER 2 - OFFICIAL ECOSYSTEM (700-900):**
+- OFFICIAL_LIBRARIES (900): First-party framework libs - @angular/*, react-*, vue-*, @nestjs/*
+- FRAMEWORK_TOOLS (800): Official tooling - @angular/cli, create-react-app, @vue/cli
+- ECOSYSTEM_STANDARDS (700): Ecosystem standards - eslint, prettier, jest (in their ecosystems)
+
+**TIER 3 - POPULAR UTILITIES (500-650):**
+- UTILITY_HEAVYWEIGHT (650): Major utilities with broad adoption - lodash, rxjs, axios, date-fns
+- UTILITY_STANDARD (600): Popular utilities - moment, ramda, uuid, classnames
+- TESTING_FRAMEWORKS (550): Testing essentials - jest, mocha, chai, cypress, playwright
+- DEV_TOOLS (500): Development utilities - nodemon, concurrently, cross-env
+
+**TIER 4 - SPECIALIZED PACKAGES (300-450):**
+- DEPENDENCY_HEAVY (450): Complex packages with many deps - storybook, webpack plugins
+- SPECIALIZED_LIBS (400): Domain-specific libraries - three.js, d3, socket.io
+- POLYFILLS (350): Compatibility layers - core-js modules, polyfills
+- COMMUNITY_STANDARDS (300): Well-established community packages
+
+**TIER 5 - LIGHTWEIGHT & NICHE (150-250):**
+- LIGHTWEIGHT (250): Simple, focused utilities - tiny packages with clear purpose
+- MICRO_UTILITIES (200): Single-purpose packages - is-*, has-*, simple helpers
+- ALTERNATIVE_IMPLEMENTATIONS (150): Alternative versions of popular packages
+
+**TIER 6 - EXPERIMENTAL & DEPRECATED (50-100):**
+- EXPERIMENTAL (100): Beta/alpha packages, new/unproven libraries
+- DEPRECATED (75): Packages marked as deprecated but still functional
+- SECURITY_RISK (50): Packages with known security issues or unmaintained
+
+**Advanced Ranking Logic:**
+
+**Primary Classification (Base Tier Assignment):**
+1. **Ecosystem Detection**: Identify framework ecosystem (@angular/, react-, vue-, @nestjs/, etc.)
+2. **Package Type Analysis**: Core framework, official library, utility, build tool, testing framework
+3. **Scope Analysis**: Scoped packages often indicate official/organizational ownership
+4. **Name Pattern Recognition**: Patterns like "types/*", "*-webpack-plugin", "*-eslint-*"
+
+**Ranking Modifiers (±50-200 points within tier):**
+- **Ecosystem Coherence**: +100 for packages that are part of the same ecosystem as target packages
+- **Popularity Score**: +50 for >10M weekly downloads, +25 for >1M, -25 for <100k
+- **Maintenance Health**: +50 for recent updates (<6 months), -50 for >2 years without updates
+- **Security Status**: -100 for known vulnerabilities, -200 for deprecated packages
+- **Dependency Footprint**: +25 for zero dependencies, -25 for >20 dependencies (utilities only)
+- **TypeScript Support**: +25 for native TypeScript packages or @types/* packages
+- **Breaking Change History**: -25 for packages known for frequent breaking changes
+{{#if readme}}
+- **Documentation Quality**: +25 for comprehensive README with clear examples, -25 for minimal documentation
+- **Official Indicators**: +50 if README shows official framework/organization backing
+- **Deprecation Warnings**: -100 if README contains deprecation notices or migration guides to other packages
+- **Beta/Experimental Mentions**: -50 if README explicitly mentions beta, experimental, or unstable status
+{{/if}}
+
+**Ecosystem Priority Rules:**
+1. **Same Ecosystem Bonus**: Packages from the same ecosystem as target packages get +100 rank
+2. **Framework Lock-in**: Core frameworks (Angular, React, Vue) always win conflicts within their ecosystem
+3. **Build Tool Priority**: TypeScript, Webpack, Vite get priority for build-related conflicts
+4. **Testing Framework Stability**: Jest, Mocha, Cypress prioritized for test-related packages
 
 **Package to Analyze:**
 Package Name: {{{packageName}}}
+{{#if readme}}
+Package README Content:
+```
+{{{readme}}}
+```
+{{/if}}
 
-**Instructions:**
-Analyze the given package name and assign ranking information:
-- Examine package name to determine its role and importance
-- Consider framework ecosystem (Angular, React, Vue, etc.)
-- Evaluate if it's a utility vs framework library
-- Check for experimental/beta indicators in name
-- Assign appropriate tier and numerical rank
+**Detailed Analysis Instructions:**
+
+**Step 1 - Package Classification:**
+- **Name Analysis**: Examine package name for ecosystem indicators (@angular/, react-, vue-, @types/, etc.)
+- **Scope Detection**: Check if scoped package indicates official/organizational ownership
+- **Type Identification**: Determine if core framework, build tool, utility, testing framework, or specialty library
+- **Version Indicators**: Look for beta/alpha/rc in name or experimental patterns
+- **README Analysis**: {{#if readme}}Use README content to understand package purpose, features, and ecosystem role{{else}}Rely on package name patterns and known conventions{{/if}}
+
+**Step 2 - Ecosystem Context:**
+- **Framework Affiliation**: Identify primary framework ecosystem (Angular, React, Vue, Node.js, etc.)
+- **Official Status**: Determine if package is officially maintained by framework team
+- **Community Standing**: Assess if package is widely adopted community standard
+{{#if readme}}
+- **Documentation Quality**: Evaluate package maturity based on README completeness and professionalism
+- **Feature Scope**: Assess package complexity and feature set from README descriptions
+{{/if}}
+
+**Step 3 - Risk Assessment:**
+- **Maintenance Status**: Consider if package appears actively maintained vs deprecated
+- **Security Implications**: Factor in potential security risks for unmaintained packages
+- **Breaking Change Likelihood**: Assess stability based on package type and maturity
+{{#if readme}}
+- **API Stability**: Look for versioning information, breaking change notes, or stability indicators in README
+- **Dependencies Mentioned**: Check if README mentions heavy dependencies or peer requirements
+{{/if}}
+
+**Step 4 - Ranking Calculation:**
+- **Base Tier Assignment**: Start with appropriate tier based on package type and role
+- **Apply Modifiers**: Adjust rank based on popularity, maintenance, ecosystem fit, and risk factors
+{{#if readme}}
+- **README Context Integration**: Use README information to refine tier assignment and apply documentation-based modifiers
+- **Cross-Reference Validation**: Verify package name classification against README content for accuracy
+{{/if}}
+- **Final Validation**: Ensure rank makes sense for conflict resolution priority
 
 **Expected Output Format (JSON only, no explanations):**
 ```json
 {
-    "rank": 800,
+    "rank": 850,
     "tier": "OFFICIAL_LIBRARIES"
 }
 ```
 
-**Ranking Rules:**
-1. Core frameworks (Angular, React, Vue): CORE_FRAMEWORK tier (1000 base rank)
-2. Official framework libraries (@angular/*, react-*, vue-*): OFFICIAL_LIBRARIES tier (800 base rank)
-3. Popular utilities (lodash, axios, moment, etc.): POPULAR_UTILITIES tier (600 base rank)
-4. Packages with many dependencies: DEPENDENCY_HEAVY tier (400 base rank)
-5. Simple utilities: LIGHTWEIGHT tier (200 base rank)
-6. Beta/experimental packages: EXPERIMENTAL tier (100 base rank)
-7. Apply adjustments based on package ecosystem position and maintenance status
+**Valid Tier Names (use exactly as shown):**
+- CORE_FRAMEWORK, BUILD_ESSENTIALS, RUNTIME_CORE
+- OFFICIAL_LIBRARIES, FRAMEWORK_TOOLS, ECOSYSTEM_STANDARDS  
+- UTILITY_HEAVYWEIGHT, UTILITY_STANDARD, TESTING_FRAMEWORKS, DEV_TOOLS
+- DEPENDENCY_HEAVY, SPECIALIZED_LIBS, POLYFILLS, COMMUNITY_STANDARDS
+- LIGHTWEIGHT, MICRO_UTILITIES, ALTERNATIVE_IMPLEMENTATIONS
+- EXPERIMENTAL, DEPRECATED, SECURITY_RISK
+
+**Comprehensive Ranking Rules & Examples:**
+
+**CRITICAL INFRASTRUCTURE (1000-1200):**
+- `@angular/core`, `react`, `vue` → CORE_FRAMEWORK (1200)
+- `typescript`, `webpack`, `vite`, `rollup` → BUILD_ESSENTIALS (1100)  
+- `@types/node`, `core-js`, `tslib` → RUNTIME_CORE (1000)
+
+**OFFICIAL ECOSYSTEM (700-900):**
+- `@angular/material`, `react-router`, `@nestjs/common` → OFFICIAL_LIBRARIES (900)
+- `@angular/cli`, `create-react-app`, `@vue/cli` → FRAMEWORK_TOOLS (800)
+- Framework-specific eslint, jest configs → ECOSYSTEM_STANDARDS (700)
+
+**POPULAR UTILITIES (500-650):**
+- `lodash`, `rxjs`, `axios`, `date-fns` → UTILITY_HEAVYWEIGHT (650)
+- `moment`, `uuid`, `classnames`, `ramda` → UTILITY_STANDARD (600)
+- `jest`, `mocha`, `cypress`, `playwright` → TESTING_FRAMEWORKS (550)
+- `nodemon`, `concurrently`, `cross-env` → DEV_TOOLS (500)
+
+**SPECIALIZED PACKAGES (300-450):**
+- `storybook`, `webpack-*-plugin` → DEPENDENCY_HEAVY (450)
+- `three.js`, `d3`, `socket.io` → SPECIALIZED_LIBS (400)
+- `core-js/*`, browser polyfills → POLYFILLS (350)
+- Established community standards → COMMUNITY_STANDARDS (300)
+
+**LIGHTWEIGHT & NICHE (150-250):**
+- Focused single-purpose utils → LIGHTWEIGHT (250)
+- `is-*`, `has-*` micro packages → MICRO_UTILITIES (200)  
+- Alternative implementations → ALTERNATIVE_IMPLEMENTATIONS (150)
+
+**PROBLEMATIC PACKAGES (50-100):**
+- Beta/alpha versions, new packages → EXPERIMENTAL (100)
+- Marked deprecated but functional → DEPRECATED (75)
+- Security issues, unmaintained → SECURITY_RISK (50)
+
+**Special Considerations:**
+- **TypeScript Ecosystem**: Prioritize `@types/*` packages and native TS support
+- **Monorepo Packages**: Scoped packages often indicate official status
+- **Framework Coherence**: Angular packages rank higher when resolving Angular project conflicts
+- **Build vs Runtime**: Build tools rank higher for dev dependencies, runtime packages for prod dependencies
+{{#if readme}}
+- **README-Based Insights**: Use README content to identify official backing, stability promises, and ecosystem integration
+- **Feature Complexity**: Complex feature sets mentioned in README may indicate DEPENDENCY_HEAVY or SPECIALIZED_LIBS tiers
+- **Migration Guidance**: Packages with migration guides in README may be legacy (consider DEPRECATED tier)
+{{/if}}
+
+{{#if readme}}
+**README Analysis Guidelines:**
+- **Official Indicators**: Look for organization logos, official maintainer mentions, framework team endorsements
+- **Stability Markers**: Version badges, stability promises, LTS mentions indicate mature packages
+- **Deprecation Signs**: Migration guides, "use X instead" messages, archived notices
+- **Ecosystem Integration**: Mentions of other major packages, plugin systems, or framework-specific features
+- **Documentation Maturity**: Comprehensive API docs, examples, and guides suggest established packages
+{{/if}}
 
 Analyze the package and return ONLY the JSON result:

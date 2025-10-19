@@ -22,6 +22,10 @@ describe('Package Registry Utils', function () {
             expect(packageData.versions.length).to.be.greaterThan(0);
             expect(packageData.description).to.be.a('string');
         });
+        it('should fetch readme for a popular package', async function () {
+            const packageData = await getPackageData('lodash', ['readme']);
+            expect(packageData).to.be.an('object');
+        });
 
         it('should fetch package data for a scoped package', async function () {
             const packageData = await getPackageData('@types/node');
