@@ -99,7 +99,7 @@ export async function hydrateConflictAnalysisWithRegistryData(currentAnalysis: C
         const versionFetchPromises = Array.from(packagesToFetch).map(async ([packageName, currentVersion]) => {
             try {
                 logger.debug('Fetching available versions for package', { package: packageName });
-                const registryData = await getPackageData(packageName);
+                const registryData = packageName.trim() === 'root project' ? { versions: [] } : await getPackageData(packageName);
                 const allVersions = registryData.versions || [];
 
                 // Filter to only include versions newer than current version
@@ -240,9 +240,19 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
             }
         });
 
+        if (currentAnalysis.conflictingPackage && packageRankingMap.has(currentAnalysis.conflictingPackage) && packageRankingMap.get(currentAnalysis.conflictingPackage)?.rank === undefined) {
+            throw new Error('‼️Conflicting package ranking is undefined');
+        }
+
         // Create enhanced analysis with ranking information manually hydrated
         const enhancedAnalysis: ConflictAnalysis = {
             ...currentAnalysis,
+
+            // Hydrate conflicting package with ranking information
+            rank: packageRankingMap.get(currentAnalysis.conflictingPackage)?.rank,
+            tier: currentAnalysis.conflictingPackage && packageRankingMap.has(currentAnalysis.conflictingPackage) ? packageRankingMap.get(currentAnalysis.conflictingPackage)?.tier : 'UNRANKED',
+
+            // Hydrate satisfying packages with ranking information
             satisfyingPackages:
                 currentAnalysis.satisfyingPackages?.map((pkg) => {
                     const ranking = packageRankingMap.get(pkg.packageName);
@@ -252,6 +262,8 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
                         tier: ranking?.tier,
                     };
                 }) || [],
+
+            // Hydrate non-satisfying packages with ranking information
             notSatisfying:
                 currentAnalysis.notSatisfying?.map((pkg) => {
                     const ranking = packageRankingMap.get(pkg.packageName);
@@ -287,6 +299,9 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
  * Get ranking for a single package using AI with caching support
  */
 export async function getRankingForPackage(packageName: string): Promise<{ rank: number; tier: string } | null> {
+    if (packageName.trim() === 'root project') {
+        return { rank: 999999, tier: 'ROOT' };
+    }
     const logger = getLogger().child('package-ranking');
     const cacheKey = `ranking:${packageName}`;
 
