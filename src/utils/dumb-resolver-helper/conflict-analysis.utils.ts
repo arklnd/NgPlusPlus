@@ -195,54 +195,8 @@ export async function hydrateConflictAnalysisWithRegistryData(currentAnalysis: C
  */
 export async function hydrateConflictAnalysisWithRanking(currentAnalysis: ConflictAnalysis): Promise<ConflictAnalysis> {
     const logger = getLogger().child('conflict-analysis-ranking');
-    const openai = getOpenAIService({ model: 'copilot-gpt-4', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
 
     logger.info('Adding ranking information to conflict analysis using AI for individual packages');
-
-    /**
-     * Get ranking for a single package using AI
-     */
-    async function getRankingForPackage(packageName: string): Promise<{ rank: number; tier: string } | null> {
-        try {
-            logger.debug('Getting ranking for package', { package: packageName });
-
-            // Create ranking prompt for this specific package
-            const rankingPrompt = createPackageRankingPrompt(packageName);
-
-            // Get AI response for this package
-            let rankingResponse = await openai.generateText(rankingPrompt);
-            rankingResponse = rankingResponse.trim();
-            let jsonString = rankingResponse.trim();
-
-            const jsonMatch = jsonString.match(JSON_RESPONSE_REGEX);
-            if (jsonMatch) {
-                jsonString = jsonMatch[1].trim();
-            }
-
-            const ranking = JSON.parse(jsonString);
-
-            if (ranking && typeof ranking.rank === 'number' && typeof ranking.tier === 'string') {
-                logger.debug('Successfully got ranking for package', {
-                    package: packageName,
-                    rank: ranking.rank,
-                    tier: ranking.tier,
-                });
-                return { rank: ranking.rank, tier: ranking.tier };
-            } else {
-                logger.warn('Invalid ranking response format for package', {
-                    package: packageName,
-                    response: jsonString,
-                });
-                return null;
-            }
-        } catch (error) {
-            logger.warn('Failed to get ranking for package', {
-                package: packageName,
-                error: error instanceof Error ? error.message : String(error),
-            });
-            return null;
-        }
-    }
 
     try {
         // Collect all unique package names to rank
@@ -325,5 +279,52 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
         });
         // Return original analysis if AI ranking fails
         return currentAnalysis;
+    }
+}
+
+/**
+ * Get ranking for a single package using AI
+ */
+export async function getRankingForPackage(packageName: string): Promise<{ rank: number; tier: string } | null> {
+    const openai = getOpenAIService({ model: 'copilot-gpt-4', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
+    const logger = getLogger().child('package-ranking');
+    try {
+        logger.debug('Getting ranking for package', { package: packageName });
+
+        // Create ranking prompt for this specific package
+        const rankingPrompt = createPackageRankingPrompt(packageName);
+
+        // Get AI response for this package
+        let rankingResponse = await openai.generateText(rankingPrompt);
+        rankingResponse = rankingResponse.trim();
+        let jsonString = rankingResponse.trim();
+
+        const jsonMatch = jsonString.match(JSON_RESPONSE_REGEX);
+        if (jsonMatch) {
+            jsonString = jsonMatch[1].trim();
+        }
+
+        const ranking = JSON.parse(jsonString);
+
+        if (ranking && typeof ranking.rank === 'number' && typeof ranking.tier === 'string') {
+            logger.debug('Successfully got ranking for package', {
+                package: packageName,
+                rank: ranking.rank,
+                tier: ranking.tier,
+            });
+            return { rank: ranking.rank, tier: ranking.tier };
+        } else {
+            logger.warn('Invalid ranking response format for package', {
+                package: packageName,
+                response: jsonString,
+            });
+            return null;
+        }
+    } catch (error) {
+        logger.warn('Failed to get ranking for package', {
+            package: packageName,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return null;
     }
 }
