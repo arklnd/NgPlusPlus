@@ -37,8 +37,9 @@ export async function parseInstallErrorToConflictAnalysis(installError: string):
     try {
         const currentAnalysis: ConflictAnalysis = JSON.parse(jsonString);
 
-        logger.info('Successfully parsed install error to conflict analysis', {
+        logger.info('🌟 Successfully parsed install error to conflict analysis', {
             conflictingPackage: currentAnalysis.conflictingPackage,
+            conflictingPackageCurrentVersion: currentAnalysis.conflictingPackageCurrentVersion,
             satisfyingPackagesCount: currentAnalysis.satisfyingPackages?.length || 0,
             notSatisfyingPackagesCount: currentAnalysis.notSatisfying?.length || 0,
         });
