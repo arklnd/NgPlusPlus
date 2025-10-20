@@ -275,7 +275,7 @@ This is the current state before any updates. Focus on achieving these target up
                         // Extract and update reasoning recording from AI response
                         if (suggestions.reasoning && suggestions.reasoning.updateMade && Array.isArray(suggestions.reasoning.updateMade)) {
                             reasoningRecording.updateMade.push(...suggestions.reasoning.updateMade);
-                            logger.info('Updated reasoning recording with AI insights', {
+                            logger.info('Updated reasoning recording with AI insights 🤖', {
                                 newReasoningEntries: suggestions.reasoning.updateMade.length,
                                 totalReasoningEntries: reasoningRecording.updateMade.length,
                                 reasoningRecordingSuggestions: suggestions.reasoning.updateMade,
