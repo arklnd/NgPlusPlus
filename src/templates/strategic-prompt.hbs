@@ -39,20 +39,12 @@ CONFLICT ANALYSIS:
 STRATEGIC INSTRUCTIONS:
 1. **Conflict Resolution Priority**: When resolving dependency conflicts, prioritize upgrading non-satisfying packages with the LOWEST rank first. Higher-ranked packages (core frameworks, official libraries) should be kept stable, while lower-ranked packages (utilities, experimental) should be upgraded to resolve conflicts.
 
-2. **Package Ranking Strategy**: 
-   - CORE_FRAMEWORK (1000+): Never downgrade, upgrade dependents instead
-   - OFFICIAL_LIBRARIES (800+): Prefer stability, upgrade only if necessary
-   - POPULAR_UTILITIES (600+): Safe to upgrade if it resolves conflicts
-   - DEPENDENCY_HEAVY (400+): Upgrade cautiously, check for breaking changes
-   - LIGHTWEIGHT (200+): Safe to upgrade aggressively
-   - EXPERIMENTAL (100+): First candidates for upgrades or replacements
+2. **Resolution Logic**:
+   - Here the goal is to achieve TARGET UPGRADES USER WANT TO DO.
+   - Identify all non-satisfying packages from the conflict analysis, upgrade the lowest-ranked packages first to satisfy the higher-ranked dependencies.
    - Higher rank packages should influence upgrade decisions for lower rank packages.
    - Higher the rank value, more priority it has in the upgrade decision-making process.
    - Lower rank packages should be upgraded first to resolve conflicts with higher rank packages.
-
-3. **Resolution Logic**:
-   - Here the goal is to achieve TARGET UPGRADES USER WANT TO DO.
-   - Identify all non-satisfying packages from the conflict analysis, upgrade the lowest-ranked packages first to satisfy the higher-ranked dependencies.
    - Choose versions from the available versions lists ONLY that best resolve the conflicts while adhering to the ranking strategy.
    - If no suitable version is found for a low-rank package, set upgraded version to <NULL>.
    - e.g. {
@@ -63,13 +55,13 @@ STRATEGIC INSTRUCTIONS:
       "fromVersion": "current-version"
     }
 
-4. **Available Versions Strategy**: 
+3. **Available Versions Strategy**: 
    - Use the `availableVersions` arrays from the conflict analysis to make informed upgrade decisions
    - For conflicting packages, choose from `conflictingPackageAvailableVersions` to find compatible versions
    - For satisfying/non-satisfying packages, use their `availableVersions` to select appropriate versions
    - Prefer stable/LTS versions when available, avoid pre-release versions unless necessary
 
-5. **Reasoning Recording**: 
+4. **Reasoning Recording**: 
    - Consider the previous reasoning record to understand what upgrades have already been made and why
    - For each new upgrade suggestion, provide reasoning that explains:
      * Which package is being upgraded (with its rank)
