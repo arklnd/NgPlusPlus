@@ -2,7 +2,7 @@ import { getPackageData } from '@U/package-registry.utils';
 import { getCleanVersion } from '@U/version.utils';
 import { getLogger } from '@U/index';
 import { getOpenAIService } from '@S/openai.service';
-import { ConflictAnalysis } from '@I/index';
+import { ConflictAnalysis, RegistryData } from '@I/index';
 import { createDependencyParsingPrompt, createPackageRankingPrompt } from './prompt-generator.utils';
 import { getCachedPackageData, setCachedPackageData } from '@U/cache.utils';
 import * as semver from 'semver';
@@ -319,12 +319,12 @@ export async function getRankingForPackage(packageName: string): Promise<{ rank:
 
         logger.debug('Cache miss, getting ranking from AI for package', { package: packageName });
 
-        const readme = packageName.trim() !== 'root project' ? await getPackageData(packageName, ['readme']) : null;
+        const readme: RegistryData | null = packageName.trim() !== 'root project' ? await getPackageData(packageName, ['readme']) : null;
 
         const openai = getOpenAIService({ model: 'copilot-gpt-4', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
 
         // Create ranking prompt for this specific package
-        const rankingPrompt = createPackageRankingPrompt(packageName, JSON.stringify(readme));
+        const rankingPrompt = createPackageRankingPrompt(packageName, JSON.stringify(readme?.readme || ''));
 
         // Get AI response for this package
         let rankingResponse = await openai.generateText(rankingPrompt);

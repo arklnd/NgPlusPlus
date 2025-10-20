@@ -15,6 +15,21 @@ describe('getRankingForPackage', function () {
         });
     });
 
+    describe('ttt', function () {
+        it('should handle package ranking with cache', async function () {
+            // Test with a well-known package
+            const result = await getRankingForPackage('@storybook/angular');
+            
+            if (result !== null) {
+                expect(result).to.be.an('object');
+                expect(result).to.have.property('rank');
+                expect(result).to.have.property('tier');
+                expect(typeof result.rank).to.equal('number');
+                expect(typeof result.tier).to.equal('string');
+            }
+            // If result is null, that's acceptable (AI service issues)
+        });
+    });
     describe('Cache Integration', function () {
         it('should handle package ranking with cache', async function () {
             // Test with a well-known package

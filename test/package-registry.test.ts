@@ -1,10 +1,5 @@
 import { expect } from 'chai';
-import { 
-    getPackageData, 
-    getPackageVersionData, 
-    getPackageVersions, 
-    validatePackageVersionsExist 
-} from '../src/utils/package-registry.utils.js';
+import { getPackageData, getPackageVersionData, getPackageVersions, validatePackageVersionsExist } from '@U/package-registry.utils';
 
 describe('Package Registry Utils', function () {
     // Increase timeout for npm operations
@@ -13,7 +8,7 @@ describe('Package Registry Utils', function () {
     describe('getPackageData', function () {
         it('should fetch package data for a popular package', async function () {
             const packageData = await getPackageData('lodash');
-            
+
             expect(packageData).to.be.an('object');
             expect(packageData.name).to.equal('lodash');
             expect(packageData['dist-tags']).to.be.an('object');
@@ -22,14 +17,24 @@ describe('Package Registry Utils', function () {
             expect(packageData.versions.length).to.be.greaterThan(0);
             expect(packageData.description).to.be.a('string');
         });
-        it('should fetch readme for a popular package', async function () {
+
+        it('should fetch readme for lodash', async function () {
             const packageData = await getPackageData('lodash', ['readme']);
+            expect(packageData).to.be.an('object');
+        });
+
+        it('should fetch readme for lodash', async function () {
+            const packageData = await getPackageData('lodash', ['readme']);
+            expect(packageData).to.be.an('object');
+        });
+        it('should fetch readme for typescript', async function () {
+            const packageData = await getPackageData('typescript', ['readme']);
             expect(packageData).to.be.an('object');
         });
 
         it('should fetch package data for a scoped package', async function () {
             const packageData = await getPackageData('@types/node');
-            
+
             expect(packageData).to.be.an('object');
             expect(packageData.name).to.equal('@types/node');
             expect(packageData['dist-tags']).to.be.an('object');
