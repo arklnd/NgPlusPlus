@@ -324,7 +324,7 @@ export async function getRankingForPackage(packageName: string): Promise<{ rank:
         const openai = getOpenAIService({ model: 'copilot-gpt-4', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
 
         // Create ranking prompt for this specific package
-        const rankingPrompt = createPackageRankingPrompt(packageName, JSON.stringify(readme?.readme || ''));
+        const rankingPrompt = createPackageRankingPrompt(packageName, readme?.readme?.trim() && readme?.readme?.trim().length > 0 ? JSON.stringify(readme?.readme) : undefined);
 
         // Get AI response for this package
         let rankingResponse = await openai.generateText(rankingPrompt);
