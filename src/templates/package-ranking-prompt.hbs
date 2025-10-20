@@ -9,7 +9,7 @@ Use the following ranking tiers to evaluate packages (higher rank = higher prior
 - RUNTIME_CORE (1000): Essential runtime - node types, core-js, tslib
 
 **TIER 2 - OFFICIAL ECOSYSTEM (700-900):**
-- OFFICIAL_LIBRARIES (900): First-party framework libs - @angular/*, react-*, vue-*, @nestjs/*
+- OFFICIAL_LIBRARIES (900): First-party framework libs - @angular/*, react-*, vue-*, @nestjs/*, @hylandsoftware/hy-ui-*
 - FRAMEWORK_TOOLS (800): Official tooling - @angular/cli, create-react-app, @vue/cli
 - ECOSYSTEM_STANDARDS (700): Ecosystem standards - eslint, prettier, jest (in their ecosystems)
 
@@ -38,10 +38,11 @@ Use the following ranking tiers to evaluate packages (higher rank = higher prior
 **Advanced Ranking Logic:**
 
 **Primary Classification (Base Tier Assignment):**
-1. **Ecosystem Detection**: Identify framework ecosystem (@angular/, react-, vue-, @nestjs/, etc.)
+1. **Ecosystem Detection**: Identify framework ecosystem (@angular/, react-, vue-, @nestjs/, @hylandsoftware/, etc.)
 2. **Package Type Analysis**: Core framework, official library, utility, build tool, testing framework
 3. **Scope Analysis**: Scoped packages often indicate official/organizational ownership
-4. **Name Pattern Recognition**: Patterns like "types/*", "*-webpack-plugin", "*-eslint-*"
+4. **Name Pattern Recognition**: Patterns like "types/*", "*-webpack-plugin", "*-eslint-*", "@hylandsoftware/hy-ui-*"
+5. **Hyland Ecosystem**: @hylandsoftware/hy-ui-* packages are Hyland-developed Angular wrappers with high organizational priority
 
 **Ranking Modifiers (±50-200 points within tier):**
 - **Ecosystem Coherence**: +100 for packages that are part of the same ecosystem as target packages
@@ -61,8 +62,9 @@ Use the following ranking tiers to evaluate packages (higher rank = higher prior
 **Ecosystem Priority Rules:**
 1. **Same Ecosystem Bonus**: Packages from the same ecosystem as target packages get +100 rank
 2. **Framework Lock-in**: Core frameworks (Angular, React, Vue) always win conflicts within their ecosystem
-3. **Build Tool Priority**: TypeScript, Webpack, Vite get priority for build-related conflicts
-4. **Testing Framework Stability**: Jest, Mocha, Cypress prioritized for test-related packages
+3. **Hyland Ecosystem Priority**: @hylandsoftware/hy-ui-* packages (Hyland-developed Angular wrappers) get +150 rank due to organizational importance
+4. **Build Tool Priority**: TypeScript, Webpack, Vite get priority for build-related conflicts
+5. **Testing Framework Stability**: Jest, Mocha, Cypress prioritized for test-related packages
 
 **Package to Analyze:**
 Package Name: {{{packageName}}}
@@ -76,7 +78,8 @@ Package README Content:
 **Detailed Analysis Instructions:**
 
 **Step 1 - Package Classification:**
-- **Name Analysis**: Examine package name for ecosystem indicators (@angular/, react-, vue-, @types/, etc.)
+- **Name Analysis**: Examine package name for ecosystem indicators (@angular/, react-, vue-, @types/, @hylandsoftware/, etc.)
+- **Hyland Package Detection**: Identify @hylandsoftware/hy-ui-* packages as high-priority Hyland-developed Angular wrappers
 - **Scope Detection**: Check if scoped package indicates official/organizational ownership
 - **Type Identification**: Determine if core framework, build tool, utility, testing framework, or specialty library
 - **Version Indicators**: Look for beta/alpha/rc in name or experimental patterns
@@ -133,7 +136,7 @@ Package README Content:
 - `@types/node`, `core-js`, `tslib` → RUNTIME_CORE (1000)
 
 **OFFICIAL ECOSYSTEM (700-900):**
-- `@angular/material`, `react-router`, `@nestjs/common` → OFFICIAL_LIBRARIES (900)
+- `@angular/material`, `react-router`, `@nestjs/common`, `@hylandsoftware/hy-ui-*` → OFFICIAL_LIBRARIES (900)
 - `@angular/cli`, `create-react-app`, `@vue/cli` → FRAMEWORK_TOOLS (800)
 - Framework-specific eslint, jest configs → ECOSYSTEM_STANDARDS (700)
 
@@ -163,14 +166,13 @@ Package README Content:
 - **TypeScript Ecosystem**: Prioritize `@types/*` packages and native TS support
 - **Monorepo Packages**: Scoped packages often indicate official status
 - **Framework Coherence**: Angular packages rank higher when resolving Angular project conflicts
+- **Hyland Organizational Packages**: @hylandsoftware/hy-ui-* packages receive highest priority (OFFICIAL_LIBRARIES tier + 150 bonus) as they are Hyland-developed Angular wrappers with organizational importance
 - **Build vs Runtime**: Build tools rank higher for dev dependencies, runtime packages for prod dependencies
 {{#if readme}}
 - **README-Based Insights**: Use README content to identify official backing, stability promises, and ecosystem integration
 - **Feature Complexity**: Complex feature sets mentioned in README may indicate DEPENDENCY_HEAVY or SPECIALIZED_LIBS tiers
 - **Migration Guidance**: Packages with migration guides in README may be legacy (consider DEPRECATED tier)
-{{/if}}
 
-{{#if readme}}
 **README Analysis Guidelines:**
 - **Official Indicators**: Look for organization logos, official maintainer mentions, framework team endorsements
 - **Stability Markers**: Version badges, stability promises, LTS mentions indicate mature packages

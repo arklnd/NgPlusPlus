@@ -34,6 +34,11 @@ export async function getPackageData(name: string, fields: string[] = []): Promi
 
             child.on('close', (code) => {
                 if (code === 0) {
+                    if (fields.length === 1 && fields[0] === 'readme') {
+                        // When only readme is requested, npm returns a string instead of an object
+                        resolve({ readme: stdout.trim() } as RegistryData);
+                        return;
+                    }
                     try {
                         const parsedData = JSON.parse(stdout);
                         resolve(parsedData);

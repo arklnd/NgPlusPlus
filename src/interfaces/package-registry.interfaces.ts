@@ -64,6 +64,7 @@ export interface RegistryData {
     _npmVersion?: string;
     directories?: Record<string, any>;
     _nodeVersion?: string;
+    readme?: string;
     _hasShrinkwrap?: boolean;
     packageManager?: string;
     devDependencies?: Record<string, string>;

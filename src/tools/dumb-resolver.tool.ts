@@ -194,6 +194,7 @@ This is the current state before any updates. Focus on achieving these target up
 
                 // Reset chat history with system message
                 chatHistory = [{ role: 'system', content: systemMessage }];
+                chatHistory.push({ role: 'user', content: `ORIGINAL PACKAGE.JSON DEPENDENCIES CONTEXT: \n${JSON.stringify(readPackageJson(tempDir))}` });
                 // Add current failure and analysis to chat history
                 chatHistory.push({ role: 'user', content: strategicPrompt });
 
