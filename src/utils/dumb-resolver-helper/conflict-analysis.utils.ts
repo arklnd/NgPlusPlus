@@ -57,6 +57,8 @@ export async function parseInstallErrorToConflictAnalysis(installError: string):
             conflictingPackageCurrentVersion: '',
             satisfyingPackages: [],
             notSatisfying: [],
+            rank: 0,
+            tier: '',
         };
     }
 }
@@ -250,8 +252,8 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
             ...currentAnalysis,
 
             // Hydrate conflicting package with ranking information
-            rank: packageRankingMap.get(currentAnalysis.conflictingPackage)?.rank,
-            tier: currentAnalysis.conflictingPackage && packageRankingMap.has(currentAnalysis.conflictingPackage) ? packageRankingMap.get(currentAnalysis.conflictingPackage)?.tier : 'UNRANKED',
+            rank: packageRankingMap.get(currentAnalysis.conflictingPackage)!.rank,
+            tier: currentAnalysis.conflictingPackage && packageRankingMap.has(currentAnalysis.conflictingPackage) ? packageRankingMap.get(currentAnalysis.conflictingPackage)!.tier : 'UNRANKED',
 
             // Hydrate satisfying packages with ranking information
             satisfyingPackages:

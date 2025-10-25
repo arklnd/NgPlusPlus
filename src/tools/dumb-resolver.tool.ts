@@ -119,6 +119,8 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
             conflictingPackageCurrentVersion: '',
             satisfyingPackages: [],
             notSatisfying: [],
+            rank: 0,
+            tier: '',
         };
 
         // Initialize reasoning recording to track AI upgrade decisions across attempts
