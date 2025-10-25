@@ -22,20 +22,19 @@ CONFLICT ANALYSIS:
 ⚠️ **IMPORTANT: The rank values below are the AUTHORITATIVE source for package rankings. Use these EXACT values in your new reasoning records.**
 {{#if analysis}}
 **CONFLICTING PACKAGE:** "{{analysis.conflictingPackage}}" current version installed v{{analysis.conflictingPackageCurrentVersion}}
+  Available versions of {{analysis.conflictingPackage}}: {{#each analysis.conflictingPackageAvailableVersions}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
 
-**PACKAGES SATISFIED BY CURRENT VERSION:**
+**PACKAGES SATISFIED BY CURRENT VERSION OF "{{analysis.conflictingPackage}}":**
 {{#each analysis.satisfyingPackages}}
-- {{packageName}} ({{tier}}, rank {{rank}}) requires {{requiredVersionRange}}
+- {{packageName}}@{{packageVersion}} (rank {{rank}}) requires {{requiredVersionRange}}
+  Available versions for {{packageName}}: {{#each availableVersions}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
 {{/each}}
 
-**PACKAGES NOT SATISFIED (CAUSING CONFLICT):**
+**PACKAGES NOT SATISFIED:**
 {{#each analysis.notSatisfying}}
-- {{packageName}} v{{packageVersion}} ({{tier}}, rank {{rank}}) requires {{requiredVersionRange}}
-  Available versions: {{#each availableVersions}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+- {{packageName}}@{{packageVersion}} (rank {{rank}}) requires {{requiredVersionRange}}
+  Available versions for {{packageName}}: {{#each availableVersions}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
 {{/each}}
-
-**AVAILABLE VERSIONS FOR "{{analysis.conflictingPackage}}":**
-{{#each analysis.conflictingPackageAvailableVersions}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
 {{else}}
 - No conflict analysis available.
 {{/if}}
