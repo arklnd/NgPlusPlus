@@ -1,3 +1,4 @@
+import { isDevDependency } from '@U/index';
 export interface ConflictInfo {
     packageName: string;
     currentVersion: string;
@@ -15,9 +16,10 @@ export interface PackageVersionInfo {
     packageName: string;
     packageVersion: string;
     requiredVersionRange: string;
-    rank?: number;
+    rank: number;
     tier?: string;
     availableVersions?: string[];
+    isDevDependency: boolean;
 }
 
 export interface ConflictAnalysis {
@@ -26,8 +28,9 @@ export interface ConflictAnalysis {
     satisfyingPackages: PackageVersionInfo[];
     notSatisfying: PackageVersionInfo[];
     conflictingPackageAvailableVersions?: string[];
-    rank?: number;
-    tier?: string;
+    rank: number;
+    tier: string;
+    isDevDependency: boolean;
 }
 
 export interface PackageRank {
@@ -36,7 +39,7 @@ export interface PackageRank {
 }
 
 export interface updateMade {
-    package: PackageRank
+    package: PackageRank;
     fromVersion: string;
     toVersion: string;
     reason: PackageRank;
@@ -47,15 +50,15 @@ export interface ReasoningRecording {
 }
 
 export interface UpdateSuggestion {
-  name: string;
-  version: string;
-  isDev: boolean;
-  reason: string;
-  fromVersion: string;
+    name: string;
+    version: string;
+    isDev: boolean;
+    reason: string;
+    fromVersion: string;
 }
 
 export interface UpdateSuggestions {
-  suggestions: UpdateSuggestion[];
-  analysis: string;
-  reasoning: ReasoningRecording;
+    suggestions: UpdateSuggestion[];
+    analysis: string;
+    reasoning: ReasoningRecording;
 }

@@ -24,18 +24,21 @@ Given an npm error message in the variable `installError`, analyze the error and
 {
     "conflictingPackage": "package-name",
     "conflictingPackageCurrentVersion": "X.Y.Z",
+    "isDevDependency": true/false,
     "satisfyingPackages": [
         {
             "packageName": "package-that-works",
             "packageVersion": "X.Y.Z",
             "requiredVersionRange": "version-range-that-is-satisfied"
+            "isDevDependency": true/false
         }
     ],
     "notSatisfying": [
         {
             "packageName": "package-that-conflicts",
             "packageVersion": "X.Y.Z", 
-            "requiredVersionRange": "version-range-that-is-not-satisfied"
+            "requiredVersionRange": "version-range-that-is-not-satisfied",
+            "isDevDependency": true/false
         }
     ]
 }

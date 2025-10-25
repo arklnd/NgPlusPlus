@@ -51,13 +51,7 @@ export async function parseInstallErrorToConflictAnalysis(installError: string):
             response: jsonString,
         });
 
-        // Return empty analysis as fallback
-        return {
-            conflictingPackage: '',
-            conflictingPackageCurrentVersion: '',
-            satisfyingPackages: [],
-            notSatisfying: [],
-        };
+        throw parseError
     }
 }
 
@@ -250,8 +244,8 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
             ...currentAnalysis,
 
             // Hydrate conflicting package with ranking information
-            rank: packageRankingMap.get(currentAnalysis.conflictingPackage)?.rank,
-            tier: currentAnalysis.conflictingPackage && packageRankingMap.has(currentAnalysis.conflictingPackage) ? packageRankingMap.get(currentAnalysis.conflictingPackage)?.tier : 'UNRANKED',
+            rank: packageRankingMap.get(currentAnalysis.conflictingPackage)!.rank,
+            tier: currentAnalysis.conflictingPackage && packageRankingMap.has(currentAnalysis.conflictingPackage) ? packageRankingMap.get(currentAnalysis.conflictingPackage)!.tier : 'UNRANKED',
 
             // Hydrate satisfying packages with ranking information
             satisfyingPackages:
@@ -259,8 +253,8 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
                     const ranking = packageRankingMap.get(pkg.packageName);
                     return {
                         ...pkg,
-                        rank: ranking?.rank,
-                        tier: ranking?.tier,
+                        rank: ranking!.rank,
+                        tier: ranking!.tier,
                     };
                 }) || [],
 
@@ -270,8 +264,8 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
                     const ranking = packageRankingMap.get(pkg.packageName);
                     return {
                         ...pkg,
-                        rank: ranking?.rank,
-                        tier: ranking?.tier,
+                        rank: ranking!.rank,
+                        tier: ranking!.tier,
                     };
                 }) || [],
         };

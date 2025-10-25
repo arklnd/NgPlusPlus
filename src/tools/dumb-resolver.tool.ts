@@ -119,6 +119,9 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
             conflictingPackageCurrentVersion: '',
             satisfyingPackages: [],
             notSatisfying: [],
+            isDevDependency: false,
+            rank: 0,
+            tier: 'UNRANKED',
         };
 
         // Initialize reasoning recording to track AI upgrade decisions across attempts
@@ -181,6 +184,9 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
 
                 for (const suggestion of suggestions.suggestions) {
                     updateDependency(packageJson, suggestion.name, suggestion.version, suggestion.isDev);
+                    if (suggestion.version === '<NULL>') {
+                        throw new NoSuitableVersionFoundError(`No suitable version found for package ${suggestion.name} to resolve conflicts`);
+                    }
                     const targetDep = update_dependencies.find((dep) => dep.name === suggestion.name);
                     if (targetDep) {
                         // Update existing dependency with suggested version
