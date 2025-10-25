@@ -12,7 +12,7 @@ import OpenAI from 'openai';
 import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility, hydrateConflictAnalysisWithRegistryData, parseInstallErrorToConflictAnalysis, hydrateConflictAnalysisWithRanking } from '@U/dumb-resolver-helper';
 import { AIResponseFormatError, NoSuitableVersionFoundError, PackageVersionValidationError } from '@E/index';
 import { ConflictAnalysis, ReasoningRecording, updateMade } from '@I/index';
-
+import { generateStaticSuggestions } from '@/utils/dumb-resolver-helper/static-suggestion.utils';
 
 const JSON_RESPONSE_REGEX = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
 
@@ -124,22 +124,6 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         // Initialize reasoning recording to track AI upgrade decisions across attempts
         let reasoningRecording: ReasoningRecording = { updateMade: [] };
 
-        // Initialize chat history for maintaining context across installation attempts
-        const systemMessage = createEnhancedSystemPrompt();
-        let chatHistory: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-            { role: 'system', content: systemMessage },
-            {
-                role: 'user',
-                content: `ORIGINAL PACKAGE.JSON DEPENDENCIES CONTEXT:
-${originalPackageJson}
-
-TARGET UPGRADE GOALS:
-${update_dependencies.map((dep) => `- ${dep.name}@${dep.version} (${dep.isDev ? 'dev' : 'prod'})`).join('\n')}
-
-This is the current state before any updates. Focus on achieving these target upgrades through strategic blocker resolution.`,
-            },
-        ];
-
         while (attempt < maxAttempts && !installSuccess) {
             attempt++;
             logger.info(`Installation attempt ${attempt}/${maxAttempts}`);
@@ -181,174 +165,50 @@ This is the current state before any updates. Focus on achieving these target up
                 // Enhance analysis with available versions from registry
                 currentAnalysis = await hydrateConflictAnalysisWithRegistryData(currentAnalysis);
 
-                // Create strategic prompt with hydrated analysis context
-                const strategicPrompt = createStrategicPrompt(
-                    reasoningRecording,
-                    installError,
-                    currentAnalysis,
-                    update_dependencies.map((dep) => `- ${dep.name} to version ${dep.version} (${dep.isDev ? 'dev' : 'prod'})`).join('\n'),
-                    attempt,
-                    maxAttempts
-                );
-                // need to update :: end
+                const suggestions = generateStaticSuggestions(currentAnalysis, reasoningRecording);
+                // Extract and update reasoning recording from AI response
+                if (suggestions.reasoning && suggestions.reasoning.updateMade && Array.isArray(suggestions.reasoning.updateMade)) {
+                    reasoningRecording.updateMade.push(...suggestions.reasoning.updateMade);
+                    logger.info('Updated reasoning recording with Static Suggestions', {
+                        newReasoningEntries: suggestions.reasoning.updateMade.length,
+                        totalReasoningEntries: reasoningRecording.updateMade.length,
+                        reasoningRecordingSuggestions: suggestions.reasoning.updateMade,
+                    });
+                }
 
-                // Reset chat history with system message
-                chatHistory = [{ role: 'system', content: systemMessage }];
-                chatHistory.push({ role: 'user', content: `ORIGINAL PACKAGE.JSON DEPENDENCIES CONTEXT: \n${JSON.stringify(readPackageJson(tempDir))}` });
-                // Add current failure and analysis to chat history
-                chatHistory.push({ role: 'user', content: strategicPrompt });
+                // Apply suggestions to package.json in tempDir
+                packageJson = readPackageJson(tempDir);
 
-                // Try to get valid suggestions from OpenAI (with retry on invalid structure)
-                let aiRetryAttempt = 0;
-                const maxAiRetries = 5;
-                let validSuggestions = false;
-
-                while (aiRetryAttempt < maxAiRetries && !validSuggestions) {
-                    aiRetryAttempt++;
-                    let response = '';
-                    try {
-                        response = await openai.generateTextWithHistory(chatHistory, {
-                            temperature: 0.3,
-                            maxTokens: 1000,
+                for (const suggestion of suggestions.suggestions) {
+                    updateDependency(packageJson, suggestion.name, suggestion.version, suggestion.isDev);
+                    const targetDep = update_dependencies.find((dep) => dep.name === suggestion.name);
+                    if (targetDep) {
+                        // Update existing dependency with suggested version
+                        targetDep.version = suggestion.version;
+                        logger.info('Applied strategic suggestion (updated existing)', {
+                            package: suggestion.name,
+                            version: suggestion.version,
+                            reason: suggestion.reason,
+                            isDev: targetDep.isDev,
                         });
-
-                        // Add successful assistant response to chat history for future context
-                        chatHistory.push({ role: 'assistant', content: response });
-
-                        // Extract JSON from markdown code blocks if present
-                        let jsonString = response.trim();
-                        const jsonMatch = jsonString.match(JSON_RESPONSE_REGEX);
-                        if (jsonMatch) {
-                            jsonString = jsonMatch[1].trim();
-                        }
-
-                        // Parse and validate OpenAI response structure
-                        const suggestions = JSON.parse(jsonString);
-
-                        // Validate response structure
-                        if (!suggestions || typeof suggestions !== 'object') {
-                            throw new AIResponseFormatError('Invalid response: not an object');
-                        }
-
-                        if (!suggestions.suggestions || !Array.isArray(suggestions.suggestions)) {
-                            throw new AIResponseFormatError('Invalid response: missing or invalid suggestions array');
-                        }
-
-                        // Validate each suggestion
-                        const invalidSuggestions = suggestions.suggestions.filter((s: any) => !s || typeof s !== 'object' || !s.name || !s.version || typeof s.isDev !== 'boolean');
-
-                        if (invalidSuggestions.length > 0) {
-                            throw new AIResponseFormatError(`Invalid suggestions found: ${invalidSuggestions.length} items missing name, version, or isDev`);
-                        }
-
-                        // Validate version existence before applying suggestions
-                        const validationUpdates = suggestions.suggestions.map((s: any) => ({
-                            name: s.name,
-                            version: s.version,
-                            isDev: s.isDev,
-                        }));
-
-                        const validationResults = await validatePackageVersionsExist(validationUpdates);
-                        const nonExistentVersions = validationResults.filter((r) => !r.exists);
-
-                        if (nonExistentVersions.length > 0) {
-                            const errorDetails = nonExistentVersions.map((r) => `${r.packageName}@${r.version}: ${r.error || 'Version not found'}`).join('\n');
-                            const errorMessage = `Package version validation failed. The following suggested versions do not exist in the npm registry:\n${errorDetails}\n\nPlease suggest alternative versions that exist in the registry.`;
-
-                            logger.warn('Some suggested package versions do not exist in registry', {
-                                nonExistentVersions: nonExistentVersions.map((r) => `${r.packageName}@${r.version}`),
-                                errors: nonExistentVersions.map((r) => r.error).filter(Boolean),
-                            });
-
-                            // Throw error so AI can handle it in the next iteration with better suggestions
-                            throw new PackageVersionValidationError(errorMessage);
-                        } else {
-                            logger.info('All suggested package versions exist in registry');
-                        }
-
-                        logger.info('Received valid strategic suggestions', {
-                            suggestions: suggestions.suggestions,
-                            attempt: aiRetryAttempt,
+                    } else {
+                        // Add new dependency suggested by strategic analysis
+                        const newDep = {
+                            name: suggestion.name,
+                            version: suggestion.version,
+                            isDev: suggestion.isDev,
+                        };
+                        update_dependencies.push(newDep);
+                        logger.info('Applied strategic suggestion (added new)', {
+                            package: suggestion.name,
+                            version: suggestion.version,
+                            reason: suggestion.reason,
+                            isDev: suggestion.isDev,
                         });
-                        validSuggestions = true;
-
-                        // Extract and update reasoning recording from AI response
-                        if (suggestions.reasoning && suggestions.reasoning.updateMade && Array.isArray(suggestions.reasoning.updateMade)) {
-                            reasoningRecording.updateMade.push(...suggestions.reasoning.updateMade);
-                            logger.info('Updated reasoning recording with AI insights 🤖', {
-                                newReasoningEntries: suggestions.reasoning.updateMade.length,
-                                totalReasoningEntries: reasoningRecording.updateMade.length,
-                                reasoningRecordingSuggestions: suggestions.reasoning.updateMade,
-                            });
-                        }
-
-                        // Apply suggestions to package.json in tempDir
-                        packageJson = readPackageJson(tempDir);
-
-                        for (const suggestion of suggestions.suggestions) {
-                            updateDependency(packageJson, suggestion.name, suggestion.version, suggestion.isDev);
-                            const targetDep = update_dependencies.find((dep) => dep.name === suggestion.name);
-                            if (targetDep) {
-                                // Update existing dependency with suggested version
-                                targetDep.version = suggestion.version;
-                                logger.info('Applied strategic suggestion (updated existing)', {
-                                    package: suggestion.name,
-                                    version: suggestion.version,
-                                    reason: suggestion.reason,
-                                    priority: suggestion.priority || 'target',
-                                    isDev: targetDep.isDev,
-                                });
-                            } else {
-                                // Add new dependency suggested by strategic analysis
-                                const newDep = {
-                                    name: suggestion.name,
-                                    version: suggestion.version,
-                                    isDev: suggestion.isDev,
-                                };
-                                update_dependencies.push(newDep);
-                                logger.info('Applied strategic suggestion (added new)', {
-                                    package: suggestion.name,
-                                    version: suggestion.version,
-                                    reason: suggestion.reason,
-                                    priority: suggestion.priority || 'target',
-                                    isDev: suggestion.isDev,
-                                });
-                            }
-                        }
-
-                        writePackageJson(tempDir, packageJson);
-
-                        // Add summary of applied changes to chat history for next iteration context
-                        const appliedChanges = suggestions.suggestions.map((s: any) => `${s.name}@${s.version}`).join(', ');
-                        chatHistory.push({
-                            role: 'user',
-                            content: `Applied suggestions: ${appliedChanges}. Will now attempt installation with these changes.`,
-                        });
-                    } catch (aiError) {
-                        const errorMsg = aiError instanceof Error ? aiError.message : String(aiError);
-                        logger.warn(`OpenAI attempt ${aiRetryAttempt} failed`, { error: errorMsg, errorType: aiError instanceof Error ? aiError.name : 'Unknown' });
-
-                        if (aiRetryAttempt < maxAiRetries) {
-                            let retryMessage = '';
-
-                            if (aiError instanceof AIResponseFormatError) {
-                                retryMessage = aiError.getRetryMessage();
-                            } else if (aiError instanceof PackageVersionValidationError) {
-                                retryMessage = aiError.getRetryMessage();
-                            } else if (aiError instanceof NoSuitableVersionFoundError) {
-                                throw aiError; // Let the main loop catch and handle this error
-                            } else {
-                                // Generic error handling for other types of errors
-                                retryMessage = `An error occurred while processing your response: ${errorMsg}
-                                \n\nPlease provide a valid JSON response with the required structure and ensure all package versions exist in the npm registry.`;
-                            }
-
-                            chatHistory.push({ role: 'user', content: retryMessage });
-                        } else {
-                            logger.error('Failed to get valid OpenAI suggestions after retries', { error: errorMsg, errorType: aiError instanceof Error ? aiError.name : 'Unknown' });
-                        }
                     }
                 }
+
+                writePackageJson(tempDir, packageJson);
             }
         }
         // #endregion

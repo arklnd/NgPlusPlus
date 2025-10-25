@@ -45,3 +45,17 @@ export interface updateMade {
 export interface ReasoningRecording {
     updateMade: updateMade[];
 }
+
+export interface UpdateSuggestion {
+  name: string;
+  version: string;
+  isDev: boolean;
+  reason: string;
+  fromVersion: string;
+}
+
+export interface UpdateSuggestions {
+  suggestions: UpdateSuggestion[];
+  analysis: string;
+  reasoning: ReasoningRecording;
+}
