@@ -21,7 +21,7 @@ REASONING:
 CONFLICT ANALYSIS:
 ⚠️ **IMPORTANT: The rank values below are the AUTHORITATIVE source for package rankings. Use these EXACT values in your new reasoning records.**
 {{#if analysis}}
-**CONFLICTING PACKAGE:** "{{analysis.conflictingPackage}}" current version installed v{{analysis.conflictingPackageCurrentVersion}}
+**CONFLICTING PACKAGE:** "{{analysis.conflictingPackage}}" (rank {{analysis.rank}}) current version installed v{{analysis.conflictingPackageCurrentVersion}}
   Available versions of {{analysis.conflictingPackage}}: {{#each analysis.conflictingPackageAvailableVersions}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
 
 **PACKAGES SATISFIED BY CURRENT VERSION OF "{{analysis.conflictingPackage}}":**
