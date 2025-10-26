@@ -551,7 +551,7 @@ describe('updatePackageWithDependencies', function () {
         const dumbResolverInput = {
             repo_path: testRepoPath,
             update_dependencies: updateDependencies,
-            maxAttempts: 200,
+            maxAttempts: parseInt(process.env.MAX_ATTEMPTS || '200', 10),
         };
 
         // Act - Invoke dumbResolverHandler
@@ -703,7 +703,7 @@ describe('updatePackageWithDependencies', function () {
         const dumbResolverInput = {
             repo_path: testRepoPath,
             update_dependencies: updateDependencies,
-            maxAttempts: 200,
+            maxAttempts: parseInt(process.env.MAX_ATTEMPTS || '200', 10),
         };
 
         // Act - Invoke dumbResolverHandler
