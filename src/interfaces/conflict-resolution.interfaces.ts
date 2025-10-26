@@ -21,6 +21,7 @@ export interface PackageVersionInfo {
 }
 
 export interface ConflictAnalysis {
+    allPackagesMentionedInError: string[];
     conflictingPackage: string;
     conflictingPackageCurrentVersion: string;
     satisfyingPackages: PackageVersionInfo[];
@@ -28,6 +29,7 @@ export interface ConflictAnalysis {
     conflictingPackageAvailableVersions?: string[];
     rank: number;
     tier: string;
+    packagesVersionData: Map<string, string[]>;
 }
 
 export interface PackageRank {

@@ -53,12 +53,14 @@ export async function parseInstallErrorToConflictAnalysis(installError: string):
 
         // Return empty analysis as fallback
         return {
+            allPackagesMentionedInError: [],
             conflictingPackage: '',
             conflictingPackageCurrentVersion: '',
             satisfyingPackages: [],
             notSatisfying: [],
             rank: 0,
             tier: '',
+            packagesVersionData: new Map<string, string[]>(),
         };
     }
 }
@@ -154,6 +156,7 @@ export async function hydrateConflictAnalysisWithRegistryData(currentAnalysis: C
         // Create enhanced analysis object
         const enhancedAnalysis: ConflictAnalysis = {
             ...currentAnalysis,
+            packagesVersionData: packageVersionMap,
             // Hydrate conflicting package with available versions
             conflictingPackageAvailableVersions: currentAnalysis.conflictingPackage && packageVersionMap.has(currentAnalysis.conflictingPackage) ? packageVersionMap.get(currentAnalysis.conflictingPackage) : currentAnalysis.conflictingPackageAvailableVersions,
 

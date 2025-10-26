@@ -115,12 +115,14 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
 
         // Initialize enhanced analysis
         let currentAnalysis: ConflictAnalysis = {
+            allPackagesMentionedInError: [],
             conflictingPackage: '',
             conflictingPackageCurrentVersion: '',
             satisfyingPackages: [],
             notSatisfying: [],
             rank: 0,
             tier: '',
+            packagesVersionData: new Map<string, string[]>(),
         };
 
         // Initialize reasoning recording to track AI upgrade decisions across attempts
@@ -178,7 +180,7 @@ This is the current state before any updates. Focus on achieving these target up
                 currentAnalysis = await parseInstallErrorToConflictAnalysis(installError);
 
                 // Enhance analysis with ranking
-                currentAnalysis = await hydrateConflictAnalysisWithRanking(currentAnalysis);
+                // currentAnalysis = await hydrateConflictAnalysisWithRanking(currentAnalysis);
 
                 // Enhance analysis with available versions from registry
                 currentAnalysis = await hydrateConflictAnalysisWithRegistryData(currentAnalysis);
@@ -275,14 +277,14 @@ This is the current state before any updates. Focus on achieving these target up
                         validSuggestions = true;
 
                         // Extract and update reasoning recording from AI response
-                        if (suggestions.reasoning && suggestions.reasoning.updateMade && Array.isArray(suggestions.reasoning.updateMade)) {
-                            reasoningRecording.updateMade.push(...suggestions.reasoning.updateMade);
-                            logger.info('Updated reasoning recording with AI insights 🤖', {
-                                newReasoningEntries: suggestions.reasoning.updateMade.length,
-                                totalReasoningEntries: reasoningRecording.updateMade.length,
-                                reasoningRecordingSuggestions: suggestions.reasoning.updateMade,
-                            });
-                        }
+                        // if (suggestions.reasoning && suggestions.reasoning.updateMade && Array.isArray(suggestions.reasoning.updateMade)) {
+                        //     reasoningRecording.updateMade.push(...suggestions.reasoning.updateMade);
+                        //     logger.info('Updated reasoning recording with AI insights 🤖', {
+                        //         newReasoningEntries: suggestions.reasoning.updateMade.length,
+                        //         totalReasoningEntries: reasoningRecording.updateMade.length,
+                        //         reasoningRecordingSuggestions: suggestions.reasoning.updateMade,
+                        //     });
+                        // }
 
                         // Apply suggestions to package.json in tempDir
                         packageJson = readPackageJson(tempDir);

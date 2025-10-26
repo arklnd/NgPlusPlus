@@ -13,6 +13,11 @@ Given an npm error message in the variable `installError`, analyze the error and
 ```
 
 **Instructions:**
+- **Extract all packages**: Scan the entire error message and extract ALL package names mentioned, including:
+  - Root project packages (e.g., "my-app@1.0.0")
+  - Found packages (e.g., "some-library@2.1.0") 
+  - Peer dependency packages (e.g., "peer-package@3.0.0")
+  - Any package mentioned in dependency paths or node_modules references
 - Look for lines containing "Found:" to identify the conflicting package and its current version
 - Look for lines with "peer [package]@[version-range] from [dependent-package]@[version]" to identify dependencies
 - Compare version ranges with the current version to determine if they are satisfied or not
@@ -22,6 +27,12 @@ Given an npm error message in the variable `installError`, analyze the error and
 **Expected Output Format (JSON only, no explanations):**
 ```json
 {
+    "allPackagesMentionedInError": [
+        "package-name-1",
+        "package-name-2",
+        "...",
+        "package-name-N"
+    ],
     "conflictingPackage": "package-name",
     "conflictingPackageCurrentVersion": "X.Y.Z",
     "satisfyingPackages": [
@@ -42,18 +53,24 @@ Given an npm error message in the variable `installError`, analyze the error and
 ```
 
 **Analysis Rules:**
-1. Extract the main conflicting package from "Found: [package]@[version]" lines
-2. For each "peer [package]@[version-range] from [dependent]@[version]" line:
+1. **Extract all package names**: Scan the entire error message for ALL package names mentioned, including:
+   - Root project name (from "While resolving: [package]@[version]")
+   - Found packages (from "Found: [package]@[version]")
+   - Peer dependency packages (from "peer [package]@[version-range] from [dependent]@[version]")
+   - Any package mentioned in dependency resolution paths
+   - Store unique package names only (without @ and version numbers) in allPackagesMentionedInError array
+2. Extract the main conflicting package from "Found: [package]@[version]" lines
+3. For each "peer [package]@[version-range] from [dependent]@[version]" line:
    - If the version range is compatible with the current version → add to satisfyingPackages
    - If the version range is NOT compatible with the current version → add to notSatisfying
-3. Focus on the package mentioned in "Could not resolve dependency:" section as the primary conflict
-4. Include only direct peer dependency conflicts, ignore transitive mentions
-5. If multiple conflicts exist, prioritize the one mentioned in "Could not resolve dependency"
+4. Focus on the package mentioned in "Could not resolve dependency:" section as the primary conflict
+5. Include only direct peer dependency conflicts, ignore transitive mentions
+6. If multiple conflicts exist, prioritize the one mentioned in "Could not resolve dependency"
 
 **Version Compatibility Examples:**
-- somepackage@4.1.5 satisfies ">=4.0 <4.2" ✓
-- somepackage@4.1.5 does NOT satisfy "~4.0.0" (requires ~4.0.x) ✗  
-- somepackage@5.5.4 satisfies ">=5.4 <5.6" ✓
-- somepackage@5.5.4 does NOT satisfy ">=5.8 <6.0" ✗
+- package-name@4.1.5 satisfies ">=4.0 <4.2" ✓
+- package-name@4.1.5 does NOT satisfy "~4.0.0" (requires ~4.0.x) ✗  
+- package-name@5.5.4 satisfies ">=5.4 <5.6" ✓
+- package-name@5.5.4 does NOT satisfy ">=5.8 <6.0" ✗
 
 Analyze the error message and return ONLY the JSON result:
