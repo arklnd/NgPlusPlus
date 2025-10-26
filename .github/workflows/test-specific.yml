@@ -8,6 +8,11 @@ on:
         required: true
         default: 'should invoke dumbResolverHandler with HYUI8 Angular dependencies'
         type: string
+      max_attempts:
+        description: 'Maximum attempts for dependency resolution'
+        required: false
+        default: '200'
+        type: string
 
 jobs:
   TestCase:
@@ -31,6 +36,8 @@ jobs:
     - name: Run test
       if: success()
       run: npx mocha -- --grep "${{ github.event.inputs.test_pattern }}"
+      env:
+        MAX_ATTEMPTS: ${{ github.event.inputs.max_attempts }}
 
     - name: Display test results
       if: always()
