@@ -27,6 +27,7 @@ export const dependencyUpdateSchema = z.object({
 export const dumbResolverInputSchema = z.object({
     repo_path: z.string().describe('Path to the repository/project root directory that contains package.json'),
     update_dependencies: z.array(dependencyUpdateSchema).describe('List of dependencies to update with their target versions'),
+    maxAttempts: z.number().min(1).default(200).describe('Maximum number of attempts for resolving dependencies'),
 });
 
 export type DumbResolverInput = z.infer<typeof dumbResolverInputSchema>;
@@ -35,9 +36,8 @@ const mkdtempAsync = promisify(mkdtemp);
 const cpAsync = promisify(cp);
 
 export const dumbResolverHandler = async (input: DumbResolverInput) => {
-    const { repo_path, update_dependencies } = input;
+    const { repo_path, update_dependencies, maxAttempts } = input;
     const logger = getLogger().child('dumb-resolver');
-    const maxAttempts = 200;
     let attempt = 0;
     let tempDir: string | null = null;
 
