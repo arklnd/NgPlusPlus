@@ -202,7 +202,7 @@ This is the current state before any updates. Focus on achieving these target up
             }
 
             // If installation failed and we have more attempts, perform strategic analysis
-            if (!installSuccess && attempt < maxAttempts) {
+            if (!installSuccess) {
                 logger.info('Performing strategic dependency analysis');
 
                 // Parse install error to generate initial conflict analysis
