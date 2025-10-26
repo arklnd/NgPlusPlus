@@ -711,7 +711,7 @@ describe('updatePackageWithDependencies', function () {
 
         fs.copyFileSync(targetPackageJsonPath, sourcePackageJsonPath);
         fs.copyFileSync(targetPackageLockPath, sourcePackageLockPath);
-        fs.cpSync(tempGitPath, originalGitPath);
+        fs.cpSync(tempGitPath, originalGitPath, { recursive: true });
 
         // Assert
         expect(result).to.be.an('object');
