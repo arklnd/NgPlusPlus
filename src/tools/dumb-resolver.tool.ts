@@ -40,6 +40,18 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
     const logger = getLogger().child('dumb-resolver');
     let attempt = 0;
     let tempDir: string | null = null;
+    let installSuccess = false;
+    let installOutput = '';
+    let installError = '';
+    let reasoningRecording: ReasoningRecording = { updateMade: [] };
+    
+    // File paths for cleanup
+    let originalPackageJsonPath = '';
+    let tempPackageJsonPath = '';
+    let tempPackageLockPath = '';
+    let originalPackageLockPath = '';
+    let tempGitPath = '';
+    let originalGitPath = '';
 
     try {
         logger.info('Starting dependency resolution', {
@@ -69,12 +81,12 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         tempDir = await mkdtempAsync(join(tmpdir(), 'dumb-resolver-'));
         logger.debug('Created temporary directory', { tempDir });
 
-        const originalPackageJsonPath = join(resolve(repo_path), 'package.json');
-        const tempPackageJsonPath = join(tempDir, 'package.json');
-        const tempPackageLockPath = join(tempDir, 'package-lock.json');
-        const originalPackageLockPath = join(resolve(repo_path), 'package-lock.json');
-        const tempGitPath = join(tempDir, '.git');
-        const originalGitPath = join(resolve(repo_path), '.git');
+        originalPackageJsonPath = join(resolve(repo_path), 'package.json');
+        tempPackageJsonPath = join(tempDir, 'package.json');
+        tempPackageLockPath = join(tempDir, 'package-lock.json');
+        originalPackageLockPath = join(resolve(repo_path), 'package-lock.json');
+        tempGitPath = join(tempDir, '.git');
+        originalGitPath = join(resolve(repo_path), '.git');
 
         if (!existsSync(originalPackageJsonPath)) {
             throw new Error(`package.json not found at ${originalPackageJsonPath}`);
@@ -129,9 +141,6 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
 
         // #region Step 3: Attempt installation with retry logic
         const openai = getOpenAIService({ model: 'copilot-gpt-4', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
-        let installOutput = '';
-        let installError = '';
-        let installSuccess = false;
 
         // Initialize enhanced analysis
         let currentAnalysis: ConflictAnalysis = {
@@ -146,7 +155,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         };
 
         // Initialize reasoning recording to track AI upgrade decisions across attempts
-        let reasoningRecording: ReasoningRecording = { updateMade: [] };
+        reasoningRecording = { updateMade: [] };
 
         // Initialize chat history for maintaining context across installation attempts
         const systemMessage = createEnhancedSystemPrompt();
@@ -382,28 +391,105 @@ This is the current state before any updates. Focus on achieving these target up
         }
         // #endregion
 
-        // #region Step 4: Handle final result
-        if (installSuccess) {
-            // Copy updated files back to original location
-            await cpAsync(tempPackageJsonPath, originalPackageJsonPath);
-            logger.info('Copied updated package.json back to original location');
+    } catch (error) {
+        const errorMessage = `❌ Dependency resolution failed: ${error instanceof Error ? error.message : String(error)}`;
+        logger.error('Dependency resolution failed', { error: errorMessage });
+        installSuccess = false;
+        installError = error instanceof Error ? error.message : String(error);
+    } finally {
+        // #region Resource cleanup and copy-back (always executed)
+        let copyBackSuccessful = false;
+        let copyBackErrors: string[] = [];
 
-            if (existsSync(tempPackageLockPath)) {
-                await cpAsync(tempPackageLockPath, originalPackageLockPath);
-                logger.info('Copied updated package-lock.json back to original location');
-            }
+        if (tempDir && (originalPackageJsonPath || tempPackageJsonPath)) {
+            logger.info('Starting resource cleanup and copy-back process', {
+                installSuccess,
+                tempDir,
+                attempt,
+                maxAttempts
+            });
 
-            // Copy .git directory back to original location
-            if (existsSync(tempGitPath)) {
-                // Remove existing .git directory if it exists
-                if (existsSync(originalGitPath)) {
-                    rmSync(originalGitPath, { recursive: true, force: true });
+            try {
+                // Always attempt to copy back resources, regardless of install success/failure
+                // This ensures any partial progress or intermediate states are preserved
+                
+                // Copy package.json back (most important file)
+                if (tempPackageJsonPath && originalPackageJsonPath && existsSync(tempPackageJsonPath)) {
+                    try {
+                        await cpAsync(tempPackageJsonPath, originalPackageJsonPath);
+                        logger.info('✅ Successfully copied package.json back to original location');
+                    } catch (copyError) {
+                        const error = `Failed to copy package.json: ${copyError instanceof Error ? copyError.message : String(copyError)}`;
+                        copyBackErrors.push(error);
+                        logger.error('❌ Failed to copy package.json back', { error });
+                    }
                 }
-                // Use synchronous cp with recursive option for directory copying
-                cpSync(tempGitPath, originalGitPath, { recursive: true });
-                logger.info('Copied .git directory back to original location');
-            }
 
+                // Copy package-lock.json back if it exists
+                if (tempPackageLockPath && originalPackageLockPath && existsSync(tempPackageLockPath)) {
+                    try {
+                        await cpAsync(tempPackageLockPath, originalPackageLockPath);
+                        logger.info('✅ Successfully copied package-lock.json back to original location');
+                    } catch (copyError) {
+                        const error = `Failed to copy package-lock.json: ${copyError instanceof Error ? copyError.message : String(copyError)}`;
+                        copyBackErrors.push(error);
+                        logger.error('❌ Failed to copy package-lock.json back', { error });
+                    }
+                }
+
+                // Copy .git directory back if it exists (for git history preservation)
+                if (tempGitPath && originalGitPath && existsSync(tempGitPath)) {
+                    try {
+                        // Remove existing .git directory if it exists
+                        if (existsSync(originalGitPath)) {
+                            rmSync(originalGitPath, { recursive: true, force: true });
+                            logger.debug('Removed existing .git directory');
+                        }
+                        
+                        // Use synchronous cp with recursive option for directory copying
+                        cpSync(tempGitPath, originalGitPath, { recursive: true });
+                        logger.info('✅ Successfully copied .git directory back to original location');
+                    } catch (copyError) {
+                        const error = `Failed to copy .git directory: ${copyError instanceof Error ? copyError.message : String(copyError)}`;
+                        copyBackErrors.push(error);
+                        logger.error('❌ Failed to copy .git directory back', { error });
+                    }
+                }
+
+                copyBackSuccessful = copyBackErrors.length === 0;
+                
+                if (copyBackSuccessful) {
+                    logger.info('✅ All resources successfully copied back to original location');
+                } else {
+                    logger.warn('⚠️ Resource copy-back completed with some errors', {
+                        errorCount: copyBackErrors.length,
+                        errors: copyBackErrors
+                    });
+                }
+
+            } catch (cleanupError) {
+                const error = `Unexpected error during resource copy-back: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`;
+                copyBackErrors.push(error);
+                logger.error('❌ Unexpected error during resource cleanup', { error });
+            }
+        }
+
+        // Cleanup temporary directory
+        if (tempDir) {
+            try {
+                rmSync(tempDir, { recursive: true, force: true });
+                logger.debug('✅ Successfully cleaned up temporary directory', { tempDir });
+            } catch (cleanupError) {
+                logger.warn('⚠️ Failed to cleanup temporary directory', {
+                    tempDir,
+                    error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+                });
+            }
+        }
+        // #endregion
+
+        // #region Return appropriate response based on final state
+        if (installSuccess && copyBackSuccessful) {
             // Log final reasoning chain for analysis
             logger.info('Final reasoning chain for successful resolution', {
                 totalUpgrades: reasoningRecording.updateMade.length,
@@ -418,12 +504,42 @@ This is the current state before any updates. Focus on achieving these target up
                 content: [
                     {
                         type: 'text' as const,
-                        text: `✅ Successfully updated dependencies after ${attempt} attempt(s):\n\n` + `Updated packages:\n${update_dependencies.map((dep) => `- ${dep.name}@${dep.version}`).join('\n')}\n\n` + `Installation output:\n${installOutput.slice(-500)}`, // Last 500 chars to avoid overflow
+                        text: `✅ Successfully updated dependencies after ${attempt} attempt(s):\n\n` + 
+                              `Updated packages:\n${update_dependencies.map((dep) => `- ${dep.name}@${dep.version}`).join('\n')}\n\n` + 
+                              `Installation output:\n${installOutput.slice(-500)}`, // Last 500 chars to avoid overflow
+                    },
+                ],
+            };
+        } else if (installSuccess && !copyBackSuccessful) {
+            // Installation succeeded but copy-back had issues
+            const warningMessage = `⚠️ Dependencies were successfully resolved after ${attempt} attempt(s), but there were issues copying files back:\n\n` +
+                                  `Updated packages:\n${update_dependencies.map((dep) => `- ${dep.name}@${dep.version}`).join('\n')}\n\n` +
+                                  `Copy-back errors:\n${copyBackErrors.join('\n')}\n\n` +
+                                  `Please check your files and ensure they are properly updated.\n\n` +
+                                  `Installation output:\n${installOutput.slice(-500)}`;
+
+            return {
+                content: [
+                    {
+                        type: 'text' as const,
+                        text: warningMessage,
                     },
                 ],
             };
         } else {
-            const errorMessage = `❌ Failed to resolve dependencies after ${maxAttempts} attempts.\n\n` + `Last error:\n${installError}\n\n` + `Please check the dependency versions and try again with compatible versions.`;
+            // Installation failed or was interrupted
+            const status = attempt >= maxAttempts ? `after ${maxAttempts} attempts` : `(interrupted after ${attempt} attempt(s))`;
+            let errorMessage = `❌ Failed to resolve dependencies ${status}.\n\n`;
+
+            if (installError) {
+                errorMessage += `Last error:\n${installError}\n\n`;
+            }
+
+            if (copyBackErrors.length > 0) {
+                errorMessage += `Additionally, there were issues during resource copy-back:\n${copyBackErrors.join('\n')}\n\n`;
+            }
+
+            errorMessage += `Please check the dependency versions and try again with compatible versions.`;
 
             return {
                 content: [
@@ -435,31 +551,6 @@ This is the current state before any updates. Focus on achieving these target up
             };
         }
         // #endregion
-    } catch (error) {
-        const errorMessage = `❌ Dependency resolution failed: ${error instanceof Error ? error.message : String(error)}`;
-        logger.error('Dependency resolution failed', { error: errorMessage });
-
-        return {
-            content: [
-                {
-                    type: 'text' as const,
-                    text: errorMessage,
-                },
-            ],
-        };
-    } finally {
-        // Cleanup temporary directory
-        if (tempDir) {
-            try {
-                rmSync(tempDir, { recursive: true, force: true });
-                logger.debug('Successfully cleaned up temporary directory', { tempDir });
-            } catch (cleanupError) {
-                logger.warn('Failed to cleanup temporary directory', {
-                    tempDir,
-                    error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
-                });
-            }
-        }
     }
 };
 
