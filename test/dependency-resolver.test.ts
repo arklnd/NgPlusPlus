@@ -551,6 +551,7 @@ describe('updatePackageWithDependencies', function () {
         const dumbResolverInput = {
             repo_path: testRepoPath,
             update_dependencies: updateDependencies,
+            maxAttempts: 200,
         };
 
         // Act - Invoke dumbResolverHandler
@@ -702,6 +703,7 @@ describe('updatePackageWithDependencies', function () {
         const dumbResolverInput = {
             repo_path: testRepoPath,
             update_dependencies: updateDependencies,
+            maxAttempts: 200,
         };
 
         // Act - Invoke dumbResolverHandler
