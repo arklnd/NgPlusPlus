@@ -1,9 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { tmpdir } from 'os';
-import { mkdtemp, cp, existsSync, rmSync } from 'fs';
+import { mkdtemp, cp, existsSync, rmSync, writeFileSync, cpSync } from 'fs';
 import { join, resolve } from 'path';
 import { promisify } from 'util';
+import { simpleGit } from 'simple-git';
 import { readPackageJson, writePackageJson, updateDependency, installDependencies } from '@U/package-json.utils';
 import { validatePackageVersionsExist } from '@U/package-registry.utils';
 import { getOpenAIService } from '@S/openai.service';
@@ -72,6 +73,8 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         const tempPackageJsonPath = join(tempDir, 'package.json');
         const tempPackageLockPath = join(tempDir, 'package-lock.json');
         const originalPackageLockPath = join(resolve(repo_path), 'package-lock.json');
+        const tempGitPath = join(tempDir, '.git');
+        const originalGitPath = join(resolve(repo_path), '.git');
 
         if (!existsSync(originalPackageJsonPath)) {
             throw new Error(`package.json not found at ${originalPackageJsonPath}`);
@@ -86,6 +89,13 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
             await cpAsync(originalPackageLockPath, tempPackageLockPath);
             logger.debug('Copied package-lock.json to temp directory');
         }
+        
+        // Initialize git repository and add gitignore for node_modules
+        const git = simpleGit(tempDir);
+        await git.init();
+        const gitignorePath = join(tempDir, '.gitignore');
+        writeFileSync(gitignorePath, 'node_modules/\n*.log\n');
+        logger.debug('Initialized git repository and created .gitignore');
         // #endregion
 
         // #region Step 1.5: ensure node_modules integrity in tempDir
@@ -93,6 +103,11 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         if (!initialInstall) {
             throw new Error('initial npm install in temp directory failed, cannot ensure node_modules integrity');
         }
+        
+        // Commit initial install
+        await git.add('.');
+        await git.commit('Initial install to ensure integrity');
+        logger.debug('Committed initial install to git');
         // endregion
 
         // #region Step 2: Read and update package.json with target dependencies
@@ -104,6 +119,11 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         }
 
         writePackageJson(tempDir, packageJson);
+        
+        // Commit updated dependencies
+        await git.add('.');
+        await git.commit('Updated initial target dependencies in package.json');
+        logger.debug('Committed updated dependencies to git');
         logger.info('Updated dependencies in temp package.json');
         // #endregion
 
@@ -321,6 +341,11 @@ This is the current state before any updates. Focus on achieving these target up
                         }
 
                         writePackageJson(tempDir, packageJson);
+                        
+                        // Commit AI strategic suggestions
+                        await git.add('.');
+                        await git.commit(`Applied AI strategic suggestions [attempt=${attempt}] aiRetryAttempt=${aiRetryAttempt}]`);
+                        logger.debug('Committed AI strategic suggestions to git', { attempt, aiRetryAttempt });
 
                         // Add summary of applied changes to chat history for next iteration context
                         const appliedChanges = suggestions.suggestions.map((s: any) => `${s.name}@${s.version}`).join(', ');
@@ -366,6 +391,17 @@ This is the current state before any updates. Focus on achieving these target up
             if (existsSync(tempPackageLockPath)) {
                 await cpAsync(tempPackageLockPath, originalPackageLockPath);
                 logger.info('Copied updated package-lock.json back to original location');
+            }
+
+            // Copy .git directory back to original location
+            if (existsSync(tempGitPath)) {
+                // Remove existing .git directory if it exists
+                if (existsSync(originalGitPath)) {
+                    rmSync(originalGitPath, { recursive: true, force: true });
+                }
+                // Use synchronous cp with recursive option for directory copying
+                cpSync(tempGitPath, originalGitPath, { recursive: true });
+                logger.info('Copied .git directory back to original location');
             }
 
             // Log final reasoning chain for analysis
