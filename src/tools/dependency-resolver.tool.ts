@@ -62,7 +62,7 @@ export async function updatePackageWithDependencies(repoPath: string, runNpmInst
 
         // Read package.json
         logger.debug('Reading package.json', { repoPath });
-        const packageJson = readPackageJson(repoPath);
+        const packageJson = await readPackageJson(repoPath);
         logger.info('Successfully read package.json', {
             hasName: !!packageJson.name,
             hasVersion: !!packageJson.version,
@@ -187,7 +187,7 @@ export async function updatePackageWithDependencies(repoPath: string, runNpmInst
         logger.info('Phase 5: Writing updated package.json');
         const writeStart = Date.now();
 
-        writePackageJson(repoPath, packageJson);
+        await writePackageJson(repoPath, packageJson);
 
         const writeTime = Date.now() - writeStart;
         logger.info('Phase 5: package.json written successfully', {

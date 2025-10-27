@@ -123,14 +123,14 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         // endregion
 
         // #region Step 2: Read and update package.json with target dependencies
-        let packageJson = readPackageJson(tempDir);
+        let packageJson = await readPackageJson(tempDir);
         const originalPackageJson = JSON.stringify(packageJson); // Deep clone for AI context
 
         for (const dep of update_dependencies) {
             updateDependency(packageJson, dep.name, dep.version, dep.isDev);
         }
 
-        writePackageJson(tempDir, packageJson);
+        await writePackageJson(tempDir, packageJson);
         
         // Commit updated dependencies
         await git.add('.');
@@ -227,7 +227,7 @@ This is the current state before any updates. Focus on achieving these target up
 
                 // Reset chat history with system message
                 chatHistory = [{ role: 'system', content: systemMessage }];
-                chatHistory.push({ role: 'user', content: `ORIGINAL PACKAGE.JSON DEPENDENCIES CONTEXT: \n${JSON.stringify(readPackageJson(tempDir))}` });
+                chatHistory.push({ role: 'user', content: `ORIGINAL PACKAGE.JSON DEPENDENCIES CONTEXT: \n${JSON.stringify(await readPackageJson(tempDir))}` });
                 // Add current failure and analysis to chat history
                 chatHistory.push({ role: 'user', content: strategicPrompt });
 
@@ -316,7 +316,7 @@ This is the current state before any updates. Focus on achieving these target up
                         // }
 
                         // Apply suggestions to package.json in tempDir
-                        packageJson = readPackageJson(tempDir);
+                        packageJson = await readPackageJson(tempDir);
 
                         for (const suggestion of suggestions.suggestions) {
                             updateDependency(packageJson, suggestion.name, suggestion.version, suggestion.isDev);
@@ -349,7 +349,7 @@ This is the current state before any updates. Focus on achieving these target up
                             }
                         }
 
-                        writePackageJson(tempDir, packageJson);
+                        await writePackageJson(tempDir, packageJson);
                         
                         // Commit AI strategic suggestions
                         await git.add('.');
