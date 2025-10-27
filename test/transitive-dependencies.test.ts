@@ -93,7 +93,7 @@ describe('updateTransitiveDependencies', function () {
         fs.writeFileSync(packageJsonPath, JSON.stringify(initialPackageJson, null, 2));
 
         // Read the package.json as the function expects
-        const packageJson = readPackageJson(testRepoPath);
+        const packageJson = await readPackageJson(testRepoPath);
 
         // Define the updates as specified in the user request
         const updates: PackageUpdate[] = [
@@ -265,7 +265,7 @@ describe('updateTransitiveDependencies', function () {
 
         const packageJsonPath = path.join(testRepoPath, 'package.json');
         fs.writeFileSync(packageJsonPath, JSON.stringify(initialPackageJson, null, 2));
-        const packageJson = readPackageJson(testRepoPath);
+        const packageJson = await readPackageJson(testRepoPath);
 
         const updates: PackageUpdate[] = [
             { name: '@angular/core', version: '^18.1.0' }, // Minor version bump

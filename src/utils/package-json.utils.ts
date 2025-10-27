@@ -7,9 +7,9 @@ import { PackageJson } from '@I/index';
 /**
  * Reads and parses package.json from a given repository path
  * @param repoPath Path to the repository containing package.json
- * @returns Parsed package.json object
+ * @returns Promise that resolves to parsed package.json object
  */
-export function readPackageJson(repoPath: string): PackageJson {
+export async function readPackageJson(repoPath: string): Promise<PackageJson> {
     const logger = getLogger().child('PackageJson');
     const packageJsonPath = join(resolve(repoPath), 'package.json');
 
@@ -45,8 +45,9 @@ export function readPackageJson(repoPath: string): PackageJson {
  * Writes package.json back to the file system
  * @param repoPath Path to the repository containing package.json
  * @param packageJson The package.json object to write
+ * @returns Promise that resolves when the write operation is complete
  */
-export function writePackageJson(repoPath: string, packageJson: PackageJson): void {
+export async function writePackageJson(repoPath: string, packageJson: PackageJson): Promise<void> {
     const logger = getLogger().child('PackageJson');
     const packageJsonPath = join(resolve(repoPath), 'package.json');
 
