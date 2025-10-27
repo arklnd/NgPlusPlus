@@ -16,19 +16,17 @@ interface PackageUpdate {
 }
 
 describe('updatePackageWithDependencies', function () {
-    let tempDir: string;
     let testRepoPath: string;
 
     beforeEach(function () {
         // Create a temporary directory for testing
-        tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ngplusplus-test-'));
-        testRepoPath = tempDir;
+        testRepoPath = fs.mkdtempSync(path.join(os.tmpdir(), 'ngplusplus-test-'));
     });
 
     afterEach(function () {
         // Clean up temporary directory
-        if (fs.existsSync(tempDir)) {
-            fs.rmSync(tempDir, { recursive: true, force: true });
+        if (fs.existsSync(testRepoPath)) {
+            fs.rmSync(testRepoPath, { recursive: true, force: true });
         }
     });
 
@@ -605,7 +603,7 @@ describe('updatePackageWithDependencies', function () {
 
         const targetPackageJsonPath = path.join(testRepoPath, 'package.json');
         const targetPackageLockPath = path.join(testRepoPath, 'package-lock.json');
-        const tempGitPath = path.join(tempDir, '.git');
+        const tempGitPath = path.join(testRepoPath, '.git');
 
         // Copy the asset files to test directory
         fs.copyFileSync(sourcePackageJsonPath, targetPackageJsonPath);
