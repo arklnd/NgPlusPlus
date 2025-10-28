@@ -94,7 +94,7 @@ export function getAllDependencies(packageJson: PackageJson): Record<string, str
  * @param version New version
  * @param isDev Whether it's a dev dependency
  */
-export function updateDependency(packageJson: PackageJson, name: string, version: string, isDev: boolean): void {
+export async function updateDependency(packageJson: PackageJson, name: string, version: string, isDev: boolean): Promise<void> {
     const logger = getLogger().child('PackageJson');
     const target = isDev ? 'devDependencies' : 'dependencies';
     const oldVersion = isDev ? packageJson.devDependencies?.[name] : packageJson.dependencies?.[name];
