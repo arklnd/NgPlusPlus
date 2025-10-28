@@ -353,11 +353,13 @@ This is the current state before any updates. Focus on achieving these target up
                         
                         // Commit AI strategic suggestions
                         await git.add('.');
+                        const gitStatus = await git.status();
+                        logger.debug('✔️ Git status before commit', { gitStatus });
                         await git.commit(`Applied AI strategic suggestions [attempt=${attempt}] aiRetryAttempt=${aiRetryAttempt}]`);
                         
                         // Get git log and pass to logger
                         const gitLog = await git.log({ maxCount: 10 });
-                        logger.debug('Committed AI strategic suggestions to git', { 
+                        logger.debug('✔️ Committed AI strategic suggestions to git', {
                             attempt, 
                             aiRetryAttempt,
                             recentCommits: gitLog.all.map(commit => ({
