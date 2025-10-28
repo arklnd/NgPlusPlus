@@ -354,7 +354,18 @@ This is the current state before any updates. Focus on achieving these target up
                         // Commit AI strategic suggestions
                         await git.add('.');
                         await git.commit(`Applied AI strategic suggestions [attempt=${attempt}] aiRetryAttempt=${aiRetryAttempt}]`);
-                        logger.debug('Committed AI strategic suggestions to git', { attempt, aiRetryAttempt });
+                        
+                        // Get git log and pass to logger
+                        const gitLog = await git.log({ maxCount: 10 });
+                        logger.debug('Committed AI strategic suggestions to git', { 
+                            attempt, 
+                            aiRetryAttempt,
+                            recentCommits: gitLog.all.map(commit => ({
+                                hash: commit.hash.substring(0, 7),
+                                message: commit.message,
+                                date: commit.date
+                            }))
+                        });
 
                         // Add summary of applied changes to chat history for next iteration context
                         const appliedChanges = suggestions.suggestions.map((s: any) => `${s.name}@${s.version}`).join(', ');
