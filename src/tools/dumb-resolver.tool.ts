@@ -127,7 +127,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         const originalPackageJson = JSON.stringify(packageJson); // Deep clone for AI context
 
         for (const dep of update_dependencies) {
-            updateDependency(packageJson, dep.name, dep.version, dep.isDev);
+            await updateDependency(packageJson, dep.name, dep.version, dep.isDev);
         }
 
         await writePackageJson(tempDir, packageJson);
@@ -319,7 +319,7 @@ This is the current state before any updates. Focus on achieving these target up
                         packageJson = await readPackageJson(tempDir);
 
                         for (const suggestion of suggestions.suggestions) {
-                            updateDependency(packageJson, suggestion.name, suggestion.version, suggestion.isDev);
+                            await updateDependency(packageJson, suggestion.name, suggestion.version, suggestion.isDev);
                             const targetDep = update_dependencies.find((dep) => dep.name === suggestion.name);
                             if (targetDep) {
                                 // Update existing dependency with suggested version
