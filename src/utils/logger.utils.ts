@@ -12,7 +12,7 @@ export class Logger {
 
     constructor(config: Partial<LoggerConfig> = {}) {
         this.config = {
-            level: LogLevel.INFO,
+            level: LogLevel.TRACE,
             enableFileLogging: true,
             logDirectory: './logs',
             logFileName: `ngplusplus-${new Date()
