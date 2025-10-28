@@ -38,6 +38,7 @@ export class Logger {
         const __dirname = path.dirname(__filename);
         this.config.logDirectory = path.join(__dirname, this.config.logDirectory);
         this.logFilePath = path.join(this.config.logDirectory, this.config.logFileName!);
+        console.log(`Logger initialized. Log file: ${this.logFilePath}`);
         this.ensureLogDirectory();
     }
 
