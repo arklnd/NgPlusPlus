@@ -5,7 +5,7 @@ export * from './dependency-analyzer.utils';
 export * from './upgrade-strategy-generator.utils';
 
 // Export all prompt generator utilities
-export * from './prompt-generator.utils';
+export * from './template-generator.utils';
 
 // Export all version compatibility utilities
 export * from './version-compatibility.utils';

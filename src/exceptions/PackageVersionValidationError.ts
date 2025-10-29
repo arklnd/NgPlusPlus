@@ -1,4 +1,4 @@
-import { createPackageValidationErrorMessage } from '@U/dumb-resolver-helper/prompt-generator.utils';
+import { createPackageValidationErrorMessage } from '@U/index';
 
 export class PackageVersionValidationError extends Error {
     constructor(message: string) {
