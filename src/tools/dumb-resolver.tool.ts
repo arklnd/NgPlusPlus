@@ -306,8 +306,13 @@ This is the current state before any updates. Focus on achieving these target up
                         validSuggestions = true;
 
                         // Extract and update reasoning recording from AI response
-                        if (suggestions.reasoning && suggestions.reasoning.updateMade && Array.isArray(suggestions.reasoning.updateMade)) {
+                        let reasoningDetails = '';
+                        if (suggestions.reasoning?.updateMade && Array.isArray(suggestions.reasoning.updateMade) && suggestions.reasoning.updateMade.length > 0) {
                             reasoningRecording.updateMade.push(...suggestions.reasoning.updateMade);
+                            const reasoningEntries = suggestions.reasoning.updateMade
+                                .map((update: any) => `  - ${update.package.name} (rank: ${update.package.rank}): ${update.fromVersion} → ${update.toVersion} | Due to higher rank of: ${update.reason.name} (rank: ${update.reason.rank})`)
+                                .join('\n');
+                            reasoningDetails = `\n\nReasoning Chain:\n${reasoningEntries}`;
                             logger.info('Updated reasoning recording with AI insights 🤖', {
                                 newReasoningEntries: suggestions.reasoning.updateMade.length,
                                 totalReasoningEntries: reasoningRecording.updateMade.length,
@@ -361,7 +366,7 @@ This is the current state before any updates. Focus on achieving these target up
                             .map((s: any) => `  - ${s.name}@${s.version}${s.reason ? ` (${s.reason})` : ''}`)
                             .join('\n');
                         
-                        const commitMessage = `Applied AI strategic suggestions [attempt=${attempt}, aiRetry=${aiRetryAttempt}]\n\n${suggestionSummary}`;
+                        const commitMessage = `Applied AI strategic suggestions [attempt=${attempt}, aiRetry=${aiRetryAttempt}]\n\n${suggestionSummary}${reasoningDetails}`;
                         
                         await git.commit(commitMessage);
                         
