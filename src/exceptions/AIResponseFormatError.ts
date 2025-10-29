@@ -1,4 +1,4 @@
-import { createAIResponseFormatErrorMessage } from '@U/dumb-resolver-helper/prompt-generator.utils';
+import { createAIResponseFormatErrorMessage } from '@U/index';
 
 export class AIResponseFormatError extends Error {
     constructor(message: string) {

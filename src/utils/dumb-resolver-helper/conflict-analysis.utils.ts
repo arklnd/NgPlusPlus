@@ -3,7 +3,7 @@ import { getCleanVersion } from '@U/version.utils';
 import { getLogger } from '@U/index';
 import { getOpenAIService } from '@S/openai.service';
 import { ConflictAnalysis, RegistryData } from '@I/index';
-import { createDependencyParsingPrompt, createPackageRankingPrompt } from './prompt-generator.utils';
+import { createDependencyParsingPrompt, createPackageRankingPrompt } from './template-generator.utils';
 import { getCachedPackageData, setCachedPackageData } from '@U/cache.utils';
 import * as semver from 'semver';
 
