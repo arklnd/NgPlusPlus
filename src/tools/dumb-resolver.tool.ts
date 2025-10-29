@@ -351,11 +351,19 @@ This is the current state before any updates. Focus on achieving these target up
 
                         await writePackageJson(tempDir, packageJson);
                         
-                        // Commit AI strategic suggestions
+                        // Commit AI strategic suggestions with detailed reasoning
                         await git.add('.');
                         const gitStatus = await git.status();
                         logger.debug('✔️ Git status before commit', { gitStatus });
-                        await git.commit(`Applied AI strategic suggestions [attempt=${attempt}] aiRetryAttempt=${aiRetryAttempt}]`);
+                        
+                        // Build enriched commit message with AI reasoning
+                        const suggestionSummary = suggestions.suggestions
+                            .map((s: any) => `  - ${s.name}@${s.version}${s.reason ? ` (${s.reason})` : ''}`)
+                            .join('\n');
+                        
+                        const commitMessage = `Applied AI strategic suggestions [attempt=${attempt}, aiRetry=${aiRetryAttempt}]\n\n${suggestionSummary}`;
+                        
+                        await git.commit(commitMessage);
                         
                         // Get git log and pass to logger
                         const gitLog = await git.log({ maxCount: 10 });
