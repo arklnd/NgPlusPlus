@@ -366,7 +366,12 @@ This is the current state before any updates. Focus on achieving these target up
                             .map((s: any) => `  - ${s.name}@${s.version}${s.reason ? ` (${s.reason})` : ''}`)
                             .join('\n');
                         
-                        const commitMessage = `Applied AI strategic suggestions [attempt=${attempt}, aiRetry=${aiRetryAttempt}]\n\n${suggestionSummary}${reasoningDetails}`;
+                        // Add install error context (format each line with proper git commit message style)
+                        const errorContext = installError 
+                            ? `\n\nError Context:\n${installError.split('\n').filter(line => line.trim()).map(line => `  ${line}`).join('\n')}`
+                            : '';
+                        
+                        const commitMessage = `Applied AI strategic suggestions [attempt=${attempt}, aiRetry=${aiRetryAttempt}]\n\n${suggestionSummary}${reasoningDetails}${errorContext}`;
                         
                         await git.commit(commitMessage);
                         
