@@ -65,6 +65,7 @@ jobs:
           logs/
           src/logs/
           src/utils/logs/
+          test/assets/git-git/
           test/assets/**
           test/assets/.*
           package-cache.db
