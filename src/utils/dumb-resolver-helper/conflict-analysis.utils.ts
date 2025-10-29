@@ -17,7 +17,7 @@ const JSON_RESPONSE_REGEX = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
  */
 export async function parseInstallErrorToConflictAnalysis(installError: string): Promise<ConflictAnalysis> {
     const logger = getLogger().child('conflict-analysis');
-    const openai = getOpenAIService({ model: 'copilot-gpt-4', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
+    const openai = getOpenAIService({ model: 'copilot-claude-sonnet-4.5', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
 
     logger.info('Parsing install error to generate conflict analysis');
 
@@ -327,7 +327,7 @@ export async function getRankingForPackage(packageName: string): Promise<{ rank:
 
         const readme: RegistryData | null = packageName.trim() !== 'root project' ? await getPackageData(packageName, ['readme']) : null;
 
-        const openai = getOpenAIService({ model: 'copilot-gpt-4', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
+        const openai = getOpenAIService({ model: 'copilot-claude-sonnet-4.5', baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
 
         // Create ranking prompt for this specific package
         const rankingPrompt = createPackageRankingPrompt(packageName, readme?.readme?.trim() && readme?.readme?.trim().length > 0 ? JSON.stringify(readme?.readme) : undefined);
