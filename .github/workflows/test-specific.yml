@@ -14,7 +14,7 @@ on:
         default: '200'
         type: string
       openai_model:
-        description: 'OpenAI model to use'
+        description: 'OpenAI model to use (GPT-4.1, GPT-4o, GPT-5-mini and grok-code are 0x models, haiku 0.33x model)'
         required: false
         default: 'copilot-gpt-4'
         type: choice
