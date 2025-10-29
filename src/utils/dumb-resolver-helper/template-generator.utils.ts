@@ -88,3 +88,11 @@ export function createPackageRankingPrompt(packageName: string, readme?: string)
     const template = loadTemplate('package-ranking-prompt');
     return template({ packageName, readme });
 }
+
+/**
+ * Creates a no new suggestion error retry message
+ */
+export function createNoNewSuggestionErrorRetryMessage(errorMessage?: string): string {
+    const template = loadTemplate('no-new-suggestion-error');
+    return template({ errorMessage });
+}

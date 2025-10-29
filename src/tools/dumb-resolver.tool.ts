@@ -11,8 +11,9 @@ import { getOpenAIService } from '@S/openai.service';
 import { getLogger } from '@U/index';
 import OpenAI from 'openai';
 import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility, hydrateConflictAnalysisWithRegistryData, parseInstallErrorToConflictAnalysis, hydrateConflictAnalysisWithRanking } from '@U/dumb-resolver-helper';
-import { AIResponseFormatError, NoSuitableVersionFoundError, PackageVersionValidationError } from '@E/index';
+import { AIResponseFormatError, NoSuitableVersionFoundError, PackageVersionValidationError, NoNewSuggestionError } from '@E/index';
 import { ConflictAnalysis, ReasoningRecording, updateMade } from '@I/index';
+import deepEqual from 'fast-deep-equal';
 
 
 const JSON_RESPONSE_REGEX = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
@@ -322,6 +323,7 @@ This is the current state before any updates. Focus on achieving these target up
 
                         // Apply suggestions to package.json in tempDir
                         packageJson = await readPackageJson(tempDir);
+                        const packageJsonBeforeSuggestions = JSON.parse(JSON.stringify(packageJson));
 
                         for (const suggestion of suggestions.suggestions) {
                             await updateDependency(packageJson, suggestion.name, suggestion.version, suggestion.isDev);
@@ -354,6 +356,13 @@ This is the current state before any updates. Focus on achieving these target up
                             }
                         }
 
+                        // Check if packageJson actually has any changes using deep equality comparison
+                        if (deepEqual(packageJsonBeforeSuggestions, packageJson)) {
+                            const errorMessage = 'AI suggested changes but package.json remains unchanged. This indicates the suggestions were redundant or ineffective.';
+                            throw new NoNewSuggestionError(errorMessage);
+                        }
+
+                        logger.debug('Verified package.json has changes after applying suggestions');
                         await writePackageJson(tempDir, packageJson);
                         
                         // Commit AI strategic suggestions with detailed reasoning
@@ -400,16 +409,14 @@ This is the current state before any updates. Focus on achieving these target up
                         if (aiRetryAttempt < maxAiRetries) {
                             let retryMessage = '';
 
-                            if (aiError instanceof AIResponseFormatError) {
-                                retryMessage = aiError.getRetryMessage();
-                            } else if (aiError instanceof PackageVersionValidationError) {
+                            if (aiError instanceof AIResponseFormatError || aiError instanceof PackageVersionValidationError || aiError instanceof NoNewSuggestionError) {
+                                validSuggestions = false;
                                 retryMessage = aiError.getRetryMessage();
                             } else if (aiError instanceof NoSuitableVersionFoundError) {
                                 throw aiError; // Let the main loop catch and handle this error
                             } else {
                                 // Generic error handling for other types of errors
-                                retryMessage = `An error occurred while processing your response: ${errorMsg}
-                                \n\nPlease provide a valid JSON response with the required structure and ensure all package versions exist in the npm registry.`;
+                                retryMessage = `An error occurred while processing your response: ${errorMsg}`;
                             }
 
                             chatHistory.push({ role: 'user', content: retryMessage });
