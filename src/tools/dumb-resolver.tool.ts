@@ -209,7 +209,7 @@ This is the current state before any updates. Focus on achieving these target up
                 currentAnalysis = await parseInstallErrorToConflictAnalysis(installError);
 
                 // Enhance analysis with ranking
-                currentAnalysis = await hydrateConflictAnalysisWithRanking(currentAnalysis);
+                // currentAnalysis = await hydrateConflictAnalysisWithRanking(currentAnalysis);
 
                 // Enhance analysis with available versions from registry
                 currentAnalysis = await hydrateConflictAnalysisWithRegistryData(currentAnalysis);
