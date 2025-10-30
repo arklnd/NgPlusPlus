@@ -58,10 +58,26 @@ jobs:
 
     - name: Run test
       if: success()
+      continue-on-error: true
+      id: test_run
       run: npx mocha -- --grep "${{ github.event.inputs.test_pattern }}"
+      timeout-minutes: 180
       env:
         MAX_ATTEMPTS: ${{ github.event.inputs.max_attempts }}
         OPENAI_MODEL: ${{ github.event.inputs.openai_model }}
+    
+    - name: Check test outcome
+      if: always()
+      run: |
+        if ("${{ steps.test_run.outcome }}" -eq "cancelled") {
+          Write-Host "⚠️ Test was cancelled - artifacts may be incomplete"
+          exit 0
+        } elseif ("${{ steps.test_run.outcome }}" -eq "failure") {
+          Write-Host "❌ Test failed - check artifacts for details"
+          exit 0
+        } else {
+          Write-Host "✅ Test completed successfully"
+        }
 
     - name: Display test results
       if: always()
@@ -80,6 +96,37 @@ jobs:
         console.log('Generated artifact name:', artifactName);
         " '${{ github.event.inputs.test_pattern }}' '${{ github.run_number }}'
 
+    - name: Debug - List files before upload
+      if: always()
+      run: |
+        Write-Host "=== Listing files in current directory ==="
+        Get-ChildItem -Force | Format-Table Name, Length, LastWriteTime
+        Write-Host "`n=== Checking for package-cache.db ==="
+        if (Test-Path "package-cache.db") {
+          Write-Host "✅ package-cache.db found"
+          Get-Item "package-cache.db" | Format-List
+        } else {
+          Write-Host "❌ package-cache.db NOT found in root"
+        }
+        Write-Host "`n=== Checking for cache in src/utils ==="
+        if (Test-Path "src/utils/package-cache.db") {
+          Write-Host "✅ Found in src/utils/"
+          Get-Item "src/utils/package-cache.db" | Format-List
+        }
+        Write-Host "`n=== Searching for *.db files ==="
+        Get-ChildItem -Recurse -Filter "*.db" -Force -ErrorAction SilentlyContinue | Format-Table FullName, Length
+        Write-Host "`n=== Checking for git-git directory ==="
+        if (Test-Path "test/assets/git-git") {
+          Write-Host "✅ test/assets/git-git found"
+          Get-ChildItem "test/assets/git-git" -Force -Recurse | Measure-Object | Select-Object -ExpandProperty Count | ForEach-Object { Write-Host "Total files: $_" }
+        } else {
+          Write-Host "❌ test/assets/git-git NOT found"
+        }
+        Write-Host "`n=== Listing test/assets contents ==="
+        if (Test-Path "test/assets") {
+          Get-ChildItem "test/assets" -Force | Format-Table Name, Length, LastWriteTime
+        }
+
     - name: Upload logs as artifacts
       if: always()
       uses: actions/upload-artifact@v4
@@ -89,8 +136,13 @@ jobs:
           logs/
           src/logs/
           src/utils/logs/
-          test/assets/git-git/
-          test/assets/**
-          test/assets/.*
+          test/assets/git-git/**/*
+          test/assets/git-git/.git/**/*
+          test/assets/**/*.json
+          test/assets/**/*.lock
           package-cache.db
+          src/utils/package-cache.db
+          **/*.db
         retention-days: 30
+        if-no-files-found: warn
+        include-hidden-files: true

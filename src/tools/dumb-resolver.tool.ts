@@ -578,7 +578,12 @@ This is the current state before any updates. Focus on achieving these target up
             }
 
             errorMessage += `Please check the dependency versions and try again with compatible versions.`;
-
+            logger.error('[❌] Dependency resolution ultimately failed', {
+                installError,
+                copyBackErrors,
+                attempt,
+                maxAttempts
+            });
             return {
                 content: [
                     {
