@@ -273,11 +273,22 @@ export async function installDependencies(repoPath: string): Promise<{ stdout: s
         const processPromise = new Promise<{ stdout: string; stderr: string; success: boolean }>((resolve, reject) => {
             let completed = false;
 
+            // Ensure Cypress and Puppeteer use global caches by inheriting environment variables
+            // This prevents re-downloading Cypress binary and Chrome browser on every temp directory install
+            const env = {
+                ...process.env,
+                // Explicitly set Cypress cache folder if not already set
+                CYPRESS_CACHE_FOLDER: process.env.CYPRESS_CACHE_FOLDER || (process.platform === 'win32' ? `${process.env.LOCALAPPDATA}\\Cypress\\Cache` : `${process.env.HOME}/.cache/Cypress`),
+                // Explicitly set Puppeteer cache folder for browser downloads
+                PUPPETEER_CACHE_DIR: process.env.PUPPETEER_CACHE_DIR || (process.platform === 'win32' ? `${process.env.USERPROFILE}\\.cache\\puppeteer` : `${process.env.HOME}/.cache/puppeteer`),
+            };
+
             const child = spawn('npm', ['install'], {
                 stdio: ['pipe', 'pipe', 'pipe'],
                 shell: true,
                 cwd: repoPath,
                 signal: abortController.signal, // Pass the abort signal
+                env, // Pass environment variables with Cypress and Puppeteer cache locations
             });
 
             let stdout = '';
@@ -307,7 +318,7 @@ export async function installDependencies(repoPath: string): Promise<{ stdout: s
                     clearTimeout(timeoutId);
 
                     const success = code === 0;
-                    
+
                     if (success) {
                         logger.info('Successfully installed dependencies', {
                             repoPath,
@@ -320,7 +331,7 @@ export async function installDependencies(repoPath: string): Promise<{ stdout: s
                             repoPath,
                             stderr: stderr.trim(),
                             stdout: stdout.trim(),
-                            exitCode: code
+                            exitCode: code,
                         });
                         reject(new Error(`${errorMessage}: ${stderr || stdout}`));
                     }
