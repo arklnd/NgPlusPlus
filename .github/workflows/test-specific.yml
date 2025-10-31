@@ -89,7 +89,7 @@ jobs:
     - name: Prepare artifact name
       if: always()
       id: artifact_name
-      run: npx tsx .github/scripts/prepare-artifact-name.ts "${{ github.event.inputs.test_pattern }}" "${{ github.run_number }}"
+      run: npx tsx .github/scripts/prepare-artifact-name.ts "${{ github.event.inputs.test_pattern }}" "${{ github.run_number }}" "${{ github.event.inputs.max_attempts }}" "${{ github.run_attempt }}"
 
     - name: Debug - List files before upload
       if: always()
