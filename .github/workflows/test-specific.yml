@@ -69,15 +69,18 @@ jobs:
     - name: Check test outcome
       if: always()
       run: |
-        if ("${{ steps.test_run.outcome }}" -eq "cancelled") {
-          Write-Host "⚠️ Test was cancelled - artifacts may be incomplete"
-          exit 0
-        } elseif ("${{ steps.test_run.outcome }}" -eq "failure") {
-          Write-Host "❌ Test failed - check artifacts for details"
-          exit 0
+        node -e "
+        const outcome = process.argv[1];
+        if (outcome === 'cancelled') {
+          console.log('⚠️ Test was cancelled - artifacts may be incomplete');
+          process.exit(0);
+        } else if (outcome === 'failure') {
+          console.log('❌ Test failed - check artifacts for details');
+          process.exit(0);
         } else {
-          Write-Host "✅ Test completed successfully"
+          console.log('✅ Test completed successfully');
         }
+        " '${{ steps.test_run.outcome }}'
 
     - name: Display test results
       if: always()
@@ -86,46 +89,11 @@ jobs:
     - name: Prepare artifact name
       if: always()
       id: artifact_name
-      run: |
-        node -e "
-        const testPattern = process.argv[1];
-        const runNumber = process.argv[2];
-        const cleanName = testPattern.replace(/\s/g, '_');
-        const artifactName = cleanName + '__logs-' + runNumber;
-        require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'name=' + artifactName + '\n');
-        console.log('Generated artifact name:', artifactName);
-        " '${{ github.event.inputs.test_pattern }}' '${{ github.run_number }}'
+      run: npx tsx .github/scripts/prepare-artifact-name.ts "${{ github.event.inputs.test_pattern }}" "${{ github.run_number }}"
 
     - name: Debug - List files before upload
       if: always()
-      run: |
-        Write-Host "=== Listing files in current directory ==="
-        Get-ChildItem -Force | Format-Table Name, Length, LastWriteTime
-        Write-Host "`n=== Checking for package-cache.db ==="
-        if (Test-Path "package-cache.db") {
-          Write-Host "✅ package-cache.db found"
-          Get-Item "package-cache.db" | Format-List
-        } else {
-          Write-Host "❌ package-cache.db NOT found in root"
-        }
-        Write-Host "`n=== Checking for cache in src/utils ==="
-        if (Test-Path "src/utils/package-cache.db") {
-          Write-Host "✅ Found in src/utils/"
-          Get-Item "src/utils/package-cache.db" | Format-List
-        }
-        Write-Host "`n=== Searching for *.db files ==="
-        Get-ChildItem -Recurse -Filter "*.db" -Force -ErrorAction SilentlyContinue | Format-Table FullName, Length
-        Write-Host "`n=== Checking for git-git directory ==="
-        if (Test-Path "test/assets/git-git") {
-          Write-Host "✅ test/assets/git-git found"
-          Get-ChildItem "test/assets/git-git" -Force -Recurse | Measure-Object | Select-Object -ExpandProperty Count | ForEach-Object { Write-Host "Total files: $_" }
-        } else {
-          Write-Host "❌ test/assets/git-git NOT found"
-        }
-        Write-Host "`n=== Listing test/assets contents ==="
-        if (Test-Path "test/assets") {
-          Get-ChildItem "test/assets" -Force | Format-Table Name, Length, LastWriteTime
-        }
+      run: npx tsx .github/scripts/debug-files.ts
 
     - name: Upload logs as artifacts
       if: always()
@@ -136,12 +104,7 @@ jobs:
           logs/
           src/logs/
           src/utils/logs/
-          test/assets/git-git/**/*
-          test/assets/git-git/.git/**/*
-          test/assets/**/*.json
-          test/assets/**/*.lock
-          package-cache.db
-          src/utils/package-cache.db
+          test/assets/
           **/*.db
         retention-days: 30
         if-no-files-found: warn
