@@ -20,7 +20,22 @@ export interface PackageVersionInfo {
     availableVersions?: string[];
 }
 
+export interface RequiredBy {
+    dependent: string;
+    dependentVersion?: string;
+    requiredRange: string;
+    type: "dependency" | "peer";
+    isSatisfied: boolean;
+}
+
+export interface ConflictDetail {
+    packageName: string;
+    currentVersion: string;
+    requiredBy: RequiredBy[];
+}
+
 export interface ConflictAnalysis {
+    conflicts: ConflictDetail[];
     allPackagesMentionedInError: string[];
     conflictingPackage: string;
     conflictingPackageCurrentVersion: string;

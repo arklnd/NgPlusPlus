@@ -35,16 +35,52 @@ export async function parseInstallErrorToConflictAnalysis(installError: string):
     }
 
     try {
-        const currentAnalysis: ConflictAnalysis = JSON.parse(jsonString);
+        const parsed = JSON.parse(jsonString);
 
-        logger.info('🌟 Successfully parsed install error to conflict analysis', {
-            conflictingPackage: currentAnalysis.conflictingPackage,
-            conflictingPackageCurrentVersion: currentAnalysis.conflictingPackageCurrentVersion,
-            satisfyingPackagesCount: currentAnalysis.satisfyingPackages?.length || 0,
-            notSatisfyingPackagesCount: currentAnalysis.notSatisfying?.length || 0,
-        });
+        if (parsed.conflicts && Array.isArray(parsed.conflicts) && parsed.conflicts.length > 0) {
+            const primaryConflict = parsed.conflicts[0];
+            const currentAnalysis: ConflictAnalysis = {
+                conflicts: parsed.conflicts,
+                allPackagesMentionedInError: parsed.conflicts.map((c: any) => c.packageName),
+                conflictingPackage: primaryConflict.packageName,
+                conflictingPackageCurrentVersion: primaryConflict.currentVersion,
+                satisfyingPackages: primaryConflict.requiredBy
+                    .filter((r: any) => r.isSatisfied)
+                    .map((r: any) => ({
+                        packageName: r.dependent,
+                        packageVersion: r.dependentVersion || '',
+                        requiredVersionRange: r.requiredRange,
+                        rank: undefined,
+                        tier: undefined,
+                        availableVersions: [],
+                    })),
+                notSatisfying: primaryConflict.requiredBy
+                    .filter((r: any) => !r.isSatisfied)
+                    .map((r: any) => ({
+                        packageName: r.dependent,
+                        packageVersion: r.dependentVersion || '',
+                        requiredVersionRange: r.requiredRange,
+                        rank: undefined,
+                        tier: undefined,
+                        availableVersions: [],
+                    })),
+                rank: 0,
+                tier: '',
+                packagesVersionData: new Map<string, string[]>(),
+            };
 
-        return currentAnalysis;
+            logger.info('🌟 Successfully parsed install error to conflict analysis', {
+                conflictingPackage: currentAnalysis.conflictingPackage,
+                conflictingPackageCurrentVersion: currentAnalysis.conflictingPackageCurrentVersion,
+                satisfyingPackagesCount: currentAnalysis.satisfyingPackages?.length || 0,
+                notSatisfyingPackagesCount: currentAnalysis.notSatisfying?.length || 0,
+                totalConflicts: currentAnalysis.conflicts.length,
+            });
+
+            return currentAnalysis;
+        } else {
+            throw new Error('Invalid response format: missing or invalid conflicts array');
+        }
     } catch (parseError) {
         logger.error('Failed to parse AI response as JSON', {
             error: parseError instanceof Error ? parseError.message : String(parseError),
@@ -53,6 +89,7 @@ export async function parseInstallErrorToConflictAnalysis(installError: string):
 
         // Return empty analysis as fallback
         return {
+            conflicts: [],
             allPackagesMentionedInError: [],
             conflictingPackage: '',
             conflictingPackageCurrentVersion: '',
