@@ -197,7 +197,7 @@ export async function getAllDependent(repoPath: string, packageName: string): Pr
         // Parse the dependency tree to find dependents
         const result: Record<string, PackageJson[]> = {};
 
-        function traverseDependencies(deps: any, parentName: string, parentVersion: string, path: string[] = []) {
+        const traverseDependencies = (deps: any, parentName: string, parentVersion: string, path: string[] = []) => {
             if (!deps || typeof deps !== 'object') return;
 
             // Avoid circular dependencies
