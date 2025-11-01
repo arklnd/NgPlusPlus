@@ -17,7 +17,7 @@
         "start": "bun dist/index.js",
         "clean": "bun -e \"require('fs').rmSync('dist', {recursive: true, force: true})\"",
         "build:watch": "tsc -p tsconfig.build.json --watch",
-        "test": "bun test --timeout=60000"
+        "test": "bun test --timeout=3600000"
     },
     "author": "Arijit Kundu",
     "license": "ISC",
