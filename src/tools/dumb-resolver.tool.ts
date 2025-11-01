@@ -151,6 +151,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
 
         // Initialize enhanced analysis
         let currentAnalysis: ConflictAnalysis = {
+            conflicts: [],
             allPackagesMentionedInError: [],
             conflictingPackage: '',
             conflictingPackageCurrentVersion: '',
