@@ -1,5 +1,4 @@
-import { expect } from 'chai';
-import { describe, it, beforeEach, afterEach } from 'mocha';
+import { expect, describe, it, beforeEach, afterEach } from 'bun:test';
 import { existsSync, mkdirSync, writeFileSync, unlinkSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -45,20 +44,20 @@ describe('Package JSON Utils', function () {
 
             const result = await readPackageJson(testDir);
 
-            expect(result).to.deep.equal(mockPackageJson);
-            expect(result.name).to.equal('test-package');
-            expect(result.version).to.equal('1.0.0');
-            expect(result.dependencies).to.have.property('express');
-            expect(result.devDependencies).to.have.property('typescript');
+            expect(result).toEqual(mockPackageJson);
+            expect(result.name).toBe('test-package');
+            expect(result.version).toBe('1.0.0');
+            expect(result.dependencies).toHaveProperty('express');
+            expect(result.devDependencies).toHaveProperty('typescript');
         });
 
         it('should throw error when package.json does not exist', async function () {
             try {
                 await readPackageJson(testDir);
-                expect.fail('Should have thrown an error');
+                throw new Error('Should have thrown an error');
             } catch (error) {
-                expect(error).to.be.instanceOf(Error);
-                expect((error as Error).message).to.include('package.json not found');
+                expect(error).toBeInstanceOf(Error);
+                expect((error as Error).message).toContain('package.json not found');
             }
         });
 
@@ -67,9 +66,9 @@ describe('Package JSON Utils', function () {
 
             try {
                 await readPackageJson(testDir);
-                expect.fail('Should have thrown an error');
+                throw new Error('Should have thrown an error');
             } catch (error) {
-                expect(error).to.be.instanceOf(Error);
+                expect(error).toBeInstanceOf(Error);
             }
         });
 
@@ -83,9 +82,9 @@ describe('Package JSON Utils', function () {
 
             const result = await readPackageJson(testDir);
 
-            expect(result.name).to.equal('minimal-package');
-            expect(result.dependencies).to.be.undefined;
-            expect(result.devDependencies).to.be.undefined;
+            expect(result.name).toBe('minimal-package');
+            expect(result.dependencies).toBeUndefined();
+            expect(result.devDependencies).toBeUndefined();
         });
     });
 
@@ -101,10 +100,10 @@ describe('Package JSON Utils', function () {
 
             await writePackageJson(testDir, mockPackageJson);
 
-            expect(existsSync(testPackageJsonPath)).to.be.true;
+            expect(existsSync(testPackageJsonPath)).toBe(true);
 
             const written = await readPackageJson(testDir);
-            expect(written).to.deep.equal(mockPackageJson);
+            expect(written).toEqual(mockPackageJson);
         });
 
         it('should format package.json with proper indentation', async function () {
@@ -119,8 +118,8 @@ describe('Package JSON Utils', function () {
             const content = readFileSync(testPackageJsonPath, 'utf-8');
 
             // Check that it's properly formatted with 2-space indentation
-            expect(content).to.include('  "name"');
-            expect(content).to.include('  "version"');
+            expect(content).toContain('  "name"');
+            expect(content).toContain('  "version"');
         });
 
         it('should overwrite existing package.json', async function () {
@@ -138,8 +137,8 @@ describe('Package JSON Utils', function () {
             await writePackageJson(testDir, updated);
 
             const result = await readPackageJson(testDir);
-            expect(result.name).to.equal('updated');
-            expect(result.version).to.equal('2.0.0');
+            expect(result.name).toBe('updated');
+            expect(result.version).toBe('2.0.0');
         });
     });
 
@@ -160,10 +159,10 @@ describe('Package JSON Utils', function () {
 
     //         const result = getAllDependencies(mockPackageJson);
 
-    //         expect(result).to.have.property('react', '^18.0.0');
-    //         expect(result).to.have.property('react-dom', '^18.0.0');
-    //         expect(result).to.have.property('jest', '^29.0.0');
-    //         expect(result).to.have.property('eslint', '^8.0.0');
+    //         expect(result).toHaveProperty('react', '^18.0.0');
+    //         expect(result).toHaveProperty('react-dom', '^18.0.0');
+    //         expect(result).toHaveProperty('jest', '^29.0.0');
+    //         expect(result).toHaveProperty('eslint', '^8.0.0');
     //         expect(Object.keys(result)).to.have.lengthOf(4);
     //     });
 
@@ -178,7 +177,7 @@ describe('Package JSON Utils', function () {
 
     //         const result = getAllDependencies(mockPackageJson);
 
-    //         expect(result).to.have.property('express', '^4.17.1');
+    //         expect(result).toHaveProperty('express', '^4.17.1');
     //         expect(Object.keys(result)).to.have.lengthOf(1);
     //     });
 
@@ -193,7 +192,7 @@ describe('Package JSON Utils', function () {
 
     //         const result = getAllDependencies(mockPackageJson);
 
-    //         expect(result).to.have.property('typescript', '^5.0.0');
+    //         expect(result).toHaveProperty('typescript', '^5.0.0');
     //         expect(Object.keys(result)).to.have.lengthOf(1);
     //     });
 
@@ -205,7 +204,7 @@ describe('Package JSON Utils', function () {
 
     //         const result = getAllDependencies(mockPackageJson);
 
-    //         expect(result).to.be.an('object');
+    //         expect(result).toBe(Object);
     //         expect(Object.keys(result)).to.have.lengthOf(0);
     //     });
     // });
@@ -222,7 +221,7 @@ describe('Package JSON Utils', function () {
 
             updateDependency(mockPackageJson, 'lodash', '^4.17.21', false);
 
-            expect(mockPackageJson.dependencies!['lodash']).to.equal('^4.17.21');
+            expect(mockPackageJson.dependencies!['lodash']).toBe('^4.17.21');
         });
 
         it('should add new dependency if it does not exist', function () {
@@ -234,7 +233,7 @@ describe('Package JSON Utils', function () {
 
             updateDependency(mockPackageJson, 'axios', '^1.0.0', false);
 
-            expect(mockPackageJson.dependencies!['axios']).to.equal('^1.0.0');
+            expect(mockPackageJson.dependencies!['axios']).toBe('^1.0.0');
         });
 
         it('should update existing devDependency', function () {
@@ -248,7 +247,7 @@ describe('Package JSON Utils', function () {
 
             updateDependency(mockPackageJson, 'typescript', '^5.0.0', true);
 
-            expect(mockPackageJson.devDependencies!['typescript']).to.equal('^5.0.0');
+            expect(mockPackageJson.devDependencies!['typescript']).toBe('^5.0.0');
         });
 
         it('should add new devDependency if it does not exist', function () {
@@ -260,7 +259,7 @@ describe('Package JSON Utils', function () {
 
             updateDependency(mockPackageJson, 'jest', '^29.0.0', true);
 
-            expect(mockPackageJson.devDependencies!['jest']).to.equal('^29.0.0');
+            expect(mockPackageJson.devDependencies!['jest']).toBe('^29.0.0');
         });
 
         it('should create dependencies object if it does not exist', function () {
@@ -271,8 +270,8 @@ describe('Package JSON Utils', function () {
 
             updateDependency(mockPackageJson, 'express', '^4.17.1', false);
 
-            expect(mockPackageJson.dependencies).to.be.an('object');
-            expect(mockPackageJson.dependencies!['express']).to.equal('^4.17.1');
+            expect(mockPackageJson.dependencies).toBeInstanceOf(Object);
+            expect(mockPackageJson.dependencies!['express']).toBe('^4.17.1');
         });
 
         it('should create devDependencies object if it does not exist', function () {
@@ -283,8 +282,8 @@ describe('Package JSON Utils', function () {
 
             updateDependency(mockPackageJson, 'mocha', '^10.0.0', true);
 
-            expect(mockPackageJson.devDependencies).to.be.an('object');
-            expect(mockPackageJson.devDependencies!['mocha']).to.equal('^10.0.0');
+            expect(mockPackageJson.devDependencies).toBeInstanceOf(Object);
+            expect(mockPackageJson.devDependencies!['mocha']).toBe('^10.0.0');
         });
     });
 
@@ -299,8 +298,8 @@ describe('Package JSON Utils', function () {
                 },
             };
 
-            expect(isDevDependency(mockPackageJson, 'jest')).to.be.true;
-            expect(isDevDependency(mockPackageJson, 'eslint')).to.be.true;
+            expect(isDevDependency(mockPackageJson, 'jest')).toBe(true);
+            expect(isDevDependency(mockPackageJson, 'eslint')).toBe(true);
         });
 
         it('should return false for packages in dependencies', function () {
@@ -315,7 +314,7 @@ describe('Package JSON Utils', function () {
                 },
             };
 
-            expect(isDevDependency(mockPackageJson, 'express')).to.be.false;
+            expect(isDevDependency(mockPackageJson, 'express')).toBe(false);
         });
 
         it('should return false for packages not in any dependencies', function () {
@@ -330,7 +329,7 @@ describe('Package JSON Utils', function () {
                 },
             };
 
-            expect(isDevDependency(mockPackageJson, 'nonexistent')).to.be.false;
+            expect(isDevDependency(mockPackageJson, 'nonexistent')).toBe(false);
         });
 
         it('should return false when devDependencies is undefined', function () {
@@ -342,30 +341,30 @@ describe('Package JSON Utils', function () {
                 },
             };
 
-            expect(isDevDependency(mockPackageJson, 'jest')).to.be.false;
+            expect(isDevDependency(mockPackageJson, 'jest')).toBe(false);
         });
     });
 
     describe('getAllDependent', function () {
         it('should find dependents of a package in current project', async function () {
-            this.timeout(10000); // npm ls can take time
-
             try {
                 // Test with a package that likely exists in this project
                 const result = await getAllDependent(process.cwd(), 'zod');
 
                 // Verify the structure is correct
-                expect(result).to.be.an('object');
+                expect(result).toBeInstanceOf(Object);
 
                 // Check that all keys are version strings
                 Object.keys(result).forEach((version) => {
-                    expect(version).to.be.a('string');
-                    expect(result[version]).to.be.an('array');
+                    expect(typeof version).toBe('string');
+                    expect(Array.isArray(result[version])).toBe(true);
 
                     // Check that each dependent has name and version
                     result[version].forEach((dependent) => {
-                        expect(dependent).to.have.property('name').that.is.a('string');
-                        expect(dependent).to.have.property('version').that.is.a('string');
+                        expect(dependent).toHaveProperty('name');
+                        expect(typeof dependent.name).toBe('string');
+                        expect(dependent).toHaveProperty('version');
+                        expect(typeof dependent.version).toBe('string');
                     });
                 });
 
@@ -373,27 +372,23 @@ describe('Package JSON Utils', function () {
             } catch (error) {
                 // If the package doesn't exist in dependencies, that's also a valid test outcome
                 console.log('Expected behavior: package not found in dependencies');
-                expect(error).to.be.instanceOf(Error);
+                expect(error).toBeInstanceOf(Error);
             }
         });
 
         it('should return empty object for non-existent package', async function () {
-            this.timeout(10000);
-
             const result = await getAllDependent(process.cwd(), 'nonexistent-package-xyz-123');
 
-            expect(result).to.be.an('object');
-            expect(Object.keys(result)).to.have.lengthOf(0);
+            expect(result).toBeInstanceOf(Object);
+            expect(Object.keys(result)).toHaveLength(0);
         });
 
         it('should throw error for invalid repository path', async function () {
-            this.timeout(10000);
-
             try {
                 await getAllDependent('/nonexistent/path/xyz', 'some-package');
-                expect.fail('Should have thrown an error');
+                throw new Error('Should have thrown an error');
             } catch (error) {
-                expect(error).to.be.instanceOf(Error);
+                expect(error).toBeInstanceOf(Error);
             }
         });
     });
@@ -415,9 +410,9 @@ describe('Package JSON Utils', function () {
 
     //         const result = await installDependencies(testDir);
 
-    //         expect(result).to.have.property('success', true);
-    //         expect(result).to.have.property('stdout').that.is.a('string');
-    //         expect(result).to.have.property('stderr').that.is.a('string');
+    //         expect(result).toHaveProperty('success', true);
+    //         expect(result).toHaveProperty('stdout').that.is.a('string');
+    //         expect(result).toHaveProperty('stderr').that.is.a('string');
 
     //         // Verify node_modules was created
     //         expect(existsSync(join(testDir, 'node_modules'))).to.be.true;

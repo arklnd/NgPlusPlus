@@ -1,5 +1,4 @@
-import { expect } from 'chai';
-import { describe, it, beforeEach, afterEach } from 'mocha';
+import { describe, it, beforeEach, afterEach, expect } from 'bun:test';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -32,7 +31,6 @@ describe('updatePackageWithDependencies', function () {
 
     it('should update HYUI9 Angular dependencies to version 20.0.0', async function () {
         // Increase timeout for npm operations
-        this.timeout(3600000); // 60 minutes
 
         // Arrange - Copy asset files to test directory
         const assetsDir = path.join(__dirname, 'assets');
@@ -152,38 +150,37 @@ describe('updatePackageWithDependencies', function () {
         fs.copyFileSync(targetPackageJsonPath, sourcePackageJsonPath);
         fs.copyFileSync(targetPackageLockPath, sourcePackageLockPath);
         // Assert
-        expect(result).to.be.a('string');
-        expect(result).to.include('✅ package.json updated successfully');
+        expect(typeof result).toBe('string');
+        expect(result).toContain('✅ package.json updated successfully');
 
         // Verify the package.json was updated correctly
         const updatedContent = fs.readFileSync(targetPackageJsonPath, 'utf8');
         const updatedPackageJson: PackageJson = JSON.parse(updatedContent);
 
         // Check production dependencies
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/animations', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/common', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/compiler', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/core', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/forms', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/platform-browser', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/platform-browser-dynamic', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/router', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/cdk', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/material', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/animations', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/common', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/compiler', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/core', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/forms', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/platform-browser', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/platform-browser-dynamic', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/router', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/cdk', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/material', '^20.0.0');
 
         // Check development dependencies
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular/cli', '^20.0.0');
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular/compiler-cli', '^20.0.0');
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular-devkit/build-angular', '^20.0.0');
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular-devkit/architect', '^0.2000.0');
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular-devkit/core', '^20.0.0');
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular/elements', '^20.0.0');
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular/language-service', '^20.0.0');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular/cli', '^20.0.0');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular/compiler-cli', '^20.0.0');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular-devkit/build-angular', '^20.0.0');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular-devkit/architect', '^0.2000.0');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular-devkit/core', '^20.0.0');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular/elements', '^20.0.0');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular/language-service', '^20.0.0');
     });
 
     it('should update HYUI9 Angular dependencies to version 20 and install', async function () {
         // Increase timeout for npm operations
-        this.timeout(3600000); // 60 minutes
 
         // Arrange - Copy asset files to test directory
         const assetsDir = path.join(__dirname, 'assets');
@@ -304,33 +301,33 @@ describe('updatePackageWithDependencies', function () {
         fs.copyFileSync(targetPackageJsonPath, sourcePackageJsonPath);
         fs.copyFileSync(targetPackageLockPath, sourcePackageLockPath);
         // Assert
-        expect(result).to.be.a('string');
-        expect(result).to.include('✅ package.json updated successfully');
+        expect(typeof result).toBe('string');
+        expect(result).toContain('✅ package.json updated successfully');
 
         // Verify the package.json was updated correctly
         const updatedContent = fs.readFileSync(targetPackageJsonPath, 'utf8');
         const updatedPackageJson: PackageJson = JSON.parse(updatedContent);
 
         // Check production dependencies
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/animations', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/common', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/compiler', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/core', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/forms', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/platform-browser', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/platform-browser-dynamic', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/router', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/cdk', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/material', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/animations', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/common', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/compiler', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/core', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/forms', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/platform-browser', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/platform-browser-dynamic', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/router', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/cdk', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/material', '^20.0.0');
 
         // Check development dependencies
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular/cli', '^20.0.0');
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular/compiler-cli', '^20.0.0');
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular-devkit/build-angular', '^20.0.0');
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular-devkit/architect', '^0.2000.0');
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular-devkit/core', '^20.0.0');
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular/elements', '^20.0.0');
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular/language-service', '^20.0.0');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular/cli', '^20.0.0');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular/compiler-cli', '^20.0.0');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular-devkit/build-angular', '^20.0.0');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular-devkit/architect', '^0.2000.0');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular-devkit/core', '^20.0.0');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular/elements', '^20.0.0');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular/language-service', '^20.0.0');
     });
 
     it('should handle empty package.json', async function () {
@@ -352,14 +349,14 @@ describe('updatePackageWithDependencies', function () {
         const result = await updatePackageWithDependencies(testRepoPath, true, plannedUpdates);
 
         // Assert
-        expect(result).to.include('✅ package.json updated successfully');
+        expect(result).toContain('✅ package.json updated successfully');
 
         const packageJsonPath = path.join(testRepoPath, 'package.json');
         const updatedContent = fs.readFileSync(packageJsonPath, 'utf8');
         const updatedPackageJson: PackageJson = JSON.parse(updatedContent);
 
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/core', '^20.0.0');
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular/cli', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/core', '^20.0.0');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular/cli', '^20.0.0');
     });
 
     it('should count update operations correctly', async function () {
@@ -388,11 +385,11 @@ describe('updatePackageWithDependencies', function () {
         // Assert
         const lines = result.split('\n');
         const updateLines = lines.filter((line) => line.startsWith('✓ Updated'));
-        expect(updateLines).to.have.length(3);
+        expect(updateLines).toHaveLength(3);
 
-        expect(result).to.include('✓ Updated @angular/animations to ^20.0.0 (dependencies)');
-        expect(result).to.include('✓ Updated @angular/common to ^20.0.0 (dependencies)');
-        expect(result).to.include('✓ Updated @angular/cli to ^20.0.0 (devDependencies)');
+        expect(result).toContain('✓ Updated @angular/animations to ^20.0.0 (dependencies)');
+        expect(result).toContain('✓ Updated @angular/common to ^20.0.0 (dependencies)');
+        expect(result).toContain('✓ Updated @angular/cli to ^20.0.0 (devDependencies)');
     });
 
     it('should properly categorize dev and production dependencies', async function () {
@@ -429,21 +426,20 @@ describe('updatePackageWithDependencies', function () {
         const updatedPackageJson: PackageJson = JSON.parse(updatedContent);
 
         // Production dependencies
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/core', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.have.property('@angular/forms', '^20.0.0');
-        expect(updatedPackageJson.dependencies).to.not.have.property('@angular/cli');
-        expect(updatedPackageJson.dependencies).to.not.have.property('@angular/compiler-cli');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/core', '^20.0.0');
+        expect(updatedPackageJson.dependencies).toHaveProperty('@angular/forms', '^20.0.0');
+        expect(updatedPackageJson.dependencies).not.toHaveProperty('@angular/cli');
+        expect(updatedPackageJson.dependencies).not.toHaveProperty('@angular/compiler-cli');
 
         // Development dependencies
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular/cli', '^20.0.0');
-        expect(updatedPackageJson.devDependencies).to.have.property('@angular/compiler-cli', '^20.0.0');
-        expect(updatedPackageJson.devDependencies).to.not.have.property('@angular/core');
-        expect(updatedPackageJson.devDependencies).to.not.have.property('@angular/forms');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular/cli', '^20.0.0');
+        expect(updatedPackageJson.devDependencies).toHaveProperty('@angular/compiler-cli', '^20.0.0');
+        expect(updatedPackageJson.devDependencies).not.toHaveProperty('@angular/core');
+        expect(updatedPackageJson.devDependencies).not.toHaveProperty('@angular/forms');
     });
 
     it('should invoke dumbResolverHandler with HYUI9 Angular dependencies', async function () {
         // Increase timeout for npm operations
-        this.timeout(3600000); // 60 minutes
 
         // Arrange - Copy asset files to test directory
         const assetsDir = path.join(__dirname, 'assets');
@@ -559,30 +555,30 @@ describe('updatePackageWithDependencies', function () {
         fs.copyFileSync(targetPackageLockPath, sourcePackageLockPath);
 
         // Assert
-        expect(result).to.be.an('object');
-        expect(result).to.have.property('content');
-        expect(result.content).to.be.an('array');
-        expect(result.content).to.have.length(1);
-        expect(result.content[0]).to.have.property('type', 'text');
-        expect(result.content[0]).to.have.property('text');
+        expect(result).toBeInstanceOf(Object);
+        expect(result).toHaveProperty('content');
+        expect(Array.isArray(result.content)).toBe(true);
+        expect(result.content).toHaveLength(1);
+        expect(result.content[0]).toHaveProperty('type', 'text');
+        expect(result.content[0]).toHaveProperty('text');
 
         const resultText = result.content[0].text;
-        expect(resultText).to.be.a('string');
+        expect(typeof resultText).toBe('string');
 
         // Check if it's a success or failure message
         if (resultText.includes('✅ Successfully updated dependencies')) {
-            expect(resultText).to.include('Successfully updated dependencies');
-            expect(resultText).to.include('Updated packages:');
+            expect(resultText).toContain('Successfully updated dependencies');
+            expect(resultText).toContain('Updated packages:');
 
             // Verify the package.json was updated correctly
             const updatedContent = fs.readFileSync(targetPackageJsonPath, 'utf8');
             const updatedPackageJson: PackageJson = JSON.parse(updatedContent);
 
             // Check some key dependencies were updated
-            expect(updatedPackageJson.dependencies).to.have.property('@angular/core', '^20.0.0');
-            expect(updatedPackageJson.devDependencies).to.have.property('@angular/cli', '^20.0.0');
+            expect(updatedPackageJson.dependencies).toHaveProperty('@angular/core', '^20.0.0');
+            expect(updatedPackageJson.devDependencies).toHaveProperty('@angular/cli', '^20.0.0');
         } else if (resultText.includes('❌ Failed to resolve dependencies')) {
-            expect(resultText).to.include('Failed to resolve dependencies');
+            expect(resultText).toContain('Failed to resolve dependencies');
             console.log('dumbResolverHandler failed as expected, result:', resultText);
         } else {
             // Unexpected result format
@@ -592,7 +588,6 @@ describe('updatePackageWithDependencies', function () {
 
     it('should invoke dumbResolverHandler with HYUI8 Angular dependencies', async function () {
         // Increase timeout for npm operations
-        this.timeout(3600000); // 60 minutes
 
         // Arrange - Copy asset files to test directory
         const assetsDir = path.join(__dirname, 'assets');
@@ -721,40 +716,40 @@ describe('updatePackageWithDependencies', function () {
         }
 
         // Assert
-        expect(result).to.be.an('object');
-        expect(result).to.have.property('content');
-        expect(result.content).to.be.an('array');
-        expect(result.content).to.have.length(1);
-        expect(result.content[0]).to.have.property('type', 'text');
-        expect(result.content[0]).to.have.property('text');
+        expect(result).toBeInstanceOf(Object);
+        expect(result).toHaveProperty('content');
+        expect(Array.isArray(result.content)).toBe(true);
+        expect(result.content).toHaveLength(1);
+        expect(result.content[0]).toHaveProperty('type', 'text');
+        expect(result.content[0]).toHaveProperty('text');
 
         const resultText = result.content[0].text;
-        expect(resultText).to.be.a('string');
+        expect(typeof resultText).toBe('string');
 
         // Check if it's a success or failure message
         if (resultText.includes('✅ Successfully updated dependencies')) {
             console.log('(✅) Dependency resolution succeeded', { resultText });
-            expect(resultText).to.include('Successfully updated dependencies');
-            expect(resultText).to.include('Updated packages:');
+            expect(resultText).toContain('Successfully updated dependencies');
+            expect(resultText).toContain('Updated packages:');
 
             // Verify the package.json was updated correctly
             const updatedContent = fs.readFileSync(targetPackageJsonPath, 'utf8');
             const updatedPackageJson: PackageJson = JSON.parse(updatedContent);
 
             // Check some key dependencies were updated with major version 19
-            expect(updatedPackageJson.dependencies).to.exist;
-            expect(updatedPackageJson.dependencies).to.have.property('@angular/core');
+            expect(updatedPackageJson.dependencies).toBeDefined();
+            expect(updatedPackageJson.dependencies).toHaveProperty('@angular/core');
             const coreVersion = updatedPackageJson.dependencies?.['@angular/core'];
-            expect(coreVersion).to.exist;
-            expect(semver.major(semver.coerce(coreVersion!)!)).to.equal(19);
+            expect(coreVersion).toBeDefined();
+            expect(semver.major(semver.coerce(coreVersion!)!)).toBe(19);
             
-            expect(updatedPackageJson.devDependencies).to.exist;
-            expect(updatedPackageJson.devDependencies).to.have.property('@angular/cli');
+            expect(updatedPackageJson.devDependencies).toBeDefined();
+            expect(updatedPackageJson.devDependencies).toHaveProperty('@angular/cli');
             const cliVersion = updatedPackageJson.devDependencies?.['@angular/cli'];
-            expect(cliVersion).to.exist;
-            expect(semver.major(semver.coerce(cliVersion!)!)).to.equal(19);
+            expect(cliVersion).toBeDefined();
+            expect(semver.major(semver.coerce(cliVersion!)!)).toBe(19);
         } else if (resultText.includes('❌ Failed to resolve dependencies')) {
-            expect(resultText).to.include('Failed to resolve dependencies');
+            expect(resultText).toContain('Failed to resolve dependencies');
             console.log('dumbResolverHandler failed as expected, result:', resultText);
         } else {
             // Unexpected result format

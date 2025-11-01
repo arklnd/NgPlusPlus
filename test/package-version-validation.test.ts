@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, describe, it } from 'bun:test';
 import { validatePackageVersionsExist } from '@U/index';
 
 describe('Package Version Validation', () => {
@@ -10,13 +10,13 @@ describe('Package Version Validation', () => {
 
         const results = await validatePackageVersionsExist(plannedUpdates);
 
-        expect(results).to.have.length(2);
-        expect(results[0].exists).to.be.true;
-        expect(results[0].packageName).to.equal('lodash');
-        expect(results[0].version).to.equal('4.17.21');
-        expect(results[1].exists).to.be.true;
-        expect(results[1].packageName).to.equal('express');
-        expect(results[1].version).to.equal('4.18.2');
+        expect(results).toHaveLength(2);
+        expect(results[0].exists).toBe(true);
+        expect(results[0].packageName).toBe('lodash');
+        expect(results[0].version).toBe('4.17.21');
+        expect(results[1].exists).toBe(true);
+        expect(results[1].packageName).toBe('express');
+        expect(results[1].version).toBe('4.18.2');
     });
 
     it('should detect non-existing package versions', async () => {
@@ -27,15 +27,15 @@ describe('Package Version Validation', () => {
 
         const results = await validatePackageVersionsExist(plannedUpdates);
 
-        expect(results).to.have.length(2);
-        expect(results[0].exists).to.be.false;
-        expect(results[0].packageName).to.equal('lodash');
-        expect(results[0].version).to.equal('999.999.999');
-        expect(results[0].error).to.exist;
-        expect(results[1].exists).to.be.false;
-        expect(results[1].packageName).to.equal('nonexistent-package-xyz');
-        expect(results[1].version).to.equal('1.0.0');
-        expect(results[1].error).to.exist;
+        expect(results).toHaveLength(2);
+        expect(results[0].exists).toBe(false);
+        expect(results[0].packageName).toBe('lodash');
+        expect(results[0].version).toBe('999.999.999');
+        expect(results[0].error).toBeDefined();
+        expect(results[1].exists).toBe(false);
+        expect(results[1].packageName).toBe('nonexistent-package-xyz');
+        expect(results[1].version).toBe('1.0.0');
+        expect(results[1].error).toBeDefined();
     });
 
     it('should handle mixed existing and non-existing versions', async () => {
@@ -46,12 +46,12 @@ describe('Package Version Validation', () => {
 
         const results = await validatePackageVersionsExist(plannedUpdates);
 
-        expect(results).to.have.length(2);
-        expect(results[0].exists).to.be.true;
-        expect(results[0].packageName).to.equal('lodash');
-        expect(results[1].exists).to.be.false;
-        expect(results[1].packageName).to.equal('express');
-        expect(results[1].error).to.exist;
+        expect(results).toHaveLength(2);
+        expect(results[0].exists).toBe(true);
+        expect(results[0].packageName).toBe('lodash');
+        expect(results[1].exists).toBe(false);
+        expect(results[1].packageName).toBe('express');
+        expect(results[1].error).toBeDefined();
     });
 
     it('should handle scoped packages', async () => {
@@ -59,10 +59,10 @@ describe('Package Version Validation', () => {
 
         const results = await validatePackageVersionsExist(plannedUpdates);
 
-        expect(results).to.have.length(1);
-        expect(results[0].exists).to.be.true;
-        expect(results[0].packageName).to.equal('@types/node');
-        expect(results[0].version).to.equal('20.0.0');
+        expect(results).toHaveLength(1);
+        expect(results[0].exists).toBe(true);
+        expect(results[0].packageName).toBe('@types/node');
+        expect(results[0].version).toBe('20.0.0');
     });
 
     it('should handle empty planned updates array', async () => {
@@ -70,6 +70,6 @@ describe('Package Version Validation', () => {
 
         const results = await validatePackageVersionsExist(plannedUpdates);
 
-        expect(results).to.have.length(0);
+        expect(results).toHaveLength(0);
     });
 });

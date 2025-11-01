@@ -62,7 +62,13 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
 
         // Validate initial target dependency versions exist in registry before proceeding
         logger.info('Validating initial target dependency versions exist in registry');
-        const validationResults = await validatePackageVersionsExist(update_dependencies);
+        const validationResults = await validatePackageVersionsExist(
+            update_dependencies.map(dep => ({
+                name: dep.name,
+                version: dep.version,
+                isDev: dep.isDev ?? false,
+            }))
+        );
         const nonExistentVersions = validationResults.filter((r) => !r.exists);
 
         if (nonExistentVersions.length > 0) {

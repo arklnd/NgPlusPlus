@@ -1,14 +1,9 @@
 {
     "compilerOptions": {
-        "target": "ES2022",
-        "module": "ESNext",
-        "moduleResolution": "node",
-        "allowSyntheticDefaultImports": true,
-        "esModuleInterop": true,
+        "types": ["bun-types"],
+        "module": "preserve",
+        "moduleResolution": "bundler",
         "noEmit": true,
-        "strict": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
         "baseUrl": ".",
         "paths": {
             "@/*": [
@@ -36,10 +31,6 @@
                 "src/interfaces/*"
             ]
         }
-    },
-    "ts-node": {
-        "esm": true,
-        "experimentalSpecifierResolution": "node"
     },
     "include": [
         "src/**/*",

@@ -1,10 +1,7 @@
-import { expect } from 'chai';
+import { expect, describe, it, beforeEach } from 'bun:test';
 import { OpenAIService, OpenAIConfigSchema, getOpenAIService, initializeOpenAI } from '@S/index';
 
 describe('OpenAI Service', function () {
-    // Increase timeout for API calls
-    this.timeout(10000);
-
     describe('OpenAIConfigSchema', function () {
         it('should validate valid configuration', function () {
             const validConfig = {
@@ -17,36 +14,36 @@ describe('OpenAI Service', function () {
             };
 
             const result = OpenAIConfigSchema.parse(validConfig);
-            expect(result).to.deep.equal(validConfig);
+            expect(result).toEqual(validConfig);
         });
 
         it('should apply default values for optional fields', function () {
             const minimalConfig = {};
             const result = OpenAIConfigSchema.parse(minimalConfig);
             
-            expect(result.model).to.equal('gpt-x');
-            expect(result.temperature).to.equal(0.7);
-            expect(result.maxTokens).to.equal(1000);
-            expect(result.timeout).to.equal(30000);
+            expect(result.model).toBe('gpt-x');
+            expect(result.temperature).toBe(0.7);
+            expect(result.maxTokens).toBe(1000);
+            expect(result.timeout).toBe(30000);
         });
 
         it('should validate temperature range', function () {
-            expect(() => OpenAIConfigSchema.parse({ temperature: -1 })).to.throw();
-            expect(() => OpenAIConfigSchema.parse({ temperature: 3 })).to.throw();
-            expect(() => OpenAIConfigSchema.parse({ temperature: 0 })).to.not.throw();
-            expect(() => OpenAIConfigSchema.parse({ temperature: 2 })).to.not.throw();
+            expect(() => OpenAIConfigSchema.parse({ temperature: -1 })).toThrow();
+            expect(() => OpenAIConfigSchema.parse({ temperature: 3 })).toThrow();
+            expect(() => OpenAIConfigSchema.parse({ temperature: 0 })).not.toThrow();
+            expect(() => OpenAIConfigSchema.parse({ temperature: 2 })).not.toThrow();
         });
 
         it('should validate positive maxTokens', function () {
-            expect(() => OpenAIConfigSchema.parse({ maxTokens: 0 })).to.throw();
-            expect(() => OpenAIConfigSchema.parse({ maxTokens: -100 })).to.throw();
-            expect(() => OpenAIConfigSchema.parse({ maxTokens: 100 })).to.not.throw();
+            expect(() => OpenAIConfigSchema.parse({ maxTokens: 0 })).toThrow();
+            expect(() => OpenAIConfigSchema.parse({ maxTokens: -100 })).toThrow();
+            expect(() => OpenAIConfigSchema.parse({ maxTokens: 100 })).not.toThrow();
         });
 
         it('should validate positive timeout', function () {
-            expect(() => OpenAIConfigSchema.parse({ timeout: 0 })).to.throw();
-            expect(() => OpenAIConfigSchema.parse({ timeout: -1000 })).to.throw();
-            expect(() => OpenAIConfigSchema.parse({ timeout: 5000 })).to.not.throw();
+            expect(() => OpenAIConfigSchema.parse({ timeout: 0 })).toThrow();
+            expect(() => OpenAIConfigSchema.parse({ timeout: -1000 })).toThrow();
+            expect(() => OpenAIConfigSchema.parse({ timeout: 5000 })).not.toThrow();
         });
     });
 
@@ -55,10 +52,10 @@ describe('OpenAI Service', function () {
             const service = new OpenAIService();
             const config = service.getConfig();
             
-            expect(config.model).to.equal('gpt-4o-mini');
-            expect(config.temperature).to.equal(0.7);
-            expect(config.maxTokens).to.equal(1000);
-            expect(config.timeout).to.equal(30000);
+            expect(config.model).toBe('gpt-4o-mini');
+            expect(config.temperature).toBe(0.7);
+            expect(config.maxTokens).toBe(1000);
+            expect(config.timeout).toBe(30000);
         });
 
         it('should create service with custom configuration', function () {
@@ -72,10 +69,10 @@ describe('OpenAI Service', function () {
             const service = new OpenAIService(customConfig);
             const config = service.getConfig();
             
-            expect(config.model).to.equal('gpt-4');
-            expect(config.temperature).to.equal(0.5);
-            expect(config.maxTokens).to.equal(2000);
-            expect(config.timeout).to.equal(60000);
+            expect(config.model).toBe('gpt-4');
+            expect(config.temperature).toBe(0.5);
+            expect(config.maxTokens).toBe(2000);
+            expect(config.timeout).toBe(60000);
         });
 
         it('should merge custom config with defaults', function () {
@@ -87,10 +84,10 @@ describe('OpenAI Service', function () {
             const service = new OpenAIService(partialConfig);
             const config = service.getConfig();
             
-            expect(config.model).to.equal('gpt-4');
-            expect(config.temperature).to.equal(0.2);
-            expect(config.maxTokens).to.equal(1000); // default value
-            expect(config.timeout).to.equal(30000); // default value
+            expect(config.model).toBe('gpt-4');
+            expect(config.temperature).toBe(0.2);
+            expect(config.maxTokens).toBe(1000); // default value
+            expect(config.timeout).toBe(30000); // default value
         });
     });
 
@@ -103,11 +100,11 @@ describe('OpenAI Service', function () {
 
         it('should get current configuration', function () {
             const config = service.getConfig();
-            expect(config).to.be.an('object');
-            expect(config).to.have.property('model');
-            expect(config).to.have.property('temperature');
-            expect(config).to.have.property('maxTokens');
-            expect(config).to.have.property('timeout');
+            expect(config).toBeInstanceOf(Object);
+            expect(config).toHaveProperty('model');
+            expect(config).toHaveProperty('temperature');
+            expect(config).toHaveProperty('maxTokens');
+            expect(config).toHaveProperty('timeout');
         });
 
         it('should update configuration', function () {
@@ -120,27 +117,27 @@ describe('OpenAI Service', function () {
             service.updateConfig(newConfig);
             const config = service.getConfig();
             
-            expect(config.model).to.equal('gpt-4');
-            expect(config.temperature).to.equal(0.1);
-            expect(config.maxTokens).to.equal(500);
+            expect(config.model).toBe('gpt-4');
+            expect(config.temperature).toBe(0.1);
+            expect(config.maxTokens).toBe(500);
         });
 
         it('should validate configuration on update', function () {
-            expect(() => service.updateConfig({ temperature: -1 })).to.throw();
-            expect(() => service.updateConfig({ maxTokens: 0 })).to.throw();
-            expect(() => service.updateConfig({ timeout: -1000 })).to.throw();
+            expect(() => service.updateConfig({ temperature: -1 })).toThrow();
+            expect(() => service.updateConfig({ maxTokens: 0 })).toThrow();
+            expect(() => service.updateConfig({ timeout: -1000 })).toThrow();
         });
     });
 
     describe('Service Status', function () {
         it('should check if service is configured with API key', function () {
             const serviceWithKey = new OpenAIService({ apiKey: 'sk-test-key' });
-            expect(serviceWithKey.isConfigured()).to.be.true;
+            expect(serviceWithKey.isConfigured()).toBe(true);
         });
 
         it('should check if service is not configured without API key', function () {
             const serviceWithoutKey = new OpenAIService({ apiKey: '' });
-            expect(serviceWithoutKey.isConfigured()).to.be.false;
+            expect(serviceWithoutKey.isConfigured()).toBe(false);
         });
     });
 
@@ -159,15 +156,15 @@ describe('OpenAI Service', function () {
         // For demonstration, we'll test the method structure and error handling
 
         it('should have generateText method', function () {
-            expect(service.generateText).to.be.a('function');
+            expect(typeof service.generateText).toBe('function');
         });
 
         it('should have generateTextWithHistory method', function () {
-            expect(service.generateTextWithHistory).to.be.a('function');
+            expect(typeof service.generateTextWithHistory).toBe('function');
         });
 
         it('should have generateTextStream method', function () {
-            expect(service.generateTextStream).to.be.a('function');
+            expect(typeof service.generateTextStream).toBe('function');
         });
 
         it('should handle missing prompt gracefully', async function () {
@@ -175,8 +172,8 @@ describe('OpenAI Service', function () {
                 // This should trigger an error due to empty/invalid prompt
                 await service.generateText('');
             } catch (error) {
-                expect(error).to.be.instanceOf(Error);
-                expect((error as Error).message).to.include('OpenAI API error');
+                expect(error).toBeInstanceOf(Error);
+                expect((error as Error).message).toContain('OpenAI API error');
             }
         });
 
@@ -185,8 +182,8 @@ describe('OpenAI Service', function () {
                 // This should trigger an error due to empty messages
                 await service.generateTextWithHistory([]);
             } catch (error) {
-                expect(error).to.be.instanceOf(Error);
-                expect((error as Error).message).to.include('OpenAI API error');
+                expect(error).toBeInstanceOf(Error);
+                expect((error as Error).message).toContain('OpenAI API error');
             }
         });
     });
@@ -194,7 +191,7 @@ describe('OpenAI Service', function () {
     describe('Connection Testing', function () {
         it('should have testConnection method', function () {
             const service = new OpenAIService();
-            expect(service.testConnection).to.be.a('function');
+            expect(typeof service.testConnection).toBe('function');
         });
 
         // it('should return false for connection test without valid API key', async function () {
@@ -220,15 +217,15 @@ describe('OpenAI Service', function () {
         it('should return same instance on multiple calls', function () {
             const service1 = getOpenAIService();
             const service2 = getOpenAIService();
-            expect(service1).to.equal(service2);
+            expect(service1).toBe(service2);
         });
 
         it('should update configuration on existing instance', function () {
             const service1 = getOpenAIService({ model: 'gpt-4o-mini' });
             const service2 = getOpenAIService({ model: 'gpt-4' });
             
-            expect(service1).to.equal(service2);
-            expect(service1.getConfig().model).to.equal('gpt-4');
+            expect(service1).toBe(service2);
+            expect(service1.getConfig().model).toBe('gpt-4');
         });
 
         it('should create new instance with initializeOpenAI', function () {
@@ -236,8 +233,8 @@ describe('OpenAI Service', function () {
             const service2 = initializeOpenAI({ model: 'gpt-4' });
             
             // They should be the same instance (singleton)
-            expect(service1).to.equal(service2);
-            expect(service2.getConfig().model).to.equal('gpt-4');
+            expect(service1).toBe(service2);
+            expect(service2.getConfig().model).toBe('gpt-4');
         });
     });
 
@@ -251,10 +248,10 @@ describe('OpenAI Service', function () {
         it('should throw descriptive errors for API failures', async function () {
             try {
                 await service.generateText('test prompt');
-                expect.fail('Should have thrown an error');
+                expect(true).toBe(false); // Should have thrown an error
             } catch (error) {
-                expect(error).to.be.instanceOf(Error);
-                expect((error as Error).message).to.include('OpenAI API error');
+                expect(error).toBeInstanceOf(Error);
+                expect((error as Error).message).toContain('OpenAI API error');
             }
         });
 
@@ -262,10 +259,10 @@ describe('OpenAI Service', function () {
             try {
                 const stream = service.generateTextStream('test prompt');
                 await stream.next();
-                expect.fail('Should have thrown an error');
+                expect(true).toBe(false); // Should have thrown an error
             } catch (error) {
-                expect(error).to.be.instanceOf(Error);
-                expect((error as Error).message).to.include('OpenAI API error');
+                expect(error).toBeInstanceOf(Error);
+                expect((error as Error).message).toContain('OpenAI API error');
             }
         });
     });
@@ -278,12 +275,12 @@ describe('OpenAI Service', function () {
             const config = service.getConfig();
             
             // Check that configuration has expected structure
-            expect(config).to.have.property('apiKey');
-            expect(config).to.have.property('baseURL');
-            expect(config).to.have.property('model');
-            expect(config).to.have.property('temperature');
-            expect(config).to.have.property('maxTokens');
-            expect(config).to.have.property('timeout');
+            expect(config).toHaveProperty('apiKey');
+            expect(config).toHaveProperty('baseURL');
+            expect(config).toHaveProperty('model');
+            expect(config).toHaveProperty('temperature');
+            expect(config).toHaveProperty('maxTokens');
+            expect(config).toHaveProperty('timeout');
         });
     });
 
@@ -301,7 +298,7 @@ describe('OpenAI Service', function () {
 
         it('should use default options when none provided', function () {
             // Testing that methods accept undefined options
-            expect(() => service.generateText('test')).to.not.throw();
+            expect(() => service.generateText('test')).not.toThrow();
         });
 
         it('should override defaults with provided options', function () {
@@ -313,7 +310,7 @@ describe('OpenAI Service', function () {
             };
 
             // Test that options are accepted without throwing
-            expect(() => service.generateText('test', options)).to.not.throw();
+            expect(() => service.generateText('test', options)).not.toThrow();
         });
 
         it('should handle systemPrompt option', function () {
@@ -321,7 +318,7 @@ describe('OpenAI Service', function () {
                 systemPrompt: 'You are a test assistant.'
             };
 
-            expect(() => service.generateText('test', options)).to.not.throw();
+            expect(() => service.generateText('test', options)).not.toThrow();
         });
     });
 
@@ -338,7 +335,7 @@ describe('OpenAI Service', function () {
                 { role: 'user' as const, content: 'Hello!' }
             ];
 
-            expect(() => service.generateTextWithHistory(messages)).to.not.throw();
+            expect(() => service.generateTextWithHistory(messages)).not.toThrow();
         });
 
         it('should handle empty content gracefully', async function () {
@@ -349,8 +346,8 @@ describe('OpenAI Service', function () {
             try {
                 await service.generateTextWithHistory(messages);
             } catch (error) {
-                expect(error).to.be.instanceOf(Error);
-                expect((error as Error).message).to.include('OpenAI API error');
+                expect(error).toBeInstanceOf(Error);
+                expect((error as Error).message).toContain('OpenAI API error');
             }
         });
     });

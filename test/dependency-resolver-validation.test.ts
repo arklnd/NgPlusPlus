@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, describe, beforeEach, afterEach, it } from 'bun:test';
 import { updatePackageWithDependencies } from '@T/dependency-resolver.tool';
 import path from 'path';
 import fs from 'fs';
@@ -37,9 +37,8 @@ describe('Dependency Resolver with Version Validation', () => {
         }
     });
 
-    it('should reject non-existent package versions', async function () {
+    it('should reject non-existent package versions', async () => {
         // Increase timeout for npm operations
-        this.timeout(60000); // 1 minute
 
         // Arrange
         const packageJson: PackageJson = {
@@ -64,18 +63,17 @@ describe('Dependency Resolver with Version Validation', () => {
 
         try {
             await updatePackageWithDependencies(testRepoPath, false, plannedUpdates);
-            expect.fail('Should have thrown an error for non-existent version');
+            throw new Error('Should have thrown an error for non-existent version');
         } catch (error) {
-            expect(error).to.be.an('error');
+            expect(error).toBe('error');
             const errorMessage = error instanceof Error ? error.message : String(error);
-            expect(errorMessage).to.include('do not exist in the npm registry');
-            expect(errorMessage).to.include('lodash@999.999.999');
+            expect(errorMessage).toContain('do not exist in the npm registry');
+            expect(errorMessage).toContain('lodash@999.999.999');
         }
     });
 
-    it('should proceed when all package versions exist', async function () {
+    it('should proceed when all package versions exist', async () => {
         // Increase timeout for npm operations
-        this.timeout(60000); // 1 minute
 
         // Arrange
         const packageJson: PackageJson = {
@@ -101,15 +99,14 @@ describe('Dependency Resolver with Version Validation', () => {
         // This should work without throwing an error
         const result = await updatePackageWithDependencies(testRepoPath, false, plannedUpdates);
 
-        expect(result).to.be.a('string');
-        expect(result).to.include('package versions validated successfully');
-        expect(result).to.include('Updated lodash to 4.17.21');
-        expect(result).to.include('package.json updated successfully');
+        expect(result).toBe('string');
+        expect(result).toContain('package versions validated successfully');
+        expect(result).toContain('Updated lodash to 4.17.21');
+        expect(result).toContain('package.json updated successfully');
     });
 
-    it('should validate multiple packages with mixed existence', async function () {
+    it('should validate multiple packages with mixed existence', async () => {
         // Increase timeout for npm operations
-        this.timeout(60000); // 1 minute
 
         // Arrange
         const packageJson: PackageJson = {
@@ -140,13 +137,13 @@ describe('Dependency Resolver with Version Validation', () => {
 
         try {
             await updatePackageWithDependencies(testRepoPath, false, plannedUpdates);
-            expect.fail('Should have thrown an error for non-existent version');
+            throw new Error('Should have thrown an error for non-existent version');
         } catch (error) {
-            expect(error).to.be.an('error');
+            expect(error).toBe('error');
             const errorMessage = error instanceof Error ? error.message : String(error);
-            expect(errorMessage).to.include('do not exist in the npm registry');
-            expect(errorMessage).to.include('express@999.999.999');
-            expect(errorMessage).to.not.include('lodash@4.17.21'); // Valid package should not be in error
+            expect(errorMessage).toContain('do not exist in the npm registry');
+            expect(errorMessage).toContain('express@999.999.999');
+            expect(errorMessage).not.toContain('lodash@4.17.21'); // Valid package should not be in error
         }
     });
 });

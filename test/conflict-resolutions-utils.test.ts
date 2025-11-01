@@ -1,5 +1,4 @@
-import { expect } from 'chai';
-import { describe, it, beforeEach, afterEach } from 'mocha';
+import { expect, describe, it, beforeEach, afterEach } from 'bun:test';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -51,7 +50,6 @@ describe('analyzeConflicts', function () {
 
     it('should analyze conflicts with existing dependencies', async function () {
         // Increase timeout for npm operations
-        this.timeout(3600000); // 60 minutes
 
         // Arrange
         const packageJson: PackageJson = {
@@ -88,18 +86,17 @@ describe('analyzeConflicts', function () {
         const result: ConflictResolution = await analyzeConflicts(testRepoPath, true, packageJson, plannedUpdates);
 
         // Assert
-        expect(result).to.be.an('object');
-        expect(result).to.have.property('conflicts').that.is.an('array');
-        expect(result).to.have.property('resolutions').that.is.an('array');
+        expect(typeof result).toBe('object');
+        expect(result).toHaveProperty('conflicts');
+        expect(result).toHaveProperty('resolutions');
 
         // The function should complete without throwing errors
-        expect(result.conflicts).to.be.an('array');
-        expect(result.resolutions).to.be.an('array');
+        expect(Array.isArray(result.conflicts)).toBe(true);
+        expect(Array.isArray(result.resolutions)).toBe(true);
     });
 
     it('should analyze conflicts for hyui-9 Angular upgrade scenario', async function () {
         // Increase timeout for npm operations
-        this.timeout(3600000); // 60 minutes
 
         // Arrange - Copy asset files to test directory
         const assetsDir = path.join(__dirname, 'assets');
@@ -168,17 +165,16 @@ describe('analyzeConflicts', function () {
         const result: ConflictResolution = await analyzeConflicts(testRepoPath, false, packageJson, plannedUpdates);
 
         // Assert
-        expect(result).to.be.an('object');
-        expect(result).to.have.property('conflicts').that.is.an('array');
-        expect(result).to.have.property('resolutions').that.is.an('array');
+        expect(typeof result).toBe('object');
+        expect(result).toHaveProperty('conflicts');
+        expect(result).toHaveProperty('resolutions');
 
         // The function should complete without throwing errors
-        expect(result.conflicts).to.be.an('array');
-        expect(result.resolutions).to.be.an('array');
+        expect(Array.isArray(result.conflicts)).toBe(true);
+        expect(Array.isArray(result.resolutions)).toBe(true);
     });
     it('should analyze conflicts for hyui-10 Angular upgrade scenario', async function () {
         // Increase timeout for npm operations
-        this.timeout(3600000); // 60 minutes
 
         // Arrange
         const packageJson: PackageJson = {
@@ -363,12 +359,12 @@ describe('analyzeConflicts', function () {
         const result: ConflictResolution = await analyzeConflicts(testRepoPath, true, packageJson, plannedUpdates);
 
         // Assert
-        expect(result).to.be.an('object');
-        expect(result).to.have.property('conflicts').that.is.an('array');
-        expect(result).to.have.property('resolutions').that.is.an('array');
+        expect(typeof result).toBe('object');
+        expect(result).toHaveProperty('conflicts');
+        expect(result).toHaveProperty('resolutions');
 
         // The function should complete without throwing errors
-        expect(result.conflicts).to.be.an('array');
-        expect(result.resolutions).to.be.an('array');
+        expect(Array.isArray(result.conflicts)).toBe(true);
+        expect(Array.isArray(result.resolutions)).toBe(true);
     });
 });

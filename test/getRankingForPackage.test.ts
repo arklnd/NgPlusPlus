@@ -1,17 +1,15 @@
-import { expect } from 'chai';
+import { expect, describe, it } from 'bun:test';
 import { getRankingForPackage } from '@U/dumb-resolver-helper/conflict-analysis.utils';
 
 describe('getRankingForPackage', function () {
-    this.timeout(15000);
-
     describe('Function Structure', function () {
         it('should be a function', function () {
-            expect(getRankingForPackage).to.be.a('function');
+            expect(typeof getRankingForPackage).toBe('function');
         });
 
         it('should return null for empty package name', async function () {
             const result = await getRankingForPackage('');
-            expect(result).to.be.null;
+            expect(result).toBeNull();
         });
     });
 
@@ -21,11 +19,11 @@ describe('getRankingForPackage', function () {
             const result = await getRankingForPackage('@storybook/angular');
             
             if (result !== null) {
-                expect(result).to.be.an('object');
-                expect(result).to.have.property('rank');
-                expect(result).to.have.property('tier');
-                expect(typeof result.rank).to.equal('number');
-                expect(typeof result.tier).to.equal('string');
+                expect(result).toBeInstanceOf(Object);
+                expect(result).toHaveProperty('rank');
+                expect(result).toHaveProperty('tier');
+                expect(typeof result.rank).toBe('number');
+                expect(typeof result.tier).toBe('string');
             }
             // If result is null, that's acceptable (AI service issues)
         });
@@ -36,11 +34,11 @@ describe('getRankingForPackage', function () {
             const result = await getRankingForPackage('react');
             
             if (result !== null) {
-                expect(result).to.be.an('object');
-                expect(result).to.have.property('rank');
-                expect(result).to.have.property('tier');
-                expect(typeof result.rank).to.equal('number');
-                expect(typeof result.tier).to.equal('string');
+                expect(result).toBeInstanceOf(Object);
+                expect(result).toHaveProperty('rank');
+                expect(result).toHaveProperty('tier');
+                expect(typeof result.rank).toBe('number');
+                expect(typeof result.tier).toBe('string');
             }
             // If result is null, that's acceptable (AI service issues)
         });
@@ -56,7 +54,7 @@ describe('getRankingForPackage', function () {
             
             // Both should return the same type
             if (result1 !== null && result2 !== null) {
-                expect(result1).to.deep.equal(result2);
+                expect(result1).toEqual(result2);
             }
         });
     });
@@ -75,11 +73,11 @@ describe('getRankingForPackage', function () {
                 
                 // Should either return null or valid ranking object
                 if (result !== null) {
-                    expect(result).to.be.an('object');
-                    expect(result).to.have.property('rank');
-                    expect(result).to.have.property('tier');
-                    expect(typeof result.rank).to.equal('number');
-                    expect(typeof result.tier).to.equal('string');
+                    expect(result).toBeInstanceOf(Object);
+                    expect(result).toHaveProperty('rank');
+                    expect(result).toHaveProperty('tier');
+                    expect(typeof result.rank).toBe('number');
+                    expect(typeof result.tier).toBe('string');
                 }
             }
         });
@@ -90,7 +88,7 @@ describe('getRankingForPackage', function () {
             for (const packageName of edgeCases) {
                 expect(async () => {
                     await getRankingForPackage(packageName);
-                }).to.not.throw();
+                }).not.toThrow();
             }
         });
     });

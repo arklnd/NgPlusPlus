@@ -1,10 +1,7 @@
-import { expect } from 'chai';
-import { describe, it } from 'mocha';
+import { describe, it, expect } from 'bun:test';
 import { parseInstallErrorToConflictAnalysis } from '@U/dumb-resolver-helper/conflict-analysis.utils';
 
-describe('parseInstallErrorToConflictAnalysis', function () {
-    // Increase timeout for AI operations
-    this.timeout(30000);
+describe('parseInstallErrorToConflictAnalysis', () => {
 
     const sampleInstallErrors = [
         {
@@ -103,21 +100,21 @@ npm ERR! notsup Actual:   {"npm":"7.24.0","node":"16.20.0"}
     ];
 
     sampleInstallErrors.forEach((testCase, index) => {
-        it(`should parse ${testCase.name} and return conflict analysis`, async function () {
+        it(`should parse ${testCase.name} and return conflict analysis`, async () => {
             try {
                 console.log(`\n--- Testing case ${index + 1}: ${testCase.name} ---`);
                 const result = await parseInstallErrorToConflictAnalysis(testCase.error);
                 
                 // Basic structure validation
-                expect(result).to.be.an('object');
-                expect(result).to.have.property('conflictingPackage');
-                expect(result).to.have.property('conflictingPackageCurrentVersion');
-                expect(result).to.have.property('satisfyingPackages');
-                expect(result).to.have.property('notSatisfying');
+                expect(result).toBeInstanceOf(Object);
+                expect(result).toHaveProperty('conflictingPackage');
+                expect(result).toHaveProperty('conflictingPackageCurrentVersion');
+                expect(result).toHaveProperty('satisfyingPackages');
+                expect(result).toHaveProperty('notSatisfying');
                 
                 // Arrays should be defined (even if empty)
-                expect(result.satisfyingPackages).to.be.an('array');
-                expect(result.notSatisfying).to.be.an('array');
+                expect(result.satisfyingPackages).toBeInstanceOf(Array);
+                expect(result.notSatisfying).toBeInstanceOf(Array);
                 
                 console.log(`Result for ${testCase.name}:`, JSON.stringify(result, null, 2));
                 
@@ -125,21 +122,21 @@ npm ERR! notsup Actual:   {"npm":"7.24.0","node":"16.20.0"}
                 console.error(`Test failed for ${testCase.name} with error:`, error);
                 throw error;
             }
-        });
+        }, 30000);
     });
 
-    it('should handle empty error string gracefully', async function () {
+    it('should handle empty error string gracefully', async () => {
         const emptyError = '';
         
         try {
             const result = await parseInstallErrorToConflictAnalysis(emptyError);
             
             // Should return a valid structure even for empty input
-            expect(result).to.be.an('object');
-            expect(result).to.have.property('conflictingPackage');
-            expect(result).to.have.property('conflictingPackageCurrentVersion');
-            expect(result).to.have.property('satisfyingPackages');
-            expect(result).to.have.property('notSatisfying');
+            expect(result).toBeInstanceOf(Object);
+            expect(result).toHaveProperty('conflictingPackage');
+            expect(result).toHaveProperty('conflictingPackageCurrentVersion');
+            expect(result).toHaveProperty('satisfyingPackages');
+            expect(result).toHaveProperty('notSatisfying');
             
             console.log('Result for empty error:', JSON.stringify(result, null, 2));
             
@@ -147,20 +144,20 @@ npm ERR! notsup Actual:   {"npm":"7.24.0","node":"16.20.0"}
             console.error('Test failed with error:', error);
             throw error;
         }
-    });
+    }, 30000);
 
-    it('should handle malformed error string', async function () {
+    it('should handle malformed error string', async () => {
         const malformedError = 'This is not a real npm error message';
         
         try {
             const result = await parseInstallErrorToConflictAnalysis(malformedError);
             
             // Should return a valid structure even for malformed input
-            expect(result).to.be.an('object');
-            expect(result).to.have.property('conflictingPackage');
-            expect(result).to.have.property('conflictingPackageCurrentVersion');
-            expect(result).to.have.property('satisfyingPackages');
-            expect(result).to.have.property('notSatisfying');
+            expect(result).toBeInstanceOf(Object);
+            expect(result).toHaveProperty('conflictingPackage');
+            expect(result).toHaveProperty('conflictingPackageCurrentVersion');
+            expect(result).toHaveProperty('satisfyingPackages');
+            expect(result).toHaveProperty('notSatisfying');
             
             console.log('Result for malformed error:', JSON.stringify(result, null, 2));
             
@@ -168,5 +165,5 @@ npm ERR! notsup Actual:   {"npm":"7.24.0","node":"16.20.0"}
             console.error('Test failed with error:', error);
             throw error;
         }
-    });
+    }, 30000);
 });

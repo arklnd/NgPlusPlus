@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, describe, it } from 'bun:test';
 import { analyzeDependencyConstraints, assessConstraintSeverity, identifyBlockingPackages, isRelatedPackage, DependencyConstraint, UpgradeStrategy, ResolverAnalysis } from '@U/dumb-resolver-helper';
 
 describe('Dependency Analyzer Utils', function () {
@@ -12,12 +12,12 @@ describe('Dependency Analyzer Utils', function () {
 
             const constraints = analyzeDependencyConstraints(errorOutput);
 
-            expect(constraints).to.have.length.greaterThan(0);
+            expect(constraints.length).toBeGreaterThan(0);
 
             // Should find version-mismatch type constraints
             const typescriptConstraint = constraints.find((c) => c.package === 'typescript');
-            expect(typescriptConstraint).to.exist;
-            expect(typescriptConstraint?.type).to.equal('version-mismatch');
+            expect(typescriptConstraint).toBeDefined();
+            expect(typescriptConstraint?.type).toBe('version-mismatch');
         });
 
         it('should parse version conflict errors correctly', function () {
@@ -30,9 +30,9 @@ describe('Dependency Analyzer Utils', function () {
             const constraints = analyzeDependencyConstraints(errorOutput);
 
             const conflictConstraint = constraints.find((c) => c.type === 'conflict');
-            expect(conflictConstraint).to.exist;
-            expect(conflictConstraint?.package).to.equal('typescript');
-            expect(conflictConstraint?.severity).to.equal('blocking');
+            expect(conflictConstraint).toBeDefined();
+            expect(conflictConstraint?.package).toBe('typescript');
+            expect(conflictConstraint?.severity).toBe('blocking');
         });
 
         it('should parse version mismatch errors correctly', function () {
@@ -44,8 +44,8 @@ describe('Dependency Analyzer Utils', function () {
             const constraints = analyzeDependencyConstraints(errorOutput);
 
             const versionMismatch = constraints.find((c) => c.type === 'version-mismatch');
-            expect(versionMismatch).to.exist;
-            expect(versionMismatch?.package).to.be.oneOf(['typescript', 'webpack-cli']);
+            expect(versionMismatch).toBeDefined();
+            expect(['typescript', 'webpack-cli']).toContain(versionMismatch!.package);
         });
 
         it('should parse unmet peer dependency errors correctly', function () {
@@ -57,17 +57,17 @@ describe('Dependency Analyzer Utils', function () {
             const constraints = analyzeDependencyConstraints(errorOutput);
 
             const unmetPeer = constraints.find((c) => c.package === '@angular/core');
-            expect(unmetPeer).to.exist;
-            expect(unmetPeer?.type).to.equal('peer');
-            expect(unmetPeer?.severity).to.equal('blocking');
+            expect(unmetPeer).toBeDefined();
+            expect(unmetPeer?.type).toBe('peer');
+            expect(unmetPeer?.severity).toBe('blocking');
         });
 
         it('should handle empty or invalid input gracefully', function () {
             const constraints = analyzeDependencyConstraints('');
-            expect(constraints).to.be.an('array').that.is.empty;
+            expect(constraints.length).toBe(0);
 
             const invalidConstraints = analyzeDependencyConstraints('random text with no dependency info');
-            expect(invalidConstraints).to.be.an('array').that.is.empty;
+            expect(invalidConstraints.length).toBe(0);
         });
 
         it('should deduplicate identical constraints', function () {
@@ -85,12 +85,12 @@ describe('Dependency Analyzer Utils', function () {
             const constraints = analyzeDependencyConstraints(errorOutput);
 
             // Should have constraints but deduplicated
-            expect(constraints).to.have.length.greaterThan(0);
+            expect(constraints.length).toBeGreaterThan(0);
 
             // Check for duplicates manually
             const constraintKeys = constraints.map((c) => `${c.package}:${c.constraint}:${c.dependent}`);
             const uniqueKeys = [...new Set(constraintKeys)];
-            expect(constraintKeys.length).to.equal(uniqueKeys.length); // No duplicates
+            expect(constraintKeys.length).toBe(uniqueKeys.length); // No duplicates
         });
 
         it('should handle complex multi-line error outputs', function () {
@@ -106,39 +106,39 @@ describe('Dependency Analyzer Utils', function () {
             `;
 
             const constraints = analyzeDependencyConstraints(errorOutput);
-            expect(constraints).to.have.length.greaterThan(0);
+            expect(constraints.length).toBeGreaterThan(0);
 
             const hasAngularConstraint = constraints.some((c) => c.package === '@angular/core');
             const hasTypescriptConstraint = constraints.some((c) => c.package === 'typescript');
 
-            expect(hasAngularConstraint || hasTypescriptConstraint).to.be.true;
+            expect(hasAngularConstraint || hasTypescriptConstraint).toBe(true);
         });
     });
 
     describe('assessConstraintSeverity', function () {
         it('should assess blocking constraints correctly', function () {
-            expect(assessConstraintSeverity('<5.0.0')).to.equal('blocking');
-            expect(assessConstraintSeverity('<=4.9.0')).to.equal('blocking');
-            expect(assessConstraintSeverity('4.9.0')).to.equal('blocking'); // exact version
+            expect(assessConstraintSeverity('<5.0.0')).toBe('blocking');
+            expect(assessConstraintSeverity('<=4.9.0')).toBe('blocking');
+            expect(assessConstraintSeverity('4.9.0')).toBe('blocking'); // exact version
         });
 
         it('should assess warning constraints correctly', function () {
-            expect(assessConstraintSeverity('^16.0.0')).to.equal('warning');
-            expect(assessConstraintSeverity('~4.9.0')).to.equal('warning');
-            expect(assessConstraintSeverity('>=4.0.0')).to.equal('warning');
-            expect(assessConstraintSeverity('>=4.0.0 <6.0.0')).to.equal('warning');
+            expect(assessConstraintSeverity('^16.0.0')).toBe('warning');
+            expect(assessConstraintSeverity('~4.9.0')).toBe('warning');
+            expect(assessConstraintSeverity('>=4.0.0')).toBe('warning');
+            expect(assessConstraintSeverity('>=4.0.0 <6.0.0')).toBe('warning');
         });
 
         it('should assess info constraints correctly', function () {
-            expect(assessConstraintSeverity('')).to.equal('info');
-            expect(assessConstraintSeverity(null as any)).to.equal('info');
-            expect(assessConstraintSeverity(undefined as any)).to.equal('info');
+            expect(assessConstraintSeverity('')).toBe('info');
+            expect(assessConstraintSeverity(null as any)).toBe('info');
+            expect(assessConstraintSeverity(undefined as any)).toBe('info');
         });
 
         it('should handle complex version ranges', function () {
-            expect(assessConstraintSeverity('>=4.9.0 <5.2.0')).to.equal('warning'); // has >= so it's warning
-            expect(assessConstraintSeverity('^4.0.0 || ^5.0.0')).to.equal('warning'); // has caret
-            expect(assessConstraintSeverity('*')).to.equal('blocking'); // exact version (no ^, ~, >=)
+            expect(assessConstraintSeverity('>=4.9.0 <5.2.0')).toBe('warning'); // has >= so it's warning
+            expect(assessConstraintSeverity('^4.0.0 || ^5.0.0')).toBe('warning'); // has caret
+            expect(assessConstraintSeverity('*')).toBe('blocking'); // exact version (no ^, ~, >=)
         });
     });
 
@@ -171,15 +171,15 @@ describe('Dependency Analyzer Utils', function () {
             const targetPackages = ['@angular/core', 'typescript'];
             const blockers = identifyBlockingPackages(constraints, targetPackages);
 
-            expect(blockers).to.include('@angular/material');
-            expect(blockers).to.include('@angular/compiler-cli');
+            expect(blockers).toContain('@angular/material');
+            expect(blockers).toContain('@angular/compiler-cli');
             // Only blocking severity should be included
-            expect(blockers).to.not.include('@angular/core');
+            expect(blockers).not.toContain('@angular/core');
         });
 
         it('should handle empty constraints', function () {
             const blockers = identifyBlockingPackages([], ['@angular/core']);
-            expect(blockers).to.be.an('array').that.is.empty;
+            expect(Array.isArray(blockers) && blockers.length === 0).toBe(true);
         });
 
         it('should identify related package blockers', function () {
@@ -196,53 +196,53 @@ describe('Dependency Analyzer Utils', function () {
             const targetPackages = ['@angular/router']; // Related to @angular/core
             const blockers = identifyBlockingPackages(constraints, targetPackages);
 
-            expect(blockers).to.include('@angular/material');
+            expect(blockers).toContain('@angular/material');
         });
     });
 
     describe('isRelatedPackage', function () {
         it('should identify Angular ecosystem packages', function () {
-            expect(isRelatedPackage('@angular/core', '@angular/router')).to.be.true;
-            expect(isRelatedPackage('@angular/material', '@ngrx/store')).to.be.true;
-            expect(isRelatedPackage('@angular-devkit/build-angular', '@schematics/angular')).to.be.true;
-            expect(isRelatedPackage('ng-bootstrap', '@angular/core')).to.be.true;
+            expect(isRelatedPackage('@angular/core', '@angular/router')).toBe(true);
+            expect(isRelatedPackage('@angular/material', '@ngrx/store')).toBe(true);
+            expect(isRelatedPackage('@angular-devkit/build-angular', '@schematics/angular')).toBe(true);
+            expect(isRelatedPackage('ng-bootstrap', '@angular/core')).toBe(true);
         });
 
         it('should identify Storybook ecosystem packages', function () {
-            expect(isRelatedPackage('@storybook/angular', '@storybook/addon-docs')).to.be.true;
-            expect(isRelatedPackage('storybook', '@storybook/core')).to.be.true;
+            expect(isRelatedPackage('@storybook/angular', '@storybook/addon-docs')).toBe(true);
+            expect(isRelatedPackage('storybook', '@storybook/core')).toBe(true);
         });
 
         it('should identify TypeScript ecosystem packages', function () {
-            expect(isRelatedPackage('@types/node', 'typescript')).to.be.true;
-            expect(isRelatedPackage('@types/jest', '@types/mocha')).to.be.true;
+            expect(isRelatedPackage('@types/node', 'typescript')).toBe(true);
+            expect(isRelatedPackage('@types/jest', '@types/mocha')).toBe(true);
         });
 
         it('should identify Babel ecosystem packages', function () {
-            expect(isRelatedPackage('@babel/core', '@babel/preset-env')).to.be.true;
-            expect(isRelatedPackage('babel-loader', '@babel/core')).to.be.true;
+            expect(isRelatedPackage('@babel/core', '@babel/preset-env')).toBe(true);
+            expect(isRelatedPackage('babel-loader', '@babel/core')).toBe(true);
         });
 
         it('should identify ESLint ecosystem packages', function () {
-            expect(isRelatedPackage('eslint', '@eslint/js')).to.be.true;
-            expect(isRelatedPackage('eslint-config-airbnb', 'eslint-plugin-react')).to.be.true;
+            expect(isRelatedPackage('eslint', '@eslint/js')).toBe(true);
+            expect(isRelatedPackage('eslint-config-airbnb', 'eslint-plugin-react')).toBe(true);
         });
 
         it('should identify Webpack ecosystem packages', function () {
-            expect(isRelatedPackage('webpack', 'webpack-cli')).to.be.true;
-            expect(isRelatedPackage('webpack-dev-server', '@webpack/merge')).to.be.true;
+            expect(isRelatedPackage('webpack', 'webpack-cli')).toBe(true);
+            expect(isRelatedPackage('webpack-dev-server', '@webpack/merge')).toBe(true);
         });
 
         it('should return false for unrelated packages', function () {
-            expect(isRelatedPackage('lodash', 'express')).to.be.false;
-            expect(isRelatedPackage('@angular/core', 'react')).to.be.false;
-            expect(isRelatedPackage('webpack', 'vite')).to.be.false;
+            expect(isRelatedPackage('lodash', 'express')).toBe(false);
+            expect(isRelatedPackage('@angular/core', 'react')).toBe(false);
+            expect(isRelatedPackage('webpack', 'vite')).toBe(false);
         });
 
         it('should handle edge cases', function () {
-            expect(isRelatedPackage('', '')).to.be.false;
-            expect(isRelatedPackage('@angular/core', '')).to.be.false;
-            expect(isRelatedPackage('', '@angular/router')).to.be.false;
+            expect(isRelatedPackage('', '')).toBe(false);
+            expect(isRelatedPackage('@angular/core', '')).toBe(false);
+            expect(isRelatedPackage('', '@angular/router')).toBe(false);
         });
     });
 
@@ -262,21 +262,21 @@ describe('Dependency Analyzer Utils', function () {
             `;
 
             const constraints = analyzeDependencyConstraints(complexErrorOutput);
-            expect(constraints).to.have.length.greaterThan(0);
+            expect(constraints.length).toBeGreaterThan(0);
 
             const targetPackages = ['@angular/core', 'typescript', 'webpack'];
             const blockers = identifyBlockingPackages(constraints, targetPackages);
 
-            expect(blockers).to.be.an('array');
-            expect(blockers.length).to.be.greaterThan(0);
+            expect(Array.isArray(blockers)).toBe(true);
+            expect(blockers.length).toBeGreaterThan(0);
 
             // Verify severity assessment
             const blockingConstraints = constraints.filter((c) => c.severity === 'blocking');
-            expect(blockingConstraints).to.have.length.greaterThan(0);
+            expect(blockingConstraints.length).toBeGreaterThan(0);
 
             // Verify related package detection
             const hasAngularRelated = constraints.some((c) => isRelatedPackage(c.package, '@angular/core') || isRelatedPackage(c.dependent.split('@')[0], '@angular/core') || c.package.includes('@angular') || c.dependent.includes('@angular'));
-            expect(hasAngularRelated).to.be.true;
+            expect(hasAngularRelated).toBe(true);
         });
 
         it('should handle real-world npm error output formats', function () {
@@ -298,14 +298,14 @@ npm ERR!       dev @angular-devkit/build-angular@"^16.2.0" from the root project
             const constraints = analyzeDependencyConstraints(realWorldError);
 
             // Should extract meaningful constraints even from complex nested output
-            expect(constraints).to.be.an('array');
+            expect(Array.isArray(constraints)).toBe(true);
 
             // Should identify webpack-related dependencies
             const webpackConstraints = constraints.filter((c) => c.package.includes('webpack') || c.dependent.includes('webpack'));
 
             if (webpackConstraints.length > 0) {
-                expect(webpackConstraints[0]).to.have.property('type');
-                expect(webpackConstraints[0]).to.have.property('severity');
+                expect(webpackConstraints[0]).toHaveProperty('type');
+                expect(webpackConstraints[0]).toHaveProperty('severity');
             }
         });
     });
@@ -320,14 +320,14 @@ npm ERR!       dev @angular-devkit/build-angular@"^16.2.0" from the root project
                 severity: 'blocking',
             };
 
-            expect(constraint).to.have.property('package');
-            expect(constraint).to.have.property('constraint');
-            expect(constraint).to.have.property('dependent');
-            expect(constraint).to.have.property('type');
-            expect(constraint).to.have.property('severity');
+            expect(constraint).toHaveProperty('package');
+            expect(constraint).toHaveProperty('constraint');
+            expect(constraint).toHaveProperty('dependent');
+            expect(constraint).toHaveProperty('type');
+            expect(constraint).toHaveProperty('severity');
 
-            expect(constraint.type).to.be.oneOf(['peer', 'direct', 'conflict', 'version-mismatch']);
-            expect(constraint.severity).to.be.oneOf(['blocking', 'warning', 'info']);
+            expect(['peer', 'direct', 'conflict', 'version-mismatch']).toContain(constraint.type);
+            expect(['blocking', 'warning', 'info']).toContain(constraint.severity);
         });
 
         it('should create valid UpgradeStrategy objects', function () {
@@ -339,16 +339,16 @@ npm ERR!       dev @angular-devkit/build-angular@"^16.2.0" from the root project
                 phase: 'blocker-upgrade',
             };
 
-            expect(strategy).to.have.property('blockers');
-            expect(strategy).to.have.property('targetVersions');
-            expect(strategy).to.have.property('rationale');
-            expect(strategy).to.have.property('confidence');
-            expect(strategy).to.have.property('phase');
+            expect(strategy).toHaveProperty('blockers');
+            expect(strategy).toHaveProperty('targetVersions');
+            expect(strategy).toHaveProperty('rationale');
+            expect(strategy).toHaveProperty('confidence');
+            expect(strategy).toHaveProperty('phase');
 
-            expect(strategy.blockers).to.be.an('array');
-            expect(strategy.targetVersions).to.be.instanceOf(Map);
-            expect(strategy.confidence).to.be.a('number');
-            expect(strategy.phase).to.be.oneOf(['blocker-upgrade', 'target-upgrade', 'cleanup']);
+            expect(Array.isArray(strategy.blockers)).toBe(true);
+            expect(strategy.targetVersions).toBeInstanceOf(Map);
+            expect(typeof strategy.confidence).toBe('number');
+            expect(['blocker-upgrade', 'target-upgrade', 'cleanup']).toContain(strategy.phase);
         });
 
         it('should create valid ResolverAnalysis objects', function () {
@@ -359,15 +359,15 @@ npm ERR!       dev @angular-devkit/build-angular@"^16.2.0" from the root project
                 recommendations: [],
             };
 
-            expect(analysis).to.have.property('constraints');
-            expect(analysis).to.have.property('blockers');
-            expect(analysis).to.have.property('strategies');
-            expect(analysis).to.have.property('recommendations');
+            expect(analysis).toHaveProperty('constraints');
+            expect(analysis).toHaveProperty('blockers');
+            expect(analysis).toHaveProperty('strategies');
+            expect(analysis).toHaveProperty('recommendations');
 
-            expect(analysis.constraints).to.be.an('array');
-            expect(analysis.blockers).to.be.an('array');
-            expect(analysis.strategies).to.be.an('array');
-            expect(analysis.recommendations).to.be.an('array');
+            expect(Array.isArray(analysis.constraints)).toBe(true);
+            expect(Array.isArray(analysis.blockers)).toBe(true);
+            expect(Array.isArray(analysis.strategies)).toBe(true);
+            expect(Array.isArray(analysis.recommendations)).toBe(true);
         });
     });
 });

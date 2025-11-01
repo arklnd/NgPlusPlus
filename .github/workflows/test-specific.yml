@@ -45,22 +45,22 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Use Node.js 20.x
-      uses: actions/setup-node@v4
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
       with:
-        node-version: '20.x'
- 
+        bun-version: latest
+
     - name: Install dependencies
-      run: npm i --verbose
+      run: bun install
 
     - name: Build project
-      run: npm run build
+      run: bun run build
 
     - name: Run test
       if: success()
       continue-on-error: true
       id: test_run
-      run: npx mocha -- --grep "${{ github.event.inputs.test_pattern }}"
+      run: bun run test -t "${{ github.event.inputs.test_pattern }}"
       timeout-minutes: 180
       env:
         MAX_ATTEMPTS: ${{ github.event.inputs.max_attempts }}
@@ -69,7 +69,7 @@ jobs:
     - name: Check test outcome
       if: always()
       run: |
-        node -e "
+        bun -e "
         const outcome = process.argv[1];
         if (outcome === 'cancelled') {
           console.log('⚠️ Test was cancelled - artifacts may be incomplete');
@@ -89,11 +89,11 @@ jobs:
     - name: Prepare artifact name
       if: always()
       id: artifact_name
-      run: npx tsx .github/scripts/prepare-artifact-name.ts "${{ github.event.inputs.test_pattern }}" "${{ github.run_number }}" "${{ github.event.inputs.max_attempts }}" "${{ github.run_attempt }}"
+      run: bun .github/scripts/prepare-artifact-name.ts "${{ github.event.inputs.test_pattern }}" "${{ github.run_number }}" "${{ github.event.inputs.max_attempts }}" "${{ github.run_attempt }}"
 
     - name: Debug - List files before upload
       if: always()
-      run: npx tsx .github/scripts/debug-files.ts
+      run: bun .github/scripts/debug-files.ts
 
     - name: Upload logs as artifacts
       if: always()

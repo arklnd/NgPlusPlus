@@ -1,5 +1,4 @@
-import { expect } from 'chai';
-import { describe, it, beforeEach, afterEach } from 'mocha';
+import { expect, describe, it, beforeEach, afterEach } from 'bun:test';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -36,9 +35,6 @@ describe('updateTransitiveDependencies', function () {
     });
 
     it('should handle Angular dependencies update with transitive dependency resolution', async function () {
-        // Set longer timeout for this test as it involves network calls to npm registry
-        this.timeout(60000);
-
         // Arrange - Use the hyland-ui package.json as base
         const initialPackageJson: PackageJson = {
             name: 'hyland-ui',
@@ -112,8 +108,8 @@ describe('updateTransitiveDependencies', function () {
         const results = await updateTransitiveDependencies(packageJson, updates);
 
         // Assert
-        expect(results).to.be.an('array');
-        expect(results.length).to.be.greaterThan(0);
+        expect(Array.isArray(results)).toBe(true);
+        expect(results.length).toBeGreaterThan(0);
 
         // Verify that results contain status messages
         const hasSuccessMessages = results.some((result) => result.includes('✓'));
@@ -121,12 +117,12 @@ describe('updateTransitiveDependencies', function () {
         const hasErrorMessages = results.some((result) => result.includes('❌'));
 
         // At least one type of message should be present
-        expect(hasSuccessMessages || hasWarningMessages || hasErrorMessages).to.be.true;
+        expect(hasSuccessMessages || hasWarningMessages || hasErrorMessages).toBe(true);
 
         // Check that specific Angular packages are mentioned in results
         const mentionsAngularCore = results.some((result) => result.includes('@angular/core'));
         const mentionsAngularCommon = results.some((result) => result.includes('@angular/common'));
-        expect(mentionsAngularCore || mentionsAngularCommon).to.be.true;
+        expect(mentionsAngularCore || mentionsAngularCommon).toBe(true);
     });
 
     it('should return empty array when no updates are provided', async function () {
@@ -145,8 +141,8 @@ describe('updateTransitiveDependencies', function () {
         const results = await updateTransitiveDependencies(packageJson, updates);
 
         // Assert
-        expect(results).to.be.an('array');
-        expect(results).to.have.length(0);
+        expect(Array.isArray(results)).toBe(true);
+        expect(results).toHaveLength(0);
     });
 
     it('should handle invalid version specifications gracefully', async function () {
@@ -165,18 +161,15 @@ describe('updateTransitiveDependencies', function () {
         const results = await updateTransitiveDependencies(packageJson, updates);
 
         // Assert
-        expect(results).to.be.an('array');
-        expect(results.length).to.be.greaterThan(0);
+        expect(Array.isArray(results)).toBe(true);
+        expect(results.length).toBeGreaterThan(0);
 
         // Should contain an error message about invalid version
         const hasInvalidVersionError = results.some((result) => result.includes('❌') && result.includes('Invalid version specification'));
-        expect(hasInvalidVersionError).to.be.true;
+        expect(hasInvalidVersionError).toBe(true);
     });
 
     it('should handle packages with no dependencies', async function () {
-        // Set timeout for potential network calls
-        this.timeout(30000);
-
         // Arrange
         const packageJson: PackageJson = {
             name: 'test-package',
@@ -192,7 +185,7 @@ describe('updateTransitiveDependencies', function () {
         const results = await updateTransitiveDependencies(packageJson, updates);
 
         // Assert
-        expect(results).to.be.an('array');
+        expect(Array.isArray(results)).toBe(true);
         // Results might be empty if the package has no transitive dependencies
         // or contain error messages if the package doesn't exist
     });
@@ -213,18 +206,15 @@ describe('updateTransitiveDependencies', function () {
         const results = await updateTransitiveDependencies(packageJson, updates);
 
         // Assert
-        expect(results).to.be.an('array');
-        expect(results.length).to.be.greaterThan(0);
+        expect(Array.isArray(results)).toBe(true);
+        expect(results.length).toBeGreaterThan(0);
 
         // Should contain an error message about failed processing
         const hasNetworkError = results.some((result) => result.includes('❌') && result.includes('Failed to process'));
-        expect(hasNetworkError).to.be.true;
+        expect(hasNetworkError).toBe(true);
     });
 
     it('should handle packages with peer dependencies', async function () {
-        // Set longer timeout for network calls
-        this.timeout(45000);
-
         // Arrange - Create a realistic scenario with Angular packages that have peer deps
         const packageJson: PackageJson = {
             name: 'test-package',
@@ -242,17 +232,14 @@ describe('updateTransitiveDependencies', function () {
         const results = await updateTransitiveDependencies(packageJson, updates);
 
         // Assert
-        expect(results).to.be.an('array');
+        expect(Array.isArray(results)).toBe(true);
 
         // Results should contain information about peer dependency checks
         const hasPeerDepResults = results.some((result) => result.includes('@angular/core') || result.includes('@angular/common'));
-        expect(hasPeerDepResults).to.be.true;
+        expect(hasPeerDepResults).toBe(true);
     });
 
     it('should preserve existing compatible versions', async function () {
-        // Set timeout for network calls
-        this.timeout(30000);
-
         // Arrange - Create package.json in temp directory to test file modifications
         const initialPackageJson: PackageJson = {
             name: 'test-package',
@@ -275,17 +262,14 @@ describe('updateTransitiveDependencies', function () {
         const results = await updateTransitiveDependencies(packageJson, updates);
 
         // Assert
-        expect(results).to.be.an('array');
+        expect(Array.isArray(results)).toBe(true);
 
         // Should contain success messages for compatible versions
         const hasSuccessMessage = results.some((result) => result.includes('✓'));
-        expect(hasSuccessMessage).to.be.true;
+        expect(hasSuccessMessage).toBe(true);
     });
 
     it('should handle mixed dependency types (dev and prod)', async function () {
-        // Set timeout for network calls
-        this.timeout(30000);
-
         // Arrange
         const packageJson: PackageJson = {
             name: 'test-package',
@@ -304,10 +288,10 @@ describe('updateTransitiveDependencies', function () {
         const results = await updateTransitiveDependencies(packageJson, updates);
 
         // Assert
-        expect(results).to.be.an('array');
+        expect(Array.isArray(results)).toBe(true);
 
         // Results should handle both dev and production dependencies
         const mentionsDependencies = results.some((result) => result.includes('@angular') || result.includes('dependencies'));
-        expect(mentionsDependencies).to.be.true;
+        expect(mentionsDependencies).toBe(true);
     });
 });

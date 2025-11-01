@@ -1,10 +1,7 @@
-import { expect } from 'chai';
+import { expect, describe, it, beforeEach } from 'bun:test';
 import { OpenAIService } from '@S/index';
 
 describe('OpenAI Text Generation', function () {
-    // Increase timeout for API calls
-    this.timeout(15000);
-
     let service: OpenAIService;
 
     beforeEach(function () {
@@ -24,12 +21,12 @@ describe('OpenAI Text Generation', function () {
             
             try {
                 const result = await service.generateText(prompt);
-                expect(result).to.be.a('string');
-                expect(result.length).to.be.greaterThan(0);
+                expect(result).toBeTypeOf('string');
+                expect(result.length).toBeGreaterThan(0);
                 console.log('Generated text:', result);
             } catch (error) {
                 console.log('Expected error for test environment:', (error as Error).message);
-                expect(error).to.be.instanceOf(Error);
+                expect(error).toBeInstanceOf(Error);
             }
         });
 
@@ -42,12 +39,12 @@ describe('OpenAI Text Generation', function () {
             
             try {
                 const result = await service.generateText(prompt, options);
-                expect(result).to.be.a('string');
-                expect(result.length).to.be.greaterThan(0);
+                expect(result).toBeTypeOf('string');
+                expect(result.length).toBeGreaterThan(0);
                 console.log('Generated text with system prompt:', result);
             } catch (error) {
                 console.log('Expected error for test environment:', (error as Error).message);
-                expect(error).to.be.instanceOf(Error);
+                expect(error).toBeInstanceOf(Error);
             }
         });
 
@@ -61,11 +58,11 @@ describe('OpenAI Text Generation', function () {
             
             try {
                 const result = await service.generateText(prompt, options);
-                expect(result).to.be.a('string');
+                expect(result).toBeTypeOf('string');
                 console.log('Generated text with custom options:', result);
             } catch (error) {
                 console.log('Expected error for test environment:', (error as Error).message);
-                expect(error).to.be.instanceOf(Error);
+                expect(error).toBeInstanceOf(Error);
             }
         });
     });
@@ -81,12 +78,12 @@ describe('OpenAI Text Generation', function () {
             
             try {
                 const result = await service.generateTextWithHistory(messages);
-                expect(result).to.be.a('string');
-                expect(result.length).to.be.greaterThan(0);
+                expect(result).toBeTypeOf('string');
+                expect(result.length).toBeGreaterThan(0);
                 console.log('Generated text with history:', result);
             } catch (error) {
                 console.log('Expected error for test environment:', (error as Error).message);
-                expect(error).to.be.instanceOf(Error);
+                expect(error).toBeInstanceOf(Error);
             }
         });
     });
@@ -101,7 +98,7 @@ describe('OpenAI Text Generation', function () {
                 let chunkCount = 0;
                 
                 for await (const chunk of stream) {
-                    expect(chunk).to.be.a('string');
+                    expect(chunk).toBeTypeOf('string');
                     fullText += chunk;
                     chunkCount++;
                     
@@ -109,13 +106,13 @@ describe('OpenAI Text Generation', function () {
                     if (chunkCount > 100) break;
                 }
                 
-                expect(fullText.length).to.be.greaterThan(0);
-                expect(chunkCount).to.be.greaterThan(0);
+                expect(fullText.length).toBeGreaterThan(0);
+                expect(chunkCount).toBeGreaterThan(0);
                 console.log('Streamed text:', fullText);
                 console.log('Number of chunks:', chunkCount);
             } catch (error) {
                 console.log('Expected error for test environment:', (error as Error).message);
-                expect(error).to.be.instanceOf(Error);
+                expect(error).toBeInstanceOf(Error);
             }
         });
 
@@ -134,25 +131,25 @@ describe('OpenAI Text Generation', function () {
                     fullText += chunk;
                 }
                 
-                expect(fullText).to.be.a('string');
+                expect(fullText).toBeTypeOf('string');
                 console.log('Streamed text with options:', fullText);
             } catch (error) {
                 console.log('Expected error for test environment:', (error as Error).message);
-                expect(error).to.be.instanceOf(Error);
+                expect(error).toBeInstanceOf(Error);
             }
         });
     });
 
     describe('Service Configuration', function () {
         it('should be configured with API key', function () {
-            expect(service.isConfigured()).to.be.true;
+            expect(service.isConfigured()).toBe(true);
         });
 
         it('should have correct configuration', function () {
             const config = service.getConfig();
-            expect(config.model).to.equal('copilot-gpt-5');
-            expect(config.temperature).to.equal(0.7);
-            expect(config.maxTokens).to.equal(100);
+            expect(config.model).toBe('copilot-gpt-5');
+            expect(config.temperature).toBe(0.7);
+            expect(config.maxTokens).toBe(100);
         });
     });
 });

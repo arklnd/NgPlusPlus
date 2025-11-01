@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import Database from 'bun:sqlite';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { getLogger, ChildLogger } from '@U/logger.utils';
@@ -33,7 +33,7 @@ const DEFAULT_CONFIG: CacheConfig = {
  */
 export class Cache {
     private static instance: Cache | null = null;
-    private db: Database.Database | null = null;
+    private db: Database | null = null;
     private initialized = false;
     private logger: ChildLogger;
     private config: CacheConfig;
@@ -67,7 +67,7 @@ export class Cache {
     }
 
     /** Core DB init */
-    private initializeDatabase(): Database.Database {
+    private initializeDatabase(): Database {
         if (this.db && this.initialized) return this.db;
 
         try {
@@ -99,7 +99,7 @@ export class Cache {
     }
 
     /** Acquire DB handle */
-    private getDatabase(): Database.Database {
+    private getDatabase(): Database {
         if (!this.db || !this.initialized) return this.initializeDatabase();
         return this.db;
     }

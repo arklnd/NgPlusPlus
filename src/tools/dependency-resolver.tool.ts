@@ -261,7 +261,13 @@ export function registerDependencyResolverTools(server: McpServer) {
 
             try {
                 const startTime = Date.now();
-                const result = await updatePackageWithDependencies(repo_path, run_npm_install, dependencies);
+                const sanitizedDependencies = dependencies
+                    .map((d) => ({
+                        name: d.name as string,
+                        version: d.version as string,
+                        isDev: d.isDev as boolean,
+                    }));
+                const result = await updatePackageWithDependencies(repo_path, run_npm_install, sanitizedDependencies);
                 const executionTime = Date.now() - startTime;
 
                 logger.info('Dependency resolver tool completed successfully', {
