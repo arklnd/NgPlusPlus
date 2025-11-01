@@ -48,6 +48,12 @@ You are an expert npm package ranking analyzer for dependency conflict resolutio
 - **Deprecation**: -100 (README deprecation warnings)
 - **Experimental**: -50 (README mentions beta/unstable)
 {{/if}}
+{{#if dependencyContext}}
+- **Dependency Criticality**: +50 per high-ranked dependent (>800), +25 per medium-ranked dependent (500-800)
+- **Conflict Chain Importance**: +75 (directly involved in primary conflict), +50 (peer dependency of conflicting package)
+- **Ecosystem Dependency**: +100 (depended on by multiple packages in same ecosystem)
+- **Root Dependency**: +200 (directly depended on by root project)
+{{/if}}
 
 **STRATEGIC ANALYSIS FRAMEWORK:**
 1. **Ecosystem Detection**: Identify framework affiliation (@angular/, react-, vue-, @hylandsoftware/, etc.)

@@ -84,9 +84,9 @@ export function createDependencyParsingPrompt(installError: string): string {
 /**
  * Creates a ranking prompt for AI to analyze and rank a single package
  */
-export function createPackageRankingPrompt(packageName: string, readme?: string): string {
+export function createPackageRankingPrompt(packageName: string, readme?: string, dependencyContext?: any): string {
     const template = loadTemplate('package-ranking-prompt');
-    return template({ packageName, readme });
+    return template({ packageName, readme, dependencyContext });
 }
 
 /**

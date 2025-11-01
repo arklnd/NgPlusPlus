@@ -269,7 +269,9 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
 
         // Get rankings for all packages in parallel
         const rankingPromises = Array.from(packagesToRank).map(async (packageName) => {
-            const ranking = await getRankingForPackage(packageName);
+            // Extract dependency context for this package
+            const dependencyContext = extractDependencyContext(currentAnalysis, packageName);
+            const ranking = await getRankingForPackage(packageName, dependencyContext);
             return { packageName, ranking };
         });
 
@@ -339,9 +341,67 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
 }
 
 /**
+ * Extract dependency context for a package from conflict analysis
+ */
+function extractDependencyContext(analysis: ConflictAnalysis, packageName: string): any {
+    const context: any = {
+        dependents: [],
+        isPrimaryConflict: analysis.conflictingPackage === packageName,
+        ecosystem: extractEcosystem(packageName),
+    };
+
+    // Find all packages that depend on this package
+    analysis.conflicts.forEach(conflict => {
+        conflict.requiredBy.forEach(req => {
+            if (req.dependent === packageName) {
+                context.dependents.push({
+                    dependentPackage: conflict.packageName,
+                    requiredRange: req.requiredRange,
+                    type: req.type,
+                    isSatisfied: req.isSatisfied,
+                    rank: getPackageRank(analysis, conflict.packageName),
+                });
+            }
+        });
+    });
+
+    // Check if root project depends on this package
+    const rootDeps = analysis.notSatisfying?.filter(pkg => pkg.packageName === 'root project') || [];
+    if (rootDeps.length > 0) {
+        context.rootDependency = true;
+    }
+
+    return context;
+}
+
+/**
+ * Extract ecosystem information from package name
+ */
+function extractEcosystem(packageName: string): string {
+    if (packageName.startsWith('@angular/')) return 'angular';
+    if (packageName.startsWith('@hylandsoftware/')) return 'hyland';
+    if (packageName.startsWith('react')) return 'react';
+    if (packageName.startsWith('vue')) return 'vue';
+    if (packageName.startsWith('@nestjs/')) return 'nestjs';
+    return 'general';
+}
+
+/**
+ * Get package rank from analysis
+ */
+function getPackageRank(analysis: ConflictAnalysis, packageName: string): number {
+    if (analysis.conflictingPackage === packageName) return analysis.rank;
+    const satisfying = analysis.satisfyingPackages?.find(p => p.packageName === packageName);
+    if (satisfying?.rank) return satisfying.rank;
+    const notSatisfying = analysis.notSatisfying?.find(p => p.packageName === packageName);
+    if (notSatisfying?.rank) return notSatisfying.rank;
+    return 0;
+}
+
+/**
  * Get ranking for a single package using AI with caching support
  */
-export async function getRankingForPackage(packageName: string): Promise<{ rank: number; tier: string } | null> {
+export async function getRankingForPackage(packageName: string, dependencyContext?: any): Promise<{ rank: number; tier: string } | null> {
     if (packageName.trim() === 'root project') {
         return { rank: 999999, tier: 'ROOT' };
     }
@@ -367,7 +427,7 @@ export async function getRankingForPackage(packageName: string): Promise<{ rank:
         const openai = getOpenAIService({ baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
 
         // Create ranking prompt for this specific package
-        const rankingPrompt = createPackageRankingPrompt(packageName, readme?.readme?.trim() && readme?.readme?.trim().length > 0 ? JSON.stringify(readme?.readme) : undefined);
+        const rankingPrompt = createPackageRankingPrompt(packageName, readme?.readme?.trim() && readme?.readme?.trim().length > 0 ? JSON.stringify(readme?.readme) : undefined, dependencyContext);
 
         // Get AI response for this package
         let rankingResponse = await openai.generateText(rankingPrompt);
