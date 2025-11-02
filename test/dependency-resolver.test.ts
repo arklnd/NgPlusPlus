@@ -752,8 +752,25 @@ describe('updatePackageWithDependencies', function () {
             // Continue with test as this might not be critical
         } finally {
             try {
-                fs.copyFileSync(targetPackageJsonPath, sourcePackageJsonPath);
-                fs.copyFileSync(targetPackageLockPath, sourcePackageLockPath);
+                if (fs.existsSync(targetPackageJsonPath)) {
+                    try {
+                        fs.copyFileSync(targetPackageJsonPath, sourcePackageJsonPath);
+                        console.info('[✅] Successfully copied package.json back to test location');
+                    } catch (copyError) {
+                        const error = `Failed to copy package.json: ${copyError instanceof Error ? copyError.message : String(copyError)}`;
+                        console.error('[❌] Failed to copy package.json back', { error });
+                    }
+                }
+                // Copy package-lock.json back if it exists
+                if (fs.existsSync(targetPackageLockPath)) {
+                    try {
+                        fs.copyFileSync(targetPackageLockPath, sourcePackageLockPath);
+                        console.info('[✅] Successfully copied package-lock.json back to test location');
+                    } catch (copyError) {
+                        const error = `Failed to copy package-lock.json: ${copyError instanceof Error ? copyError.message : String(copyError)}`;
+                        console.error('[❌] Failed to copy package-lock.json back', { error });
+                    }
+                }
                 if (fs.existsSync(originalGitPath)) {
                     fs.rmSync(originalGitPath, { recursive: true, force: true });
                 }
