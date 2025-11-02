@@ -45,6 +45,11 @@ export function createStrategicPrompt(reasoningRecording: ReasoningRecording, er
     const template = loadTemplate('strategic-prompt');
 
     // Prepare template data
+    const allPackagesMap = analysis.allPackagesMentionedInError.reduce((acc, pkg) => {
+        acc[pkg.name] = pkg;
+        return acc;
+    }, {} as Record<string, any>);
+
     const templateData = {
         reasoningRecording,
         attempt,
@@ -52,6 +57,7 @@ export function createStrategicPrompt(reasoningRecording: ReasoningRecording, er
         targetPackages,
         errorOutput,
         analysis,
+        allPackagesMap,
     };
 
     return template(templateData);
@@ -84,9 +90,9 @@ export function createDependencyParsingPrompt(installError: string): string {
 /**
  * Creates a ranking prompt for AI to analyze and rank a single package
  */
-export function createPackageRankingPrompt(packageName: string, readme?: string, dependencyContext?: any): string {
+export function createPackageRankingPrompt(packageName: string, readme?: string): string {
     const template = loadTemplate('package-ranking-prompt');
-    return template({ packageName, readme, dependencyContext });
+    return template({ packageName, readme });
 }
 
 /**

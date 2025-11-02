@@ -147,13 +147,6 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         let currentAnalysis: ConflictAnalysis = {
             conflicts: [],
             allPackagesMentionedInError: [],
-            conflictingPackage: '',
-            conflictingPackageCurrentVersion: '',
-            satisfyingPackages: [],
-            notSatisfying: [],
-            rank: 0,
-            tier: '',
-            packagesVersionData: new Map<string, string[]>(),
         };
 
         // Initialize reasoning recording to track AI upgrade decisions across attempts
@@ -378,7 +371,7 @@ This is the current state before any updates. Focus on achieving these target up
                         
                         // Add install error context (format each line with proper git commit message style)
                         const errorContext = installError 
-                            ? `\n\nError Context:\n${installError.split('\n').filter(line => line.trim()).map(line => `  ${line}`).join('\n')}`
+                            ? `\n\nError Context:\n${installError.split('\n').filter(line => line.trim()).map(line => `${line}`).join('\n')}`
                             : '';
                         
                         const commitMessage = `Applied AI strategic suggestions [attempt=${attempt}, aiRetry=${aiRetryAttempt}]\n\n${suggestionSummary}${reasoningDetails}${errorContext}`;

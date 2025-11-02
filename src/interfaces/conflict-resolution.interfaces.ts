@@ -36,15 +36,15 @@ export interface ConflictDetail {
 
 export interface ConflictAnalysis {
     conflicts: ConflictDetail[];
-    allPackagesMentionedInError: string[];
-    conflictingPackage: string;
-    conflictingPackageCurrentVersion: string;
-    satisfyingPackages: PackageVersionInfo[];
-    notSatisfying: PackageVersionInfo[];
-    conflictingPackageAvailableVersions?: string[];
+    allPackagesMentionedInError: PackageVersionRankRegistryData[];
+}
+
+export interface PackageVersionRankRegistryData {
+    name: string;
+    currentVersion: string;
     rank: number;
     tier: string;
-    packagesVersionData: Map<string, string[]>;
+    packagesVersionData: string[];
 }
 
 export interface PackageRank {

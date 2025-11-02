@@ -2,7 +2,7 @@ import { getPackageData } from '@U/package-registry.utils';
 import { getCleanVersion } from '@U/version.utils';
 import { getLogger } from '@U/index';
 import { getOpenAIService } from '@S/openai.service';
-import { ConflictAnalysis, RegistryData } from '@I/index';
+import { ConflictAnalysis, PackageVersionRankRegistryData, RegistryData } from '@I/index';
 import { createDependencyParsingPrompt, createPackageRankingPrompt } from './template-generator.utils';
 import { getCachedPackageData, setCachedPackageData } from '@U/cache.utils';
 import * as semver from 'semver';
@@ -38,43 +38,35 @@ export async function parseInstallErrorToConflictAnalysis(installError: string):
         const parsed = JSON.parse(jsonString);
 
         if (parsed.conflicts && Array.isArray(parsed.conflicts) && parsed.conflicts.length > 0) {
-            const primaryConflict = parsed.conflicts[0];
+            // Collect all unique packages mentioned in the error
+            const allPackages = new Set<PackageVersionRankRegistryData>();
+            parsed.conflicts.forEach((c: any) => {
+                allPackages.add({
+                    name: c.packageName,
+                    currentVersion: c.currentVersion,
+                    rank: -1,
+                    tier: 'NONE',
+                    packagesVersionData: [],
+                });
+                c.requiredBy.forEach((r: any) => {
+                    allPackages.add({
+                        name: r.dependent,
+                        currentVersion: r.dependentVersion,
+                        rank: -1,
+                        tier: 'NONE',
+                        packagesVersionData: [],
+                    });
+                });
+            });
             const currentAnalysis: ConflictAnalysis = {
                 conflicts: parsed.conflicts,
-                allPackagesMentionedInError: parsed.conflicts.map((c: any) => c.packageName),
-                conflictingPackage: primaryConflict.packageName,
-                conflictingPackageCurrentVersion: primaryConflict.currentVersion,
-                satisfyingPackages: primaryConflict.requiredBy
-                    .filter((r: any) => r.isSatisfied)
-                    .map((r: any) => ({
-                        packageName: r.dependent,
-                        packageVersion: r.dependentVersion || '',
-                        requiredVersionRange: r.requiredRange,
-                        rank: undefined,
-                        tier: undefined,
-                        availableVersions: [],
-                    })),
-                notSatisfying: primaryConflict.requiredBy
-                    .filter((r: any) => !r.isSatisfied)
-                    .map((r: any) => ({
-                        packageName: r.dependent,
-                        packageVersion: r.dependentVersion || '',
-                        requiredVersionRange: r.requiredRange,
-                        rank: undefined,
-                        tier: undefined,
-                        availableVersions: [],
-                    })),
-                rank: 0,
-                tier: '',
-                packagesVersionData: new Map<string, string[]>(),
+                allPackagesMentionedInError: Array.from(allPackages),
             };
 
             logger.info('🌟 Successfully parsed install error to conflict analysis', {
-                conflictingPackage: currentAnalysis.conflictingPackage,
-                conflictingPackageCurrentVersion: currentAnalysis.conflictingPackageCurrentVersion,
-                satisfyingPackagesCount: currentAnalysis.satisfyingPackages?.length || 0,
-                notSatisfyingPackagesCount: currentAnalysis.notSatisfying?.length || 0,
                 totalConflicts: currentAnalysis.conflicts.length,
+                allPackagesMentionedInErrorCount: currentAnalysis.allPackagesMentionedInError.length,
+                primaryConflictPackage: parsed.conflicts[0]?.packageName,
             });
 
             return currentAnalysis;
@@ -91,13 +83,6 @@ export async function parseInstallErrorToConflictAnalysis(installError: string):
         return {
             conflicts: [],
             allPackagesMentionedInError: [],
-            conflictingPackage: '',
-            conflictingPackageCurrentVersion: '',
-            satisfyingPackages: [],
-            notSatisfying: [],
-            rank: 0,
-            tier: '',
-            packagesVersionData: new Map<string, string[]>(),
         };
     }
 }
@@ -115,30 +100,11 @@ export async function hydrateConflictAnalysisWithRegistryData(currentAnalysis: C
     logger.info('Fetching available versions for packages involved in conflict');
 
     try {
-        // Get unique package names involved in the conflict
-        const packagesToFetch = new Map<string, string>();
-
-        // Add conflicting package
-        if (currentAnalysis.conflictingPackage) {
-            packagesToFetch.set(currentAnalysis.conflictingPackage, currentAnalysis.conflictingPackageCurrentVersion);
-        }
-
-        // Add satisfying packages
-        currentAnalysis.satisfyingPackages?.forEach((pkg) => {
-            if (pkg.packageName) {
-                packagesToFetch.set(pkg.packageName, pkg.packageVersion);
-            }
-        });
-
-        // Add non-satisfying packages
-        currentAnalysis.notSatisfying?.forEach((pkg) => {
-            if (pkg.packageName) {
-                packagesToFetch.set(pkg.packageName, pkg.packageVersion);
-            }
-        });
 
         // Fetch available versions for all packages in parallel
-        const versionFetchPromises = Array.from(packagesToFetch).map(async ([packageName, currentVersion]) => {
+        const versionFetchPromises = Array.from(currentAnalysis.allPackagesMentionedInError).map(async (pkg) => {
+            const packageName = pkg.name;
+            const currentVersion = pkg.currentVersion;
             try {
                 logger.debug('Fetching available versions for package', { package: packageName });
                 const registryData = packageName.trim() === 'root project' ? { versions: [] } : await getPackageData(packageName);
@@ -146,7 +112,7 @@ export async function hydrateConflictAnalysisWithRegistryData(currentAnalysis: C
 
                 // Filter to only include versions newer than current version
                 const cleanCurrentVersion = getCleanVersion(currentVersion);
-                let versions = allVersions;
+                let versions = allVersions; 
 
                 if (cleanCurrentVersion) {
                     versions = allVersions.filter((version) => {
@@ -162,6 +128,7 @@ export async function hydrateConflictAnalysisWithRegistryData(currentAnalysis: C
                             return false;
                         }
                     });
+                    pkg.packagesVersionData = versions;
 
                     logger.debug('Filtered versions to newer ones only', {
                         package: packageName,
@@ -193,32 +160,11 @@ export async function hydrateConflictAnalysisWithRegistryData(currentAnalysis: C
         // Create enhanced analysis object
         const enhancedAnalysis: ConflictAnalysis = {
             ...currentAnalysis,
-            packagesVersionData: packageVersionMap,
-            // Hydrate conflicting package with available versions
-            conflictingPackageAvailableVersions: currentAnalysis.conflictingPackage && packageVersionMap.has(currentAnalysis.conflictingPackage) ? packageVersionMap.get(currentAnalysis.conflictingPackage) : currentAnalysis.conflictingPackageAvailableVersions,
-
-            // Hydrate satisfying packages with available versions
-            satisfyingPackages:
-                currentAnalysis.satisfyingPackages?.map((pkg) => ({
-                    ...pkg,
-                    availableVersions: packageVersionMap.get(pkg.packageName) || [],
-                })) || [],
-
-            // Hydrate non-satisfying packages with available versions
-            notSatisfying:
-                currentAnalysis.notSatisfying?.map((pkg) => ({
-                    ...pkg,
-                    availableVersions: packageVersionMap.get(pkg.packageName) || [],
-                })) || [],
+            // allPackagesMentionedInError: currentAnalysis.allPackagesMentionedInError.map((pkg) => ({
+            //     ...pkg,
+            //     packagesVersionData: packageVersionMap.get(pkg.name) || [],
+            // })),
         };
-
-        logger.info('Successfully hydrated conflict analysis with available versions', {
-            conflictingPackage: enhancedAnalysis.conflictingPackage,
-            conflictingPackageVersionCount: enhancedAnalysis.conflictingPackageAvailableVersions?.length || 0,
-            satisfyingPackagesCount: enhancedAnalysis.satisfyingPackages?.length || 0,
-            notSatisfyingPackagesCount: enhancedAnalysis.notSatisfying?.length || 0,
-            totalPackagesFetched: packagesToFetch.size,
-        });
 
         return enhancedAnalysis;
     } catch (error) {
@@ -243,36 +189,15 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
     logger.info('Adding ranking information to conflict analysis using AI for individual packages');
 
     try {
-        // Collect all unique package names to rank
-        const packagesToRank = new Set<string>();
-
-        // Add conflicting package
-        if (currentAnalysis.conflictingPackage) {
-            packagesToRank.add(currentAnalysis.conflictingPackage);
-        }
-
-        // Add packages from satisfying packages
-        currentAnalysis.satisfyingPackages?.forEach((pkg) => {
-            if (pkg.packageName) {
-                packagesToRank.add(pkg.packageName);
-            }
-        });
-
-        // Add packages from non-satisfying packages
-        currentAnalysis.notSatisfying?.forEach((pkg) => {
-            if (pkg.packageName) {
-                packagesToRank.add(pkg.packageName);
-            }
-        });
-
-        logger.info('Ranking packages individually', { totalPackages: packagesToRank.size });
+        logger.info('Ranking packages individually', { totalPackages: currentAnalysis.allPackagesMentionedInError.length });
 
         // Get rankings for all packages in parallel
-        const rankingPromises = Array.from(packagesToRank).map(async (packageName) => {
+        const rankingPromises = Array.from(currentAnalysis.allPackagesMentionedInError).map(async (packageInfo) => {
             // Extract dependency context for this package
-            const dependencyContext = extractDependencyContext(currentAnalysis, packageName);
-            const ranking = await getRankingForPackage(packageName, dependencyContext);
-            return { packageName, ranking };
+            const ranking = await getRankingForPackage(packageInfo.name);
+            packageInfo.rank = ranking ? ranking.rank : -1;
+            packageInfo.tier = ranking ? ranking.tier : 'UNRANKED';
+            return { packageName: packageInfo.name, ranking };
         });
 
         const rankingResults = await Promise.all(rankingPromises);
@@ -285,52 +210,10 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
             }
         });
 
-        if (currentAnalysis.conflictingPackage && packageRankingMap.has(currentAnalysis.conflictingPackage) && packageRankingMap.get(currentAnalysis.conflictingPackage)?.rank === undefined) {
-            throw new Error('‼️Conflicting package ranking is undefined');
-        }
-
-        // Create enhanced analysis with ranking information manually hydrated
-        const enhancedAnalysis: ConflictAnalysis = {
-            ...currentAnalysis,
-
-            // Hydrate conflicting package with ranking information
-            rank: packageRankingMap.get(currentAnalysis.conflictingPackage)!.rank,
-            tier: currentAnalysis.conflictingPackage && packageRankingMap.has(currentAnalysis.conflictingPackage) ? packageRankingMap.get(currentAnalysis.conflictingPackage)!.tier : 'UNRANKED',
-
-            // Hydrate satisfying packages with ranking information
-            satisfyingPackages:
-                currentAnalysis.satisfyingPackages?.map((pkg) => {
-                    const ranking = packageRankingMap.get(pkg.packageName);
-                    return {
-                        ...pkg,
-                        rank: ranking?.rank,
-                        tier: ranking?.tier,
-                    };
-                }) || [],
-
-            // Hydrate non-satisfying packages with ranking information
-            notSatisfying:
-                currentAnalysis.notSatisfying?.map((pkg) => {
-                    const ranking = packageRankingMap.get(pkg.packageName);
-                    return {
-                        ...pkg,
-                        rank: ranking?.rank,
-                        tier: ranking?.tier,
-                    };
-                }) || [],
-        };
-
         const rankedPackagesCount = Array.from(packageRankingMap.keys()).length;
 
-        logger.info('Successfully added ranking information to conflict analysis', {
-            conflictingPackage: enhancedAnalysis.conflictingPackage,
-            satisfyingPackagesCount: enhancedAnalysis.satisfyingPackages?.length || 0,
-            notSatisfyingPackagesCount: enhancedAnalysis.notSatisfying?.length || 0,
-            totalPackagesRanked: rankedPackagesCount,
-            rankingsApplied: true,
-        });
 
-        return enhancedAnalysis;
+        return currentAnalysis;
     } catch (error) {
         logger.error('Failed to add ranking information to conflict analysis', {
             error: error instanceof Error ? error.message : String(error),
@@ -341,67 +224,9 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
 }
 
 /**
- * Extract dependency context for a package from conflict analysis
- */
-function extractDependencyContext(analysis: ConflictAnalysis, packageName: string): any {
-    const context: any = {
-        dependents: [],
-        isPrimaryConflict: analysis.conflictingPackage === packageName,
-        ecosystem: extractEcosystem(packageName),
-    };
-
-    // Find all packages that depend on this package
-    analysis.conflicts.forEach(conflict => {
-        conflict.requiredBy.forEach(req => {
-            if (req.dependent === packageName) {
-                context.dependents.push({
-                    dependentPackage: conflict.packageName,
-                    requiredRange: req.requiredRange,
-                    type: req.type,
-                    isSatisfied: req.isSatisfied,
-                    rank: getPackageRank(analysis, conflict.packageName),
-                });
-            }
-        });
-    });
-
-    // Check if root project depends on this package
-    const rootDeps = analysis.notSatisfying?.filter(pkg => pkg.packageName === 'root project') || [];
-    if (rootDeps.length > 0) {
-        context.rootDependency = true;
-    }
-
-    return context;
-}
-
-/**
- * Extract ecosystem information from package name
- */
-function extractEcosystem(packageName: string): string {
-    if (packageName.startsWith('@angular/')) return 'angular';
-    if (packageName.startsWith('@hylandsoftware/')) return 'hyland';
-    if (packageName.startsWith('react')) return 'react';
-    if (packageName.startsWith('vue')) return 'vue';
-    if (packageName.startsWith('@nestjs/')) return 'nestjs';
-    return 'general';
-}
-
-/**
- * Get package rank from analysis
- */
-function getPackageRank(analysis: ConflictAnalysis, packageName: string): number {
-    if (analysis.conflictingPackage === packageName) return analysis.rank;
-    const satisfying = analysis.satisfyingPackages?.find(p => p.packageName === packageName);
-    if (satisfying?.rank) return satisfying.rank;
-    const notSatisfying = analysis.notSatisfying?.find(p => p.packageName === packageName);
-    if (notSatisfying?.rank) return notSatisfying.rank;
-    return 0;
-}
-
-/**
  * Get ranking for a single package using AI with caching support
  */
-export async function getRankingForPackage(packageName: string, dependencyContext?: any): Promise<{ rank: number; tier: string } | null> {
+export async function getRankingForPackage(packageName: string): Promise<{ rank: number; tier: string } | null> {
     if (packageName.trim() === 'root project') {
         return { rank: 999999, tier: 'ROOT' };
     }
@@ -427,7 +252,7 @@ export async function getRankingForPackage(packageName: string, dependencyContex
         const openai = getOpenAIService({ baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
 
         // Create ranking prompt for this specific package
-        const rankingPrompt = createPackageRankingPrompt(packageName, readme?.readme?.trim() && readme?.readme?.trim().length > 0 ? JSON.stringify(readme?.readme) : undefined, dependencyContext);
+        const rankingPrompt = createPackageRankingPrompt(packageName, readme?.readme?.trim() && readme?.readme?.trim().length > 0 ? JSON.stringify(readme?.readme) : undefined);
 
         // Get AI response for this package
         let rankingResponse = await openai.generateText(rankingPrompt);

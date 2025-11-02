@@ -7,44 +7,59 @@ When generating reasoning records, you MUST use the exact rank values provided i
 
 REASONING:
 {{#if reasoningRecording}}
-{{#if reasoningRecording.updateMade}}
-{{#each reasoningRecording.updateMade}}
-- PREVIOUS UPDATE: {{package.name}} (rank {{package.rank}}) upgraded from {{fromVersion}} to {{toVersion}} to resolve conflict with higher rank valued package {{reason.name}} (rank {{reason.rank}})
-{{/each}}
+  {{#if reasoningRecording.updateMade}}
+    {{#each reasoningRecording.updateMade}}
+    - PREVIOUS UPDATE: {{package.name}} (rank {{package.rank}}) upgraded from {{fromVersion}} to {{toVersion}} to resolve conflict with higher rank valued package {{reason.name}} (rank {{reason.rank}})
+    {{/each}}
+  {{else}}
+  - No previous reasoning recorded.
+  {{/if}}
 {{else}}
-- No previous reasoning recorded.
-{{/if}}
-{{else}}
-- No previous reasoning recorded.
+  - No previous reasoning recorded.
 {{/if}}
 
 CONFLICT ANALYSIS:
 ⚠️ **IMPORTANT: The rank values below are the AUTHORITATIVE source for package rankings. Use these EXACT values in your new reasoning records.**
 {{#if analysis}}
-**CONFLICTING PACKAGE:** "{{analysis.conflictingPackage}}" (rank {{analysis.rank}}) current version installed v{{analysis.conflictingPackageCurrentVersion}}
-  Available versions of {{analysis.conflictingPackage}}: {{#each analysis.conflictingPackageAvailableVersions}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{!-- **ALL PACKAGES MENTIONED IN ERROR:**
+{{#each analysis.allPackagesMentionedInError}}
+- {{name}} (rank {{rank}}) current version: {{currentVersion}} available versions: {{#each packagesVersionData}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/each}} --}}
 
-**PACKAGES SATISFIED BY CURRENT VERSION OF "{{analysis.conflictingPackage}}":**
-{{#each analysis.satisfyingPackages}}
-- {{packageName}}@{{packageVersion}} (rank {{rank}}) requires {{{ requiredVersionRange }}}
-  Available versions for {{packageName}}: {{#each availableVersions}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{#each analysis.conflicts}}
+**CONFLICTING PACKAGE:** "{{this.packageName}}" {{#with (lookup ../allPackagesMap this.packageName)}}(rank {{rank}}){{/with}} current version installed v{{this.currentVersion}}
+{{#with (lookup ../allPackagesMap this.packageName)}}
+Available versions of {{../this.packageName}}: {{#each packagesVersionData}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/with}}
+
+**DEPENDENTS SATISFIED BY CURRENT VERSION OF "{{this.packageName}}":**
+{{#each this.requiredBy}}
+{{#if isSatisfied}}
+- {{dependent}}@{{dependentVersion}} {{#with (lookup ../../allPackagesMap dependent)}}(rank {{rank}}){{/with}} requires {{{ requiredRange }}} ({{type}})
+{{#with (lookup ../../allPackagesMap dependent)}}
+Available versions for {{../dependent}}: {{#each packagesVersionData}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/with}}
+{{/if}}
 {{/each}}
 
-**PACKAGES NOT SATISFIED:**
-{{#each analysis.notSatisfying}}
-- {{packageName}}@{{packageVersion}} (rank {{rank}}) requires {{{ requiredVersionRange }}}
-  Available versions for {{packageName}}: {{#each availableVersions}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+**DEPENDENTS NOT SATISFIED BY CURRENT VERSION OF "{{this.packageName}}":**
+{{#each this.requiredBy}}
+{{#unless isSatisfied}}
+- {{dependent}}@{{dependentVersion}} {{#with (lookup ../../allPackagesMap dependent)}}(rank {{rank}}){{/with}} requires {{{ requiredRange }}} ({{type}})
+{{#with (lookup ../../allPackagesMap dependent)}}
+Available versions for {{../dependent}}: {{#each packagesVersionData}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/with}}
+{{/unless}}
+{{/each}}
 {{/each}}
 {{else}}
 - No conflict analysis available.
-{{/if}}
-
-STRATEGIC INSTRUCTIONS:
+{{/if}}STRATEGIC INSTRUCTIONS:
 1. **Conflict Resolution Priority**: When resolving dependency conflicts, prioritize upgrading non-satisfying packages with the LOWEST rank first. Higher-ranked packages (core frameworks, official libraries) should be kept stable, while lower-ranked packages (utilities, experimental) should be upgraded to resolve conflicts.
 
 2. **Resolution Logic**:
    - Here the goal is to achieve TARGET UPGRADES USER WANT TO DO.
-   - Identify all non-satisfying packages from the conflict analysis, upgrade the lowest-ranked packages first to satisfy the higher-ranked dependencies.
+   - Identify all non-satisfying dependents from the conflict analysis, upgrade the lowest-ranked packages first to satisfy the higher-ranked dependencies.
    - **Use the EXACT rank values provided in the CONFLICT ANALYSIS section above for decision making**
    - Higher rank packages should influence upgrade decisions for lower rank packages.
    - Higher the rank value, more priority it has in the upgrade decision-making process.
@@ -61,9 +76,9 @@ STRATEGIC INSTRUCTIONS:
     }
 
 3. **Available Versions Strategy**: 
-   - Use the `availableVersions` arrays from the conflict analysis to make informed upgrade decisions
-   - For conflicting packages, choose from `conflictingPackageAvailableVersions` to find compatible versions
-   - For satisfying/non-satisfying packages, use their `availableVersions` to select appropriate versions
+   - Use the `packagesVersionData` arrays from the conflict analysis to make informed upgrade decisions
+   - For conflicting packages, choose from the available versions listed for the conflicting package to find compatible versions
+   - For dependents, use their available versions to select appropriate versions
    - Prefer stable/LTS versions when available, avoid pre-release versions unless necessary
 
 4. **Reasoning Recording**: 
@@ -78,9 +93,9 @@ STRATEGIC INSTRUCTIONS:
 
 5. **Rank Usage Instructions**:
    - **ALWAYS use the exact rank values provided in the CONFLICT ANALYSIS section above**
-   - For packages in "PACKAGES SATISFIED BY CURRENT VERSION", use their listed rank values
-   - For packages in "PACKAGES NOT SATISFIED (CAUSING CONFLICT)", use their listed rank values
-   - For the conflicting package itself, use the rank from the conflict analysis if available
+   - For dependents in "DEPENDENTS SATISFIED BY CURRENT VERSION", use their listed rank values
+   - For dependents in "DEPENDENTS NOT SATISFIED BY CURRENT VERSION", use their listed rank values
+   - For the conflicting package itself, use the rank from the conflict analysis
    - **NEVER invent or estimate rank values - only use what's explicitly provided in the conflict analysis**
    - If a rank is not provided in the conflict analysis, use 999999 as a fallback
    - **VALIDATION: Before finalizing your response, verify that all rank values in your reasoning section exactly match the ranks shown in the CONFLICT ANALYSIS above**
