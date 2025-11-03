@@ -13,6 +13,11 @@ on:
         required: false
         default: '200'
         type: string
+      openai_base_url:
+        description: 'Base URL for OpenAI API (for custom endpoints)'
+        required: false
+        default: 'http://localhost:3000/v1/'
+        type: string
       openai_model:
         description: 'OpenAI model to use (GPT-4.1, GPT-4o, GPT-5-mini and grok-code are 0x models, haiku 0.33x model)'
         required: false
@@ -65,6 +70,7 @@ jobs:
       env:
         MAX_ATTEMPTS: ${{ github.event.inputs.max_attempts }}
         OPENAI_MODEL: ${{ github.event.inputs.openai_model }}
+        OPENAI_BASE_URL: ${{ github.event.inputs.openai_base_url }}
     
     - name: Check test outcome
       if: always()
