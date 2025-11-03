@@ -17,7 +17,7 @@ const JSON_RESPONSE_REGEX = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
  */
 export async function parseInstallErrorToConflictAnalysis(installError: string): Promise<ConflictAnalysis> {
     const logger = getLogger().child('conflict-analysis');
-    const openai = getOpenAIService({ baseURL: 'http://172.30.245.214:11434/v1', maxTokens: 10000, timeout: 300000 });
+    const openai = getOpenAIService();
 
     logger.info('Parsing install error to generate conflict analysis');
 
@@ -249,7 +249,7 @@ export async function getRankingForPackage(packageName: string): Promise<{ rank:
 
         const readme: RegistryData | null = packageName.trim() !== 'root project' ? await getPackageData(packageName, ['readme']) : null;
 
-        const openai = getOpenAIService({ baseURL: 'http://172.30.245.214:11434/v1', maxTokens: 10000, timeout: 300000 }); // vscode extension hack আর কাজ করছে না
+        const openai = getOpenAIService(); // vscode extension hack আর কাজ করছে না
 
         // Create ranking prompt for this specific package
         const rankingPrompt = createPackageRankingPrompt(packageName, readme?.readme?.trim() && readme?.readme?.trim().length > 0 ? JSON.stringify(readme?.readme) : undefined);

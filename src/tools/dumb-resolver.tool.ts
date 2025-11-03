@@ -141,7 +141,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         // #endregion
 
         // #region Step 3: Attempt installation with retry logic
-        const openai = getOpenAIService({ baseURL: 'http://172.30.245.214:11434/v1', maxTokens: 10000, timeout: 300000 }); // vscode extension hack আর কাজ করছে না
+        const openai = getOpenAIService(); // vscode extension hack আর কাজ করছে না
 
         // Initialize enhanced analysis
         let currentAnalysis: ConflictAnalysis = {
