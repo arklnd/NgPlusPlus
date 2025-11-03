@@ -11,7 +11,7 @@ describe('OpenAI Text Generation', function () {
         // Create service with test configuration
         service = new OpenAIService({
             apiKey: 'sk-test-key',
-            baseURL: 'http://localhost:3000/v1/',
+            baseURL: 'http://172.30.245.214:11434/v1', // vscode extension hack আর কাজ করছে না
             model: 'copilot-gpt-5',
             temperature: 0.7,
             maxTokens: 100
