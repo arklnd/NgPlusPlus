@@ -125,7 +125,6 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
 
         // #region Step 2: Read and update package.json with target dependencies
         let packageJson = await readPackageJson(tempDir);
-        const originalPackageJson = JSON.stringify(packageJson); // Deep clone for AI context
 
         for (const dep of update_dependencies) {
             await updateDependency(packageJson, dep.name, dep.version, dep.isDev);
@@ -158,13 +157,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
             { role: 'system', content: systemMessage },
             {
                 role: 'user',
-                content: `ORIGINAL PACKAGE.JSON DEPENDENCIES CONTEXT:
-${originalPackageJson}
-
-TARGET UPGRADE GOALS:
-${update_dependencies.map((dep) => `- ${dep.name}@${dep.version} (${dep.isDev ? 'dev' : 'prod'})`).join('\n')}
-
-This is the current state before any updates. Focus on achieving these target upgrades through strategic blocker resolution.`,
+                content: `ORIGINAL PACKAGE.JSON DEPENDENCIES CONTEXT:\n${packageJson}\n\nTARGET UPGRADE GOALS:\n${update_dependencies.map((dep) => `- ${dep.name}@${dep.version} (${dep.isDev ? 'dev' : 'prod'})`).join('\n')}\n\nFocus on achieving these target upgrades through strategic blocker resolution.`,
             },
         ];
 
