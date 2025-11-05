@@ -17,11 +17,15 @@
         "start": "node dist/index.js",
         "clean": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true})\"",
         "build:watch": "tsc -p tsconfig.build.json --watch",
-        "test": "npx mocha"
+        "test": "npx mocha",
+        "clean:gitgit": "node -e \"require('fs').rmSync('test/assets/git-git', {recursive: true, force: true})\"",
+        "import:github": "tsx .github/scripts/import-github.ts",
+        "show:gitgitlogs": "tsx .github/scripts/show-git-logs.ts"
     },
     "author": "Arijit Kundu",
     "license": "ISC",
     "devDependencies": {
+        "@types/adm-zip": "0.5.7",
         "@types/better-sqlite3": "7.6.13",
         "@types/chai": "5.2.2",
         "@types/handlebars": "4.0.40",
@@ -37,6 +41,7 @@
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.17.2",
         "@types/semver": "7.7.0",
+        "adm-zip": "0.5.16",
         "better-sqlite3": "12.4.1",
         "dotenv": "17.2.1",
         "fast-deep-equal": "3.1.3",

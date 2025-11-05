@@ -1,8 +1,13 @@
 import { simpleGit } from 'simple-git';
 import path from 'path';
+import fs from 'fs';
 
 async function main() {
     const gitDir = path.join(process.cwd(), 'test/assets/git-git');
+    if (!fs.existsSync(gitDir)) {
+        console.error(`Git directory does not exist: ${gitDir}`);
+        return;
+    }
     const git = simpleGit().env({ GIT_DIR: gitDir });
 
     // Equivalent to: git log --oneline
