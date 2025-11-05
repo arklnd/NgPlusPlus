@@ -26,21 +26,7 @@ function formatSize(bytes: number): string {
 function printTable(data: any[], title?: string) {
     if (data.length === 0) return;
     if (title) console.log(`\n====== ${title.toUpperCase()} ======`);
-    const keys = Object.keys(data[0]);
-    const colWidths = keys.map(key => Math.max(key.length, ...data.map(row => String(row[key]).length)));
-    const header = keys.map((key, i) => key.padEnd(colWidths[i])).join(' │ ');
-    const headerLine = '│ ' + header + ' │';
-    const topSeparator = '╭' + '─'.repeat(headerLine.length - 2) + '╮';
-    const middleSeparator = '├' + '─'.repeat(headerLine.length - 2) + '┤';
-    const bottomSeparator = '╰' + '─'.repeat(headerLine.length - 2) + '╯';
-    console.log(topSeparator);
-    console.log(headerLine);
-    console.log(middleSeparator);
-    data.forEach(row => {
-        const line = '│ ' + keys.map((key, i) => String(row[key]).padEnd(colWidths[i])).join(' │ ') + ' │';
-        console.log(line);
-    });
-    console.log(bottomSeparator);
+    console.table(data);
 }
 
 const files: any[] = [];
