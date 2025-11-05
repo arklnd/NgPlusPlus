@@ -121,3 +121,7 @@ jobs:
         retention-days: 30
         if-no-files-found: warn
         include-hidden-files: true
+
+    - name: Show cache contents
+      if: always()
+      run: npx tsx .github/scripts/print-cache.ts
