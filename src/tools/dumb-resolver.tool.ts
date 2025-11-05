@@ -314,7 +314,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
                                 const reasoningEntries = updateMade
                                     .map((update: any) => `  - ${update.package.name} (rank: ${update.package.rank}): ${update.fromVersion} → ${update.toVersion} | Due to higher rank of: ${update.reason.name} (rank: ${update.reason.rank})`)
                                     .join('\n');
-                                reasoningDetails = `\n\nReasoning Chain:\n${reasoningEntries}`;
+                                reasoningDetails = `\n\n[🔗] Reasoning Chain Entry:\n${reasoningEntries}`;
                                 logger.info('Updated reasoning recording with AI insights 🤖', {
                                     newReasoningEntries: updateMade.length,
                                     totalReasoningEntries: reasoningRecording.updateMade.length,
@@ -373,13 +373,13 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
                         logger.debug('✔️ Git status before commit', { gitStatus });
                         
                         // Build enriched commit message with AI reasoning
-                        const suggestionSummary = suggestions.suggestions
+                        const suggestionSummary = '[🧠] Suggestions:\n' + suggestions.suggestions
                             .map((s: any) => `  - ${s.name}@${s.version}${s.reason ? ` (${s.reason})` : ''}`)
                             .join('\n');
                         
                         // Add install error context (format each line with proper git commit message style)
                         const errorContext = installError 
-                            ? `\n\nError Context:\n${installError.split('\n').filter(line => line.trim()).map(line => `${line}`).join('\n')}`
+                            ? `\n\n[💥] Error Context:\n${installError.split('\n').filter(line => line.trim()).map(line => `${line}`).join('\n')}`
                             : '';
                         
                         const commitMessage = `Applied AI strategic suggestions [attempt=${attempt}, aiRetry=${aiRetryAttempt}]\n\n${suggestionSummary}${reasoningDetails}${errorContext}`;
