@@ -88,18 +88,24 @@ jobs:
         }
         " '${{ steps.test_run.outcome }}'
 
-    - name: Display test results
-      if: always()
-      run: echo "Test execution completed with pattern - ${{ github.event.inputs.test_pattern }}"
 
     - name: Prepare artifact name
       if: always()
       id: artifact_name
       run: npx tsx .github/scripts/prepare-artifact-name.ts "${{ github.event.inputs.test_pattern }}" "${{ github.run_number }}" "${{ github.event.inputs.max_attempts }}" "${{ github.run_attempt }}"
 
+    - name: Debug - Show artifact name
+      if: always()
+      run: echo "Artifact name is ${{ steps.artifact_name.outputs.name }}"
+
     - name: Debug - List files before upload
       if: always()
       run: npx tsx .github/scripts/debug-files.ts
+
+    - name: Debug - Show Git logs from test run
+      if: always()
+      run:
+        npx tsx .github/scripts/show-git-logs.ts
 
     - name: Upload logs as artifacts
       if: always()
