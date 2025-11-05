@@ -295,32 +295,17 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
 
                         // Extract and update reasoning recording from AI response
                         let reasoningDetails = '';
-                        if (suggestions.suggestions && Array.isArray(suggestions.suggestions) && suggestions.suggestions.length > 0) {
-                            // Convert suggestions with reasoning info to updateMade format
-                            const updateMade = suggestions.suggestions
-                                .filter((s: any) => s.packageRank && s.reason) // Only include suggestions with reasoning info
-                                .map((suggestion: any) => ({
-                                    package: {
-                                        name: suggestion.name,
-                                        rank: suggestion.packageRank
-                                    },
-                                    fromVersion: suggestion.fromVersion,
-                                    toVersion: suggestion.version,
-                                    reason: suggestion.reason
-                                }));
-
-                            if (updateMade.length > 0) {
-                                reasoningRecording.updateMade.push(...updateMade);
-                                const reasoningEntries = updateMade
-                                    .map((update: any) => `  - ${update.package.name} (rank: ${update.package.rank}): ${update.fromVersion} → ${update.toVersion} | Due to higher rank of: ${update.reason.name} (rank: ${update.reason.rank})`)
-                                    .join('\n');
-                                reasoningDetails = `\n\n[🔗] Reasoning Chain Entry:\n${reasoningEntries}`;
-                                logger.info('Updated reasoning recording with AI insights 🤖', {
-                                    newReasoningEntries: updateMade.length,
-                                    totalReasoningEntries: reasoningRecording.updateMade.length,
-                                    reasoningRecordingSuggestions: updateMade,
-                                });
-                            }
+                        if (suggestions.reasoning?.updateMade && Array.isArray(suggestions.reasoning.updateMade) && suggestions.reasoning.updateMade.length > 0) {
+                            reasoningRecording.updateMade.push(...suggestions.reasoning.updateMade);
+                            const reasoningEntries = suggestions.reasoning.updateMade
+                                .map((update: any) => `  - ${update.package.name} (rank: ${update.package.rank}): ${update.fromVersion} → ${update.toVersion} | Due to higher rank of: ${update.reason.name} (rank: ${update.reason.rank})`)
+                                .join('\n');
+                            reasoningDetails = `\n\n[🔗] Reasoning Chain Entry:\n${reasoningEntries}`;
+                            logger.info('Updated reasoning recording with AI insights 🤖', {
+                                newReasoningEntries: suggestions.reasoning.updateMade.length,
+                                totalReasoningEntries: reasoningRecording.updateMade.length,
+                                reasoningRecordingSuggestions: suggestions.reasoning.updateMade,
+                            });
                         }
 
                         // Apply suggestions to package.json in tempDir
