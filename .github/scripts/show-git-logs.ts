@@ -10,7 +10,7 @@ async function main() {
     console.log(onelineOutput.trim().split('\n').map((line,index) => `🚀 [Commit ${index + 1}]: ${line}`).join('\n'));
 
     // Equivalent to: git rev-list --reverse HEAD | tail -n +4 | xargs git log -p --no-walk --reverse
-    let commitCount = 3;
+    let commitCount = 0;
     const revListOutput = await git.raw(['rev-list', '--reverse', 'HEAD']);
     const allHashes = revListOutput.trim().split('\n');
     const hashesToShow = allHashes.slice(commitCount); // Skip the first 3 commits
@@ -23,8 +23,21 @@ async function main() {
         commitCount++;
         const patchOutput = await git.raw(['log', '-p', '--no-walk', '--reverse', hash]);
         const lines = patchOutput.split('\n');
-        const filteredLines = lines.filter(line => !line.startsWith('commit ') && !line.startsWith('Author: ') && !line.startsWith('Date: '));
-        const coloredOutput = filteredLines.map(line => {
+        const initialFiltered = lines.filter(line => !line.startsWith('commit ') && !line.startsWith('Author: ') && !line.startsWith('Date: '));
+        let finalFiltered = [];
+        let skip = false;
+        for (const line of initialFiltered) {
+            if (line.startsWith('diff --git a/package-lock.json b/package-lock.json')) {
+                skip = true;
+                continue;
+            } else if (line.startsWith('diff --git ')) {
+                skip = false;
+            }
+            if (!skip) {
+                finalFiltered.push(line);
+            }
+        }
+        const coloredOutput = finalFiltered.map(line => {
             if (line.startsWith('-')) return red + line + reset;
             if (line.startsWith('+')) return green + line + reset;
             return line;
