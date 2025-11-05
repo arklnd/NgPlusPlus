@@ -20,7 +20,8 @@
         "test": "npx mocha",
         "clean:gitgit": "node -e \"require('fs').rmSync('test/assets/git-git', {recursive: true, force: true})\"",
         "import:github": "tsx .github/scripts/import-github.ts",
-        "show:gitgitlogs": "tsx .github/scripts/show-git-logs.ts"
+        "show:gitgitlogs": "tsx .github/scripts/show-git-logs.ts",
+        "show:cache": "tsx .github/scripts/print-cache.ts"
     },
     "author": "Arijit Kundu",
     "license": "ISC",
