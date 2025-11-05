@@ -1,29 +1,82 @@
 import fs from 'fs';
 import path from 'path';
 
-console.log('=== Listing files in current directory ===');
+function formatDateIST(date: Date): string {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Kolkata',
+        year: '2-digit',
+        month: '2-digit',
+        day: '2-digit',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+    });
+    return formatter.format(date);
+}
+
+function formatSize(bytes: number): string {
+    if (bytes === 0) return '0 bytes';
+    const units = ['bytes', 'KB', 'MB', 'GB'];
+    const k = 1024;
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + units[i];
+}
+
+function printTable(data: any[], title?: string) {
+    if (data.length === 0) return;
+    if (title) console.log(`\n====== ${title.toUpperCase()} ======`);
+    const keys = Object.keys(data[0]);
+    const colWidths = keys.map(key => Math.max(key.length, ...data.map(row => String(row[key]).length)));
+    const header = keys.map((key, i) => key.padEnd(colWidths[i])).join(' │ ');
+    const headerLine = '│ ' + header + ' │';
+    const topSeparator = '╭' + '─'.repeat(headerLine.length - 2) + '╮';
+    const middleSeparator = '├' + '─'.repeat(headerLine.length - 2) + '┤';
+    const bottomSeparator = '╰' + '─'.repeat(headerLine.length - 2) + '╯';
+    console.log(topSeparator);
+    console.log(headerLine);
+    console.log(middleSeparator);
+    data.forEach(row => {
+        const line = '│ ' + keys.map((key, i) => String(row[key]).padEnd(colWidths[i])).join(' │ ') + ' │';
+        console.log(line);
+    });
+    console.log(bottomSeparator);
+}
+
+const files: any[] = [];
 fs.readdirSync('.').forEach((file) => {
     const stats = fs.statSync(file);
-    console.log(`${file} - ${stats.size} bytes - ${stats.mtime}`);
+    const isDir = stats.isDirectory();
+    const emoji = isDir ? '📁' : '📄';
+    files.push({ Name: `${emoji} ${file}`, Size: isDir ? '' : formatSize(stats.size), Modified: formatDateIST(stats.mtime) });
 });
+files.sort((a, b) => {
+    const aIsFolder = a.Name.startsWith('📁');
+    const bIsFolder = b.Name.startsWith('📁');
+    if (aIsFolder !== bIsFolder) return aIsFolder ? -1 : 1;
+    return a.Name.localeCompare(b.Name);
+});
+printTable(files, 'Listing files and folders in current directory');
 
-console.log('\n=== Checking for package-cache.db ===');
+const cacheFiles: any[] = [];
 if (fs.existsSync('package-cache.db')) {
     const stats = fs.statSync('package-cache.db');
-    console.log('✅ package-cache.db found');
-    console.log(`Size: ${stats.size} bytes, Modified: ${stats.mtime}`);
+    cacheFiles.push({ File: 'package-cache.db', Status: 'Found', Size: formatSize(stats.size), Modified: formatDateIST(stats.mtime) });
 } else {
-    console.log('❌ package-cache.db NOT found in root');
+    cacheFiles.push({ File: 'package-cache.db', Status: 'NOT found in root', Size: 'N/A', Modified: 'N/A' });
 }
+printTable(cacheFiles, 'Checking for package-cache.db');
 
-console.log('\n=== Checking for cache in src/utils ===');
+const utilsCache: any[] = [];
 if (fs.existsSync('src/utils/package-cache.db')) {
     const stats = fs.statSync('src/utils/package-cache.db');
-    console.log('✅ Found in src/utils/');
-    console.log(`Size: ${stats.size} bytes, Modified: ${stats.mtime}`);
+    utilsCache.push({ File: 'src/utils/package-cache.db', Status: 'Found', Size: formatSize(stats.size), Modified: formatDateIST(stats.mtime) });
+} else {
+    utilsCache.push({ File: 'src/utils/package-cache.db', Status: 'NOT found', Size: 'N/A', Modified: 'N/A' });
 }
+printTable(utilsCache, 'Checking for cache in src/utils');
 
-console.log('\n=== Searching for *.db files ===');
+const dbFiles: any[] = [];
 function findDbFiles(dir: string): void {
     try {
         const files = fs.readdirSync(dir);
@@ -34,7 +87,7 @@ function findDbFiles(dir: string): void {
                 if (stats.isDirectory()) {
                     findDbFiles(fullPath);
                 } else if (file.endsWith('.db')) {
-                    console.log(`${fullPath} - ${stats.size} bytes`);
+                    dbFiles.push({ File: fullPath, Size: formatSize(stats.size), Modified: formatDateIST(stats.mtime) });
                 }
             } catch (e) {
                 // Ignore errors for individual files
@@ -45,10 +98,9 @@ function findDbFiles(dir: string): void {
     }
 }
 findDbFiles('.');
-
-console.log('\n=== Checking for git-git directory ===');
+printTable(dbFiles, 'Searching for *.db files');
+const gitGitInfo: any[] = [];
 if (fs.existsSync('test/assets/git-git')) {
-    console.log('✅ test/assets/git-git found');
     function countFiles(dir: string): number {
         let count = 0;
         try {
@@ -71,19 +123,29 @@ if (fs.existsSync('test/assets/git-git')) {
         }
         return count;
     }
-    console.log(`Total files: ${countFiles('test/assets/git-git')}`);
+    gitGitInfo.push({ Directory: 'test/assets/git-git', Status: 'Found', TotalFiles: countFiles('test/assets/git-git') });
 } else {
-    console.log('❌ test/assets/git-git NOT found');
+    gitGitInfo.push({ Directory: 'test/assets/git-git', Status: 'NOT found', TotalFiles: 'N/A' });
 }
+printTable(gitGitInfo, 'Checking for git-git directory');
 
-console.log('\n=== Listing test/assets contents ===');
+const assetsFiles: any[] = [];
 if (fs.existsSync('test/assets')) {
     fs.readdirSync('test/assets').forEach((file) => {
         try {
             const stats = fs.statSync(path.join('test/assets', file));
-            console.log(`${file} - ${stats.size} bytes - ${stats.mtime}`);
+            const isDir = stats.isDirectory();
+            const emoji = isDir ? '📁' : '📄';
+            assetsFiles.push({ Name: `${emoji} ${file}`, Size: isDir ? '' : formatSize(stats.size), Modified: formatDateIST(stats.mtime) });
         } catch (e) {
             // Ignore errors for individual files
         }
     });
+    assetsFiles.sort((a, b) => {
+        const aIsFolder = a.Name.startsWith('📁');
+        const bIsFolder = b.Name.startsWith('📁');
+        if (aIsFolder !== bIsFolder) return aIsFolder ? -1 : 1;
+        return a.Name.localeCompare(b.Name);
+    });
 }
+printTable(assetsFiles, 'Listing test/assets contents');
