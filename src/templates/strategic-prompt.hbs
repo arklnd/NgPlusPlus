@@ -133,24 +133,13 @@ Respond with JSON containing strategic upgrade suggestions:
       "version": "suggested-version",
       "isDev": true/false,
       "reason": "strategic rationale for this upgrade including target constraint validation",
-      "fromVersion": "current-version"
+      "fromVersion": "current-version",
+      "packageRank": "COPY_EXACT_RANK_FROM_CONFLICT_ANALYSIS_SECTION_ABOVE",
+      "reason": {
+        "name": "higher-ranked-package-causing-conflict",
+        "rank": "COPY_EXACT_RANK_FROM_CONFLICT_ANALYSIS_SECTION_ABOVE"
+      }
     }
   ],
-  "analysis": "strategic analysis of the conflict and resolution approach, including validation that all suggestions stay within TARGET UPGRADE constraints",
-  "reasoning": {
-    "updateMade": [
-      {
-        "package": {
-          "name": "package-being-upgraded",
-          "rank": "COPY_EXACT_RANK_FROM_CONFLICT_ANALYSIS_SECTION_ABOVE"
-        },
-        "fromVersion": "1.0.0",
-        "toVersion": "2.0.0",
-        "reason": {
-          "name": "higher-ranked-package-causing-conflict",
-          "rank": "COPY_EXACT_RANK_FROM_CONFLICT_ANALYSIS_SECTION_ABOVE"
-        }
-      }
-    ]
-  }
+  "analysis": "strategic analysis of the conflict and resolution approach, including validation that all suggestions stay within TARGET UPGRADE constraints"
 }
