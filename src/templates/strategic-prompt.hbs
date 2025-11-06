@@ -5,11 +5,11 @@ TARGET UPGRADES USER WANT TO DO: {{targetPackages}}
 ⚠️ **CRITICAL: USE EXACT RANKS FROM CONFLICT ANALYSIS BELOW**
 When generating reasoning records, you MUST use the exact rank values provided in the CONFLICT ANALYSIS section. Do NOT generate, estimate, or modify rank values.
 
-REASONING:
+PREVIOUS UPDATES AND REASONING-RECORDING:
 {{#if reasoningRecording}}
   {{#if reasoningRecording.updateMade}}
     {{#each reasoningRecording.updateMade}}
-    - PREVIOUS UPDATE: {{package.name}} (rank {{package.rank}}) upgraded from {{fromVersion}} to {{toVersion}} to resolve conflict with higher rank valued package {{reason.name}} (rank {{reason.rank}})
+    - {{package.name}} (rank {{package.rank}}) upgraded from {{fromVersion}} to {{toVersion}} to resolve conflict with higher rank valued package {{reason.name}} (rank {{reason.rank}}) Detailed reasoning: {{reasoningComment}}
     {{/each}}
   {{else}}
   - No previous reasoning recorded.
@@ -81,7 +81,7 @@ Available versions for {{../dependent}}: {{#each packagesVersionData}}{{this}}{{
 3. **Target-Aligned Version Selection**:
    - **CRITICAL**: Only upgrade to versions that are MINIMALLY SUFFICIENT to achieve the TARGET UPGRADES. Avoid "future-proofing" upgrades that exceed what's required.
    - For each target upgrade (e.g., React 18, Vue 3, Angular 17), identify the maximum version constraints of dependent packages and stay within those bounds.
-   - Example: If your target framework requires TypeScript >=4.9 <5.2, do NOT upgrade TypeScript to 5.3 even if it's "newer" - this can force cascading upgrades to incompatible framework versions.
+   - Example: If your target framework requires some-package >=4.9 <5.2, do NOT upgrade some-package to 5.3 even if it's "newer" - this can force cascading upgrades to incompatible framework versions.
    - **NEVER** upgrade beyond the version ranges required by your target upgrades. Future compatibility is not a valid reason to exceed target constraints.
    - If a package version satisfies the immediate conflict AND stays within target upgrade bounds, prefer it over newer versions.
 
@@ -114,7 +114,6 @@ Available versions for {{../dependent}}: {{#each packagesVersionData}}{{this}}{{
    - For dependents in "DEPENDENTS NOT SATISFIED BY CURRENT VERSION", use their listed rank values
    - For the conflicting package itself, use the rank from the conflict analysis
    - **NEVER invent or estimate rank values - only use what's explicitly provided in the conflict analysis**
-   - If a rank is not provided in the conflict analysis, use 999999 as a fallback
    - **VALIDATION: Before finalizing your response, verify that all rank values in your reasoning section exactly match the ranks shown in the CONFLICT ANALYSIS above**
 
 7. **Target Constraint Validation**:
@@ -129,6 +128,14 @@ Available versions for {{../dependent}}: {{#each packagesVersionData}}{{this}}{{
    - When updating packages that use npm aliases (e.g., "npm:package@version" or similar alias formats), preserve the alias structure and only update the version part.
    - Example: "some-package": "npm:actual-package@1.0.0" should become "some-package": "npm:actual-package@2.0.0", not "some-package": "2.0.0"
    - Do not remove or modify the alias format; only change the version number within the alias.
+
+9. **Loop Prevention and Divergent Approaches**:
+   - Monitor the REASONING-RECORDING for repetitive patterns or loops in upgrade suggestions (e.g., the same package being upgraded back and forth between versions).
+   - If a loop is detected, adopt a divergent approach to explore alternative paths: consider other version selections in same range to break the cycle and find new resolution strategies.
+
+10. **Synchronization of Suggestions and Reasoning**:
+   - Ensure that the "suggestions" array and the "reasoning.updateMade" array are synchronized: each entry in "suggestions" must have a corresponding entry in "reasoning.updateMade" with matching package name, fromVersion, toVersion, and reasoningComment derived from the suggestion's reason.
+   - The "reasoning.updateMade" should only include entries for the packages listed in "suggestions", and vice versa, maintaining a one-to-one correspondence.
 
 Respond with JSON containing strategic upgrade suggestions:
 {
@@ -151,6 +158,7 @@ Respond with JSON containing strategic upgrade suggestions:
         },
         "fromVersion": "1.0.0",
         "toVersion": "2.0.0",
+        "reasoningComment": "strategic rationale for this upgrade including target constraint validation",
         "reason": {
           "name": "higher-ranked-package-causing-conflict",
           "rank": "COPY_EXACT_RANK_FROM_CONFLICT_ANALYSIS_SECTION_ABOVE"
