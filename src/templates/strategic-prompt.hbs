@@ -1,4 +1,4 @@
-STRATEGIC DEPENDENCY RESOLUTION - ATTEMPT {{attempt}}/{{maxAttempts}}
+STRATEGIC DEPENDENCY RESOLUTION - ATTEMPT {{attempt}}
 
 TARGET UPGRADES USER WANT TO DO: {{targetPackages}}
 
@@ -7,83 +7,123 @@ When generating reasoning records, you MUST use the exact rank values provided i
 
 REASONING:
 {{#if reasoningRecording}}
-{{#if reasoningRecording.updateMade}}
-{{#each reasoningRecording.updateMade}}
-- PREVIOUS UPDATE: {{package.name}} (rank {{package.rank}}) upgraded from {{fromVersion}} to {{toVersion}} to resolve conflict with higher rank valued package {{reason.name}} (rank {{reason.rank}})
-{{/each}}
+  {{#if reasoningRecording.updateMade}}
+    {{#each reasoningRecording.updateMade}}
+    - PREVIOUS UPDATE: {{package.name}} (rank {{package.rank}}) upgraded from {{fromVersion}} to {{toVersion}} to resolve conflict with higher rank valued package {{reason.name}} (rank {{reason.rank}})
+    {{/each}}
+  {{else}}
+  - No previous reasoning recorded.
+  {{/if}}
 {{else}}
-- No previous reasoning recorded.
-{{/if}}
-{{else}}
-- No previous reasoning recorded.
+  - No previous reasoning recorded.
 {{/if}}
 
 CONFLICT ANALYSIS:
 ⚠️ **IMPORTANT: The rank values below are the AUTHORITATIVE source for package rankings. Use these EXACT values in your new reasoning records.**
 {{#if analysis}}
-**CONFLICTING PACKAGE:** "{{analysis.conflictingPackage}}" (rank {{analysis.rank}}) current version installed v{{analysis.conflictingPackageCurrentVersion}}
-  Available versions of {{analysis.conflictingPackage}}: {{#each analysis.conflictingPackageAvailableVersions}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{!-- **ALL PACKAGES MENTIONED IN ERROR:**
+{{#each analysis.allPackagesMentionedInError}}
+- {{name}} (rank {{rank}}) current version: {{currentVersion}} available versions: {{#each packagesVersionData}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/each}} --}}
 
-**PACKAGES SATISFIED BY CURRENT VERSION OF "{{analysis.conflictingPackage}}":**
-{{#each analysis.satisfyingPackages}}
-- {{packageName}}@{{packageVersion}} (rank {{rank}}) requires {{{ requiredVersionRange }}}
-  Available versions for {{packageName}}: {{#each availableVersions}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{#each analysis.conflicts}}
+**CONFLICTING PACKAGE:** "{{this.packageName}}" {{#with (lookup ../allPackagesMap this.packageName)}}(rank {{rank}}){{/with}} current version installed v{{this.currentVersion}}
+{{#with (lookup ../allPackagesMap this.packageName)}}
+Available versions of {{../this.packageName}}: {{#each packagesVersionData}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/with}}
+
+**DEPENDENTS SATISFIED BY CURRENT VERSION OF "{{this.packageName}}":**
+{{#each this.requiredBy}}
+{{#if isSatisfied}}
+- {{dependent}}@{{dependentVersion}} {{#with (lookup ../../allPackagesMap dependent)}}(rank {{rank}}){{/with}} requires {{{ requiredRange }}} ({{type}})
+{{#with (lookup ../../allPackagesMap dependent)}}
+Available versions for {{../dependent}}: {{#each packagesVersionData}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/with}}
+{{/if}}
 {{/each}}
 
-**PACKAGES NOT SATISFIED:**
-{{#each analysis.notSatisfying}}
-- {{packageName}}@{{packageVersion}} (rank {{rank}}) requires {{{ requiredVersionRange }}}
-  Available versions for {{packageName}}: {{#each availableVersions}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+**DEPENDENTS NOT SATISFIED BY CURRENT VERSION OF "{{this.packageName}}":**
+{{#each this.requiredBy}}
+{{#unless isSatisfied}}
+- {{dependent}}@{{dependentVersion}} {{#with (lookup ../../allPackagesMap dependent)}}(rank {{rank}}){{/with}} requires {{{ requiredRange }}} ({{type}})
+{{#with (lookup ../../allPackagesMap dependent)}}
+Available versions for {{../dependent}}: {{#each packagesVersionData}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/with}}
+{{/unless}}
+{{/each}}
 {{/each}}
 {{else}}
 - No conflict analysis available.
-{{/if}}
+{{/if}}STRATEGIC INSTRUCTIONS:
+🚨 **CRITICAL CONSTRAINT**: ALL upgrade suggestions MUST stay within the version bounds required by TARGET UPGRADES. Never suggest versions that would force target packages beyond their intended versions (e.g., don't upgrade a build tool beyond what your target framework version supports).
 
-STRATEGIC INSTRUCTIONS:
 1. **Conflict Resolution Priority**: When resolving dependency conflicts, prioritize upgrading non-satisfying packages with the LOWEST rank first. Higher-ranked packages (core frameworks, official libraries) should be kept stable, while lower-ranked packages (utilities, experimental) should be upgraded to resolve conflicts.
 
 2. **Resolution Logic**:
    - Here the goal is to achieve TARGET UPGRADES USER WANT TO DO.
-   - Identify all non-satisfying packages from the conflict analysis, upgrade the lowest-ranked packages first to satisfy the higher-ranked dependencies.
+   - Identify all non-satisfying dependents from the conflict analysis, upgrade the lowest-ranked packages first to satisfy the higher-ranked dependencies.
    - **Use the EXACT rank values provided in the CONFLICT ANALYSIS section above for decision making**
    - Higher rank packages should influence upgrade decisions for lower rank packages.
    - Higher the rank value, more priority it has in the upgrade decision-making process.
    - Lower rank packages should be upgraded first to resolve conflicts with higher rank packages.
    - Choose versions from the available versions lists ONLY that best resolve the conflicts while adhering to the ranking strategy.
+   - **MANDATORY**: All version selections MUST stay within the constraints of TARGET UPGRADES. Reject any upgrade that would force target packages beyond their intended versions.
    - **When recording reasoning, use the EXACT rank values from the conflict analysis - do not modify or estimate ranks**
-   - If no suitable version is found for a low-rank package, set upgraded version to <NULL>.
+   - If no suitable version is found for a low-rank package that stays within target constraints, set upgraded version to <NULL>.
    - e.g. {
       "name": "package-name",
       "version": "<NULL>",
       "isDev": true/false,
-      "reason": "no suitable version found to resolve conflict with higher-ranked package",
+      "reason": "no suitable version found within target upgrade constraints (target framework requires specific version ranges for dependencies)",
       "fromVersion": "current-version"
     }
 
-3. **Available Versions Strategy**: 
-   - Use the `availableVersions` arrays from the conflict analysis to make informed upgrade decisions
-   - For conflicting packages, choose from `conflictingPackageAvailableVersions` to find compatible versions
-   - For satisfying/non-satisfying packages, use their `availableVersions` to select appropriate versions
-   - Prefer stable/LTS versions when available, avoid pre-release versions unless necessary
+3. **Target-Aligned Version Selection**:
+   - **CRITICAL**: Only upgrade to versions that are MINIMALLY SUFFICIENT to achieve the TARGET UPGRADES. Avoid "future-proofing" upgrades that exceed what's required.
+   - For each target upgrade (e.g., React 18, Vue 3, Angular 17), identify the maximum version constraints of dependent packages and stay within those bounds.
+   - Example: If your target framework requires TypeScript >=4.9 <5.2, do NOT upgrade TypeScript to 5.3 even if it's "newer" - this can force cascading upgrades to incompatible framework versions.
+   - **NEVER** upgrade beyond the version ranges required by your target upgrades. Future compatibility is not a valid reason to exceed target constraints.
+   - If a package version satisfies the immediate conflict AND stays within target upgrade bounds, prefer it over newer versions.
 
-4. **Reasoning Recording**: 
+4. **Available Versions Strategy**:
+   - Use the `packagesVersionData` arrays from the conflict analysis to make informed upgrade decisions
+   - For conflicting packages, choose from the available versions listed for the conflicting package to find compatible versions
+   - For dependents, use their available versions to select appropriate versions
+   - **PRIORITY ORDER**: 
+     1. Versions that satisfy conflicts AND align with target upgrade constraints
+     2. Stable/LTS versions within target constraints
+     3. Minimal version upgrades needed to resolve conflicts
+   - **AVOID**: Pre-release versions unless absolutely necessary, and NEVER versions that exceed target upgrade requirements
+   - **VALIDATION**: Before selecting a version, verify it won't force upgrades beyond your target versions
+
+5. **Reasoning Recording**: 
    - Consider the previous reasoning record to understand what upgrades have already been made and why
    - For each new upgrade suggestion, provide reasoning that explains:
      * Which package is being upgraded (with its rank FROM THE CONFLICT ANALYSIS ABOVE)
      * Which higher-ranked package(s) it's conflicting with that necessitated this upgrade
      * Why this specific version was chosen to resolve the conflict (from available versions)
+     * **VALIDATION**: Confirm the chosen version stays within target upgrade constraints
    - Never upgrade higher rank packages to satisfy lower rank ones.
+   - **PROHIBITED**: "Future-proofing" or "modernization" as reasons for exceeding target version constraints
    - Build upon previous reasoning to create a comprehensive upgrade strategy
    - **CRITICAL: Use EXACT rank values from the CONFLICT ANALYSIS section above. Do NOT generate new rank values.**
 
-5. **Rank Usage Instructions**:
+6. **Rank Usage Instructions**:
    - **ALWAYS use the exact rank values provided in the CONFLICT ANALYSIS section above**
-   - For packages in "PACKAGES SATISFIED BY CURRENT VERSION", use their listed rank values
-   - For packages in "PACKAGES NOT SATISFIED (CAUSING CONFLICT)", use their listed rank values
-   - For the conflicting package itself, use the rank from the conflict analysis if available
+   - For dependents in "DEPENDENTS SATISFIED BY CURRENT VERSION", use their listed rank values
+   - For dependents in "DEPENDENTS NOT SATISFIED BY CURRENT VERSION", use their listed rank values
+   - For the conflicting package itself, use the rank from the conflict analysis
    - **NEVER invent or estimate rank values - only use what's explicitly provided in the conflict analysis**
    - If a rank is not provided in the conflict analysis, use 999999 as a fallback
    - **VALIDATION: Before finalizing your response, verify that all rank values in your reasoning section exactly match the ranks shown in the CONFLICT ANALYSIS above**
+
+7. **Target Constraint Validation**:
+   - **MANDATORY CHECK**: Before suggesting any version upgrade, validate that it won't exceed the version constraints of your TARGET UPGRADES
+   - **EXAMPLE SCENARIO**: If targeting React 18 (^18.0.0), ensure no suggested version forces React to 19+ or requires incompatible peer dependencies.
+   - **FAILURE CONDITION**: If a version selection would violate target constraints, either:
+     * Choose a different (older) version that satisfies the conflict while staying within bounds, OR
+     * Set version to "<NULL>" with reason explaining the constraint violation
+   - **DOCUMENTATION**: Include target constraint validation in your reasoning for each suggestion
 
 Respond with JSON containing strategic upgrade suggestions:
 {
@@ -92,11 +132,11 @@ Respond with JSON containing strategic upgrade suggestions:
       "name": "package-name",
       "version": "suggested-version",
       "isDev": true/false,
-      "reason": "strategic rationale for this upgrade",
+      "reason": "strategic rationale for this upgrade including target constraint validation",
       "fromVersion": "current-version"
     }
   ],
-  "analysis": "strategic analysis of the conflict and resolution approach",
+  "analysis": "strategic analysis of the conflict and resolution approach, including validation that all suggestions stay within TARGET UPGRADE constraints",
   "reasoning": {
     "updateMade": [
       {

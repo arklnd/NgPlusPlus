@@ -2,6 +2,7 @@ import { spawn } from 'child_process';
 import { getLogger } from '@U/index';
 import { RegistryData, PackageVersionData, ValidationResult } from '@I/index';
 import { NoSuitableVersionFoundError } from '@E/NoSuitableVersionFoundError';
+import { getCachedPackageData, setCachedPackageData } from '@U/cache.utils';
 
 /**
  * Fetches package metadata using npm view command (respects .npmrc auth)
@@ -80,8 +81,16 @@ export async function getPackageData(name: string, fields: string[] = []): Promi
  */
 export async function getPackageVersionData(name: string, version: string): Promise<PackageVersionData> {
     const logger = getLogger().child('PackageRegistry');
+    const cacheKey = `ver-${name}@${version}`;
 
     logger.debug('Fetching specific version data via npm', { package: name, version });
+
+    // Check cache first
+    const cachedData = getCachedPackageData(cacheKey);
+    if (cachedData) {
+        logger.debug('Returning cached package version data', { package: name, version });
+        return cachedData;
+    }
 
     try {
         // Use npm view to get specific version info - this respects .npmrc authentication
@@ -119,6 +128,9 @@ export async function getPackageVersionData(name: string, version: string): Prom
                 reject(new Error(`Failed to spawn npm process: ${error.message}`));
             });
         });
+
+        // Cache the result
+        setCachedPackageData(cacheKey, data);
 
         logger.info('Successfully fetched package version data via npm', {
             package: name,

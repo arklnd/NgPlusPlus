@@ -13,10 +13,15 @@ on:
         required: false
         default: '200'
         type: string
+      openai_base_url:
+        description: 'Base URL for OpenAI API (for custom endpoints)'
+        required: false
+        default: 'http://localhost:3000/v1/'
+        type: string
       openai_model:
         description: 'OpenAI model to use (GPT-4.1, GPT-4o, GPT-5-mini and grok-code are 0x models, haiku 0.33x model)'
         required: false
-        default: 'copilot-gpt-4'
+        default: 'copilot-grok-code'
         type: choice
         options:
           - 'copilot-gpt-4.1'
@@ -58,27 +63,49 @@ jobs:
 
     - name: Run test
       if: success()
+      continue-on-error: true
+      id: test_run
       run: npx mocha -- --grep "${{ github.event.inputs.test_pattern }}"
+      timeout-minutes: 180
       env:
         MAX_ATTEMPTS: ${{ github.event.inputs.max_attempts }}
         OPENAI_MODEL: ${{ github.event.inputs.openai_model }}
-
-    - name: Display test results
+        OPENAI_BASE_URL: ${{ github.event.inputs.openai_base_url }}
+    
+    - name: Check test outcome
       if: always()
-      run: echo "Test execution completed with pattern - ${{ github.event.inputs.test_pattern }}"
+      run: |
+        node -e "
+        const outcome = process.argv[1];
+        if (outcome === 'cancelled') {
+          console.log('⚠️ Test was cancelled - artifacts may be incomplete');
+          process.exit(0);
+        } else if (outcome === 'failure') {
+          console.log('❌ Test failed - check artifacts for details');
+          process.exit(0);
+        } else {
+          console.log('✅ Test completed successfully');
+        }
+        " '${{ steps.test_run.outcome }}'
+
 
     - name: Prepare artifact name
       if: always()
       id: artifact_name
-      run: |
-        node -e "
-        const testPattern = process.argv[1];
-        const runNumber = process.argv[2];
-        const cleanName = testPattern.replace(/\s/g, '_');
-        const artifactName = cleanName + '__logs-' + runNumber;
-        require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'name=' + artifactName + '\n');
-        console.log('Generated artifact name:', artifactName);
-        " '${{ github.event.inputs.test_pattern }}' '${{ github.run_number }}'
+      run: npx tsx .github/scripts/prepare-artifact-name.ts "${{ github.event.inputs.test_pattern }}" "${{ github.run_number }}" "${{ github.event.inputs.max_attempts }}" "${{ github.run_attempt }}"
+
+    - name: Debug - Show artifact name
+      if: always()
+      run: echo "Artifact name is ${{ steps.artifact_name.outputs.name }}"
+
+    - name: Debug - List files before upload
+      if: always()
+      run: npx tsx .github/scripts/debug-files.ts
+
+    - name: Debug - Show Git logs from test run
+      if: always()
+      run:
+        npx tsx .github/scripts/show-git-logs.ts
 
     - name: Upload logs as artifacts
       if: always()
@@ -89,8 +116,17 @@ jobs:
           logs/
           src/logs/
           src/utils/logs/
-          test/assets/git-git/
-          test/assets/**
-          test/assets/.*
-          package-cache.db
+          test/assets/
+          **/*.db
         retention-days: 30
+        if-no-files-found: warn
+        include-hidden-files: true
+
+    - name: Show cache contents
+      if: always()
+      run: npx tsx .github/scripts/print-cache.ts
+
+    - name: Send notification to Teams
+      if: always()
+      run: |
+        curl -H "Content-Type: application/json" -d "{\"text\": \"Test '${{ github.event.inputs.test_pattern }}' completed with outcome: ${{ steps.test_run.outcome }}. View run: https://github.com/arklnd/NgPlusPlus/actions/runs/${{ github.run_id }}\"}" https://hylandsw.webhook.office.com/webhookb2/ea984e3f-c0d4-4d47-93e7-58fb50c43d9c@8ca5db88-a5ab-48f7-a5e0-4ce50935f807/IncomingWebhook/181735dbdae845e49fa179e8ea019447/26520ba4-49af-474f-86cc-f802e20c7209/V2yGLYje8ssmlqCwhtljDtshNdQHrAX6JmMMv1hX8wS6s1

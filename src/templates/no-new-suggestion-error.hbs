@@ -1,0 +1,38 @@
+⚠️ **CRITICAL ISSUE: No New Suggestions Detected**
+
+Your previous response suggested changes, but when applied to package.json, the file remained **completely unchanged**. This indicates one or more of the following problems:
+
+**Possible Root Causes:**
+1. **Redundant Suggestions**: You suggested versions that were already present in package.json
+2. **Ineffective Strategy**: The suggested changes don't actually address the dependency conflict
+3. **Misidentified Target**: You may have misunderstood which packages need modification
+
+**Error Details:**
+{{errorMessage}}
+
+---
+
+**REQUIRED CORRECTIVE ACTIONS:**
+
+**Step 1: Verify Current State**
+- Review the CURRENT package.json state that was just shown
+- Identify which versions are ALREADY present
+- DO NOT suggest versions that already exist in the file
+
+**Step 2: Analyze the Actual Conflict**
+- Re-read the npm install error carefully
+- Identify the BLOCKING package causing the conflict
+- Determine which package versions are incompatible
+
+**Step 3: Generate DIFFERENT Suggestions**
+You MUST provide suggestions that are:
+✅ **Different from current versions** - Verify against the current package.json
+✅ **Valid npm versions** - Must exist in the npm registry
+✅ **Conflict-resolving** - Must address the specific peer dependency or version conflict
+✅ **Strategic** - Prioritize changes to lower-ranked (less important) dependencies
+
+**Step 4: Think Strategically**
+- **Alternative versions**: If specific versions fail, try adjacent minor/patch versions
+
+**NOW RESPOND WITH:**
+A JSON object containing GENUINELY DIFFERENT suggestions that will modify package.json and resolve the conflict. Double-check that your suggestions are not already present in the current state.

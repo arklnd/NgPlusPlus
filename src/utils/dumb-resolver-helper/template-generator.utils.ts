@@ -45,6 +45,11 @@ export function createStrategicPrompt(reasoningRecording: ReasoningRecording, er
     const template = loadTemplate('strategic-prompt');
 
     // Prepare template data
+    const allPackagesMap = analysis.allPackagesMentionedInError.reduce((acc, pkg) => {
+        acc[pkg.name] = pkg;
+        return acc;
+    }, {} as Record<string, any>);
+
     const templateData = {
         reasoningRecording,
         attempt,
@@ -52,6 +57,7 @@ export function createStrategicPrompt(reasoningRecording: ReasoningRecording, er
         targetPackages,
         errorOutput,
         analysis,
+        allPackagesMap,
     };
 
     return template(templateData);
@@ -87,4 +93,12 @@ export function createDependencyParsingPrompt(installError: string): string {
 export function createPackageRankingPrompt(packageName: string, readme?: string): string {
     const template = loadTemplate('package-ranking-prompt');
     return template({ packageName, readme });
+}
+
+/**
+ * Creates a no new suggestion error retry message
+ */
+export function createNoNewSuggestionErrorRetryMessage(errorMessage?: string): string {
+    const template = loadTemplate('no-new-suggestion-error');
+    return template({ errorMessage });
 }

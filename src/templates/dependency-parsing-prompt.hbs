@@ -1,11 +1,6 @@
-You are an expert npm dependency conflict analyzer. Your task is to parse npm ERESOLVE error messages and extract structured information about dependency conflicts.
+You are an expert npm dependency conflict analyzer. Your task is to parse npm ERESOLVE error messages and extract structured information about all dependency conflicts.
 
-Given an npm error message in the variable `installError`, analyze the error and extract the following information:
-
-1. **Conflicting Package**: The main package that is causing the conflict (usually found after "Found:")
-2. **Current Version**: The currently installed version of the conflicting package
-3. **Satisfying Packages**: Packages that can work with the current version (their version ranges are satisfied)
-4. **Non-Satisfying Packages**: Packages that cannot work with the current version (their version ranges are NOT satisfied)
+Given an npm error message in the variable `installError`, analyze the error and extract information about each conflicting package, including their current versions and all requirements (dependencies and peer dependencies).
 
 **Input Error Message:**
 ```
@@ -13,46 +8,52 @@ Given an npm error message in the variable `installError`, analyze the error and
 ```
 
 **Instructions:**
-- Look for lines containing "Found:" to identify the conflicting package and its current version
-- Look for lines with "peer [package]@[version-range] from [dependent-package]@[version]" to identify dependencies
-- Compare version ranges with the current version to determine if they are satisfied or not
+- Parse "Could not resolve dependency:" lines to identify primary conflicts (package, required range, dependent)
+- Parse "Found:" lines to get current installed versions of packages
+- Parse "peer [package]@[version-range] from [dependent-package]@[version]" lines for peer requirements
+- Parse "Conflicting peer dependency: [package]@[version]" lines to identify additional conflicts
+- For each requirement, determine if the current version (if available) satisfies the required range
 - A version range is satisfied if the current version falls within the specified range
 - Version range patterns: "^X.Y.Z" (compatible), "~X.Y.Z" (approximately equivalent), ">=X.Y.Z <W.X.Y" (range), "X.Y.Z" (exact)
 
 **Expected Output Format (JSON only, no explanations):**
 ```json
 {
-    "conflictingPackage": "package-name",
-    "conflictingPackageCurrentVersion": "X.Y.Z",
-    "satisfyingPackages": [
+    "conflicts": [
         {
-            "packageName": "package-that-works",
-            "packageVersion": "X.Y.Z",
-            "requiredVersionRange": "version-range-that-is-satisfied"
-        }
-    ],
-    "notSatisfying": [
-        {
-            "packageName": "package-that-conflicts",
-            "packageVersion": "X.Y.Z", 
-            "requiredVersionRange": "version-range-that-is-not-satisfied"
+            "packageName": "package-name",
+            "currentVersion": "X.Y.Z",
+            "requiredBy": [
+                {
+                    "dependent": "dependent-name",
+                    "dependentVersion": "X.Y.Z",
+                    "requiredRange": "version-range",
+                    "type": "dependency|peer",
+                    "isSatisfied": true|false
+                }
+            ]
         }
     ]
 }
 ```
 
 **Analysis Rules:**
-1. Extract the main conflicting package from "Found: [package]@[version]" lines
-2. For each "peer [package]@[version-range] from [dependent]@[version]" line:
-   - If the version range is compatible with the current version → add to satisfyingPackages
-   - If the version range is NOT compatible with the current version → add to notSatisfying
-3. Focus on the package mentioned in "Could not resolve dependency:" section as the primary conflict
-4. Include only direct peer dependency conflicts, ignore transitive mentions
-5. If multiple conflicts exist, prioritize the one mentioned in "Could not resolve dependency"
+1. Create a conflict entry for each unique package mentioned in "Could not resolve dependency", "Found", or "Conflicting peer dependency" lines
+2. For "Could not resolve dependency: [type] [package]@[range] from [dependent]":
+   - Add to conflicts[package].requiredBy with type="dependency", requiredRange=range, dependent=dependent, isSatisfied=false (since it couldn't resolve)
+3. For "Found: [package]@[version]":
+   - Set conflicts[package].currentVersion = version
+4. For "peer [package]@[range] from [dependent]@[version]":
+   - Add to conflicts[package].requiredBy with type="peer", requiredRange=range, dependent=dependent, dependentVersion=version, isSatisfied=check if currentVersion satisfies range
+5. For "Conflicting peer dependency: [package]@[version]":
+   - Ensure conflicts[package] exists, set currentVersion=version if not set
+6. Group all requirements by package name in the conflicts array
+7. For dependencies from "root project", use "root project" as dependent
+8. Include all conflicts, prioritizing the one from "Could not resolve dependency" as the first in the array
 
 **Version Compatibility Examples:**
 - somepackage@4.1.5 satisfies ">=4.0 <4.2" ✓
-- somepackage@4.1.5 does NOT satisfy "~4.0.0" (requires ~4.0.x) ✗  
+- somepackage@4.1.5 does NOT satisfy "~4.0.0" (requires ~4.0.x) ✗
 - somepackage@5.5.4 satisfies ">=5.4 <5.6" ✓
 - somepackage@5.5.4 does NOT satisfy ">=5.8 <6.0" ✗
 

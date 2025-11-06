@@ -20,16 +20,31 @@ export interface PackageVersionInfo {
     availableVersions?: string[];
 }
 
+export interface RequiredBy {
+    dependent: string;
+    dependentVersion?: string;
+    requiredRange: string;
+    type: "dependency" | "peer";
+    isSatisfied: boolean;
+}
+
+export interface ConflictDetail {
+    packageName: string;
+    currentVersion: string;
+    requiredBy: RequiredBy[];
+}
+
 export interface ConflictAnalysis {
-    allPackagesMentionedInError: string[];
-    conflictingPackage: string;
-    conflictingPackageCurrentVersion: string;
-    satisfyingPackages: PackageVersionInfo[];
-    notSatisfying: PackageVersionInfo[];
-    conflictingPackageAvailableVersions?: string[];
+    conflicts: ConflictDetail[];
+    allPackagesMentionedInError: PackageVersionRankRegistryData[];
+}
+
+export interface PackageVersionRankRegistryData {
+    name: string;
+    currentVersion: string;
     rank: number;
     tier: string;
-    packagesVersionData: Map<string, string[]>;
+    packagesVersionData: string[];
 }
 
 export interface PackageRank {

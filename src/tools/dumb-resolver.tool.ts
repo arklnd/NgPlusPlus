@@ -11,8 +11,9 @@ import { getOpenAIService } from '@S/openai.service';
 import { getLogger } from '@U/index';
 import OpenAI from 'openai';
 import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility, hydrateConflictAnalysisWithRegistryData, parseInstallErrorToConflictAnalysis, hydrateConflictAnalysisWithRanking } from '@U/dumb-resolver-helper';
-import { AIResponseFormatError, NoSuitableVersionFoundError, PackageVersionValidationError } from '@E/index';
+import { AIResponseFormatError, NoSuitableVersionFoundError, PackageVersionValidationError, NoNewSuggestionError } from '@E/index';
 import { ConflictAnalysis, ReasoningRecording, updateMade } from '@I/index';
+import deepEqual from 'fast-deep-equal';
 
 
 const JSON_RESPONSE_REGEX = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
@@ -124,7 +125,6 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
 
         // #region Step 2: Read and update package.json with target dependencies
         let packageJson = await readPackageJson(tempDir);
-        const originalPackageJson = JSON.stringify(packageJson); // Deep clone for AI context
 
         for (const dep of update_dependencies) {
             await updateDependency(packageJson, dep.name, dep.version, dep.isDev);
@@ -140,18 +140,12 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         // #endregion
 
         // #region Step 3: Attempt installation with retry logic
-        const openai = getOpenAIService({ baseURL: 'http://localhost:3000/v1/', maxTokens: 10000, timeout: 300000 });
+        const openai = getOpenAIService(); // vscode extension hack আর কাজ করছে না
 
         // Initialize enhanced analysis
         let currentAnalysis: ConflictAnalysis = {
+            conflicts: [],
             allPackagesMentionedInError: [],
-            conflictingPackage: '',
-            conflictingPackageCurrentVersion: '',
-            satisfyingPackages: [],
-            notSatisfying: [],
-            rank: 0,
-            tier: '',
-            packagesVersionData: new Map<string, string[]>(),
         };
 
         // Initialize reasoning recording to track AI upgrade decisions across attempts
@@ -163,13 +157,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
             { role: 'system', content: systemMessage },
             {
                 role: 'user',
-                content: `ORIGINAL PACKAGE.JSON DEPENDENCIES CONTEXT:
-${originalPackageJson}
-
-TARGET UPGRADE GOALS:
-${update_dependencies.map((dep) => `- ${dep.name}@${dep.version} (${dep.isDev ? 'dev' : 'prod'})`).join('\n')}
-
-This is the current state before any updates. Focus on achieving these target upgrades through strategic blocker resolution.`,
+                content: `ORIGINAL PACKAGE.JSON DEPENDENCIES CONTEXT:\n${packageJson}\n\nTARGET UPGRADE GOALS:\n${update_dependencies.map((dep) => `- ${dep.name}@${dep.version} (${dep.isDev ? 'dev' : 'prod'})`).join('\n')}\n\nFocus on achieving these target upgrades through strategic blocker resolution.`,
             },
         ];
 
@@ -312,7 +300,7 @@ This is the current state before any updates. Focus on achieving these target up
                             const reasoningEntries = suggestions.reasoning.updateMade
                                 .map((update: any) => `  - ${update.package.name} (rank: ${update.package.rank}): ${update.fromVersion} → ${update.toVersion} | Due to higher rank of: ${update.reason.name} (rank: ${update.reason.rank})`)
                                 .join('\n');
-                            reasoningDetails = `\n\nReasoning Chain:\n${reasoningEntries}`;
+                            reasoningDetails = `\n\n[🔗] Reasoning Chain Entry:\n${reasoningEntries}`;
                             logger.info('Updated reasoning recording with AI insights 🤖', {
                                 newReasoningEntries: suggestions.reasoning.updateMade.length,
                                 totalReasoningEntries: reasoningRecording.updateMade.length,
@@ -322,6 +310,7 @@ This is the current state before any updates. Focus on achieving these target up
 
                         // Apply suggestions to package.json in tempDir
                         packageJson = await readPackageJson(tempDir);
+                        const packageJsonBeforeSuggestions = JSON.parse(JSON.stringify(packageJson));
 
                         for (const suggestion of suggestions.suggestions) {
                             await updateDependency(packageJson, suggestion.name, suggestion.version, suggestion.isDev);
@@ -354,6 +343,13 @@ This is the current state before any updates. Focus on achieving these target up
                             }
                         }
 
+                        // Check if packageJson actually has any changes using deep equality comparison
+                        if (deepEqual(packageJsonBeforeSuggestions, packageJson)) {
+                            const errorMessage = 'AI suggested changes but package.json remains unchanged. This indicates the suggestions were redundant or ineffective.';
+                            throw new NoNewSuggestionError(errorMessage);
+                        }
+
+                        logger.debug('Verified package.json has changes after applying suggestions');
                         await writePackageJson(tempDir, packageJson);
                         
                         // Commit AI strategic suggestions with detailed reasoning
@@ -362,13 +358,13 @@ This is the current state before any updates. Focus on achieving these target up
                         logger.debug('✔️ Git status before commit', { gitStatus });
                         
                         // Build enriched commit message with AI reasoning
-                        const suggestionSummary = suggestions.suggestions
+                        const suggestionSummary = '[🧠] Suggestions:\n' + suggestions.suggestions
                             .map((s: any) => `  - ${s.name}@${s.version}${s.reason ? ` (${s.reason})` : ''}`)
                             .join('\n');
                         
                         // Add install error context (format each line with proper git commit message style)
                         const errorContext = installError 
-                            ? `\n\nError Context:\n${installError.split('\n').filter(line => line.trim()).map(line => `  ${line}`).join('\n')}`
+                            ? `\n\n[💥] Error Context:\n${installError.split('\n').filter(line => line.trim()).map(line => `${line}`).join('\n')}`
                             : '';
                         
                         const commitMessage = `Applied AI strategic suggestions [attempt=${attempt}, aiRetry=${aiRetryAttempt}]\n\n${suggestionSummary}${reasoningDetails}${errorContext}`;
@@ -400,16 +396,14 @@ This is the current state before any updates. Focus on achieving these target up
                         if (aiRetryAttempt < maxAiRetries) {
                             let retryMessage = '';
 
-                            if (aiError instanceof AIResponseFormatError) {
-                                retryMessage = aiError.getRetryMessage();
-                            } else if (aiError instanceof PackageVersionValidationError) {
+                            if (aiError instanceof AIResponseFormatError || aiError instanceof PackageVersionValidationError || aiError instanceof NoNewSuggestionError) {
+                                validSuggestions = false;
                                 retryMessage = aiError.getRetryMessage();
                             } else if (aiError instanceof NoSuitableVersionFoundError) {
                                 throw aiError; // Let the main loop catch and handle this error
                             } else {
                                 // Generic error handling for other types of errors
-                                retryMessage = `An error occurred while processing your response: ${errorMsg}
-                                \n\nPlease provide a valid JSON response with the required structure and ensure all package versions exist in the npm registry.`;
+                                retryMessage = `An error occurred while processing your response: ${errorMsg}`;
                             }
 
                             chatHistory.push({ role: 'user', content: retryMessage });
@@ -571,7 +565,12 @@ This is the current state before any updates. Focus on achieving these target up
             }
 
             errorMessage += `Please check the dependency versions and try again with compatible versions.`;
-
+            logger.error('[❌] Dependency resolution ultimately failed', {
+                installError,
+                copyBackErrors,
+                attempt,
+                maxAttempts
+            });
             return {
                 content: [
                     {

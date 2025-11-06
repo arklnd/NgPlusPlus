@@ -18,7 +18,7 @@ export type OpenAIConfig = z.infer<typeof OpenAIConfigSchema>;
 // Default configuration
 const DEFAULT_CONFIG: Required<OpenAIConfig> = {
     apiKey: process.env.OPENAI_API_KEY || '---',
-    baseURL: process.env.OPENAI_BASE_URL || 'https://x-api.openai.com/v1',
+    baseURL: process.env.OPENAI_BASE_URL || 'https://x-api.openai.com/v1/',
     model: process.env.OPENAI_MODEL || 'gpt-x',
     temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
     maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS || '1000'),
