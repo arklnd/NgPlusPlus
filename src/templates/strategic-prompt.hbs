@@ -125,6 +125,11 @@ Available versions for {{../dependent}}: {{#each packagesVersionData}}{{this}}{{
      * Set version to "<NULL>" with reason explaining the constraint violation
    - **DOCUMENTATION**: Include target constraint validation in your reasoning for each suggestion
 
+8. **Alias Preservation**:
+   - When updating packages that use npm aliases (e.g., "npm:package@version" or similar alias formats), preserve the alias structure and only update the version part.
+   - Example: "some-package": "npm:actual-package@1.0.0" should become "some-package": "npm:actual-package@2.0.0", not "some-package": "2.0.0"
+   - Do not remove or modify the alias format; only change the version number within the alias.
+
 Respond with JSON containing strategic upgrade suggestions:
 {
   "suggestions": [
