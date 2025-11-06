@@ -1,4 +1,4 @@
-name: Run a specific test
+name: 🧪 Run a specific test
 
 on:
   workflow_dispatch:
@@ -47,21 +47,21 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - name: Checkout code
+    - name: 🔄 Checkout code
       uses: actions/checkout@v4
 
-    - name: Use Node.js 20.x
+    - name: 🟢 Use Node.js 20.x
       uses: actions/setup-node@v4
       with:
         node-version: '20.x'
  
-    - name: Install dependencies
+    - name: 📦 Install dependencies
       run: npm i --verbose
 
-    - name: Build project
+    - name: 🔨 Build project
       run: npm run build
 
-    - name: Run test
+    - name: 🧪 Run test
       if: success()
       continue-on-error: true
       id: test_run
@@ -72,7 +72,7 @@ jobs:
         OPENAI_MODEL: ${{ github.event.inputs.openai_model }}
         OPENAI_BASE_URL: ${{ github.event.inputs.openai_base_url }}
     
-    - name: Check test outcome
+    - name: ✅ Check test outcome
       if: always()
       run: |
         node -e "
@@ -89,25 +89,25 @@ jobs:
         " '${{ steps.test_run.outcome }}'
 
 
-    - name: Prepare artifact name
+    - name: 📋 Prepare artifact name
       if: always()
       id: artifact_name
       run: npx tsx .github/scripts/prepare-artifact-name.ts "${{ github.event.inputs.test_pattern }}" "${{ github.run_number }}" "${{ github.event.inputs.max_attempts }}" "${{ github.run_attempt }}"
 
-    - name: Debug - Show artifact name
+    - name: 🐛 Debug - Show artifact name
       if: always()
       run: echo "Artifact name is ${{ steps.artifact_name.outputs.name }}"
 
-    - name: Debug - List files before upload
+    - name: 🐛 Debug - List files before upload
       if: always()
       run: npx tsx .github/scripts/debug-files.ts
 
-    - name: Debug - Show Git logs from test run
+    - name: 🐛 Debug - Show Git logs from test run
       if: always()
       run:
         npx tsx .github/scripts/show-git-logs.ts
 
-    - name: Upload logs as artifacts
+    - name: 📤 Upload logs as artifacts
       if: always()
       uses: actions/upload-artifact@v4
       with:
@@ -122,6 +122,6 @@ jobs:
         if-no-files-found: warn
         include-hidden-files: true
 
-    - name: Show cache contents
+    - name: 💾 Show cache contents
       if: always()
       run: npx tsx .github/scripts/print-cache.ts
