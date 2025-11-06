@@ -11,8 +11,8 @@ async function main() {
     const git = simpleGit().env({ GIT_DIR: gitDir });
 
     // Equivalent to: git log --oneline
-    const onelineOutput = await git.raw(['log', '--oneline', '--reverse']);
-    console.log(onelineOutput.trim().split('\n').map((line,index) => `🚀 [Commit ${index + 1}]: ${line}`).join('\n'));
+    // const onelineOutput = await git.raw(['log', '--oneline', '--reverse']);
+    // console.log(onelineOutput.trim().split('\n').map((line,index) => `🚀 [Commit ${index + 1}]: ${line}`).join('\n'));
 
     // Equivalent to: git rev-list --reverse HEAD | tail -n +4 | xargs git log -p --no-walk --reverse
     let commitCount = 0;
@@ -47,7 +47,7 @@ async function main() {
             if (line.startsWith('+')) return green + line + reset;
             return line;
         }).join('\n');
-        console.log(`::group::------[Commit ${commitCount}]: ${hash} -----------------------------------------------------------------------------------------------------`);
+        console.log(`::group::------[Commit ${commitCount}]: ${hash.substring(0, 10)} => ${finalFiltered[1].trim()} -----------------------------------------------------------------`);
         console.log('🚀 ' + coloredOutput.trim());
         console.log('::endgroup::');
     }
