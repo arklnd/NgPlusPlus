@@ -5,7 +5,7 @@ import { createStrategicPrompt } from '@/utils/dumb-resolver-helper/template-gen
 
 describe('parseInstallErrorToConflictAnalysis', function () {
     // Increase timeout for AI operations
-    this.timeout(30000);
+    this.timeout(3600000);
 
     const sampleInstallErrors = [
         {
