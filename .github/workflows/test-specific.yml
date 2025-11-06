@@ -129,4 +129,4 @@ jobs:
     - name: Send notification to Teams
       if: always()
       run: |
-        curl -H "Content-Type: application/json" -d "{\"text\": \"Test '${{ github.event.inputs.test_pattern }}' completed with outcome: ${{ steps.test_run.outcome }}\"}" https://hylandsw.webhook.office.com/webhookb2/ea984e3f-c0d4-4d47-93e7-58fb50c43d9c@8ca5db88-a5ab-48f7-a5e0-4ce50935f807/IncomingWebhook/181735dbdae845e49fa179e8ea019447/26520ba4-49af-474f-86cc-f802e20c7209/V2yGLYje8ssmlqCwhtljDtshNdQHrAX6JmMMv1hX8wS6s1
+        curl -H "Content-Type: application/json" -d "{\"text\": \"Test '${{ github.event.inputs.test_pattern }}' completed with outcome: ${{ steps.test_run.outcome }}. View run: https://github.com/arklnd/NgPlusPlus/actions/runs/${{ github.run_id }}\"}" https://hylandsw.webhook.office.com/webhookb2/ea984e3f-c0d4-4d47-93e7-58fb50c43d9c@8ca5db88-a5ab-48f7-a5e0-4ce50935f807/IncomingWebhook/181735dbdae845e49fa179e8ea019447/26520ba4-49af-474f-86cc-f802e20c7209/V2yGLYje8ssmlqCwhtljDtshNdQHrAX6JmMMv1hX8wS6s1
