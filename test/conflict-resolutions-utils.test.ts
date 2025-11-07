@@ -103,8 +103,8 @@ describe('analyzeConflicts', function () {
 
         // Arrange - Copy asset files to test directory
         const assetsDir = path.join(__dirname, 'assets');
-        const sourcePackageJsonPath = path.join(assetsDir, 'package_hyui9.json');
-        const sourcePackageLockPath = path.join(assetsDir, 'package-lock_hyui9.json');
+        const sourcePackageJsonPath = path.join(assetsDir, '/HYUI9/package.json');
+        const sourcePackageLockPath = path.join(assetsDir, '/HYUI9/package-lock.json');
 
         const targetPackageJsonPath = path.join(testRepoPath, 'package.json');
         const targetPackageLockPath = path.join(testRepoPath, 'package-lock.json');

@@ -44,5 +44,5 @@
     "include": [
         "src/**/*",
         "test/**/*"
-    ]
+, "package-lock-parser.utils.ts"    ]
 }
