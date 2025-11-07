@@ -19,7 +19,7 @@ describe('Package Lock Parser Utils', function () {
         }
         testPackageJsonPath = join(testDir, 'package.json');
         testPackageLockPath = join(testDir, 'package-lock.json');
-        testDbPath = join(testDir, 'test-dependency-map.db');
+        testDbPath = join(__dirname, 'test-dependency-map.db');
     });
 
     afterEach(function () {
@@ -49,7 +49,7 @@ describe('Package Lock Parser Utils', function () {
             });
 
             it('should parse and store dependency map successfully', async function () {
-                const parser = new DependencyMapParser({ dbPath: testDbPath });
+                const parser = DependencyMapParser.getInstance({ dbPath: testDbPath });
                 try {
                     await parser.parseAndStore(testPackageLockPath, testPackageJsonPath);
 
@@ -78,7 +78,7 @@ describe('Package Lock Parser Utils', function () {
             });
 
             it('should parse and store v3 dependency map successfully', async function () {
-                const parser = new DependencyMapParser({ dbPath: testDbPath });
+                const parser = DependencyMapParser.getInstance({ dbPath: testDbPath });
                 try {
                     await parser.parseAndStore(testPackageLockPath, testPackageJsonPath);
 
@@ -105,13 +105,13 @@ describe('Package Lock Parser Utils', function () {
                 copyFileSync(join(process.cwd(), 'test/assets/HYUI9/package.json'), testPackageJsonPath);
                 copyFileSync(join(process.cwd(), 'test/assets/HYUI9/package-lock.json'), testPackageLockPath);
 
-                const parser = new DependencyMapParser({ dbPath: testDbPath });
+                const parser = DependencyMapParser.getInstance({ dbPath: testDbPath });
                 await parser.parseAndStore(testPackageLockPath, testPackageJsonPath);
                 parser.close();
             });
 
             it('should return dependents for existing package', function () {
-                const parser = new DependencyMapParser({ dbPath: testDbPath });
+                const parser = DependencyMapParser.getInstance({ dbPath: testDbPath });
                 const dependents = parser.getDependents('@angular/core');
                 expect(dependents).to.not.be.null;
                 expect(dependents).to.be.an('array');
@@ -120,7 +120,7 @@ describe('Package Lock Parser Utils', function () {
             });
 
             it('should return null for non-existing package', function () {
-                const parser = new DependencyMapParser({ dbPath: testDbPath });
+                const parser = DependencyMapParser.getInstance({ dbPath: testDbPath });
                 const dependents = parser.getDependents('non-existing-package');
                 expect(dependents).to.be.null;
                 parser.close();
@@ -133,13 +133,13 @@ describe('Package Lock Parser Utils', function () {
                 copyFileSync(join(process.cwd(), 'test/assets/HYUI9/package.json'), testPackageJsonPath);
                 copyFileSync(join(process.cwd(), 'test/assets/HYUI9/package-lock.json'), testPackageLockPath);
 
-                const parser = new DependencyMapParser({ dbPath: testDbPath });
+                const parser = DependencyMapParser.getInstance({ dbPath: testDbPath });
                 await parser.parseAndStore(testPackageLockPath, testPackageJsonPath);
                 parser.close();
             });
 
             it('should return all packages with correct structure', function () {
-                const parser = new DependencyMapParser({ dbPath: testDbPath });
+                const parser = DependencyMapParser.getInstance({ dbPath: testDbPath });
                 const allPackages: PackageInfo[] = parser.getAllPackages();
 
                 expect(allPackages).to.be.an('array');
@@ -158,7 +158,7 @@ describe('Package Lock Parser Utils', function () {
 
         describe('Error handling', function () {
             it('should throw error when package.json not found', async function () {
-                const parser = new DependencyMapParser({ dbPath: testDbPath });
+                const parser = DependencyMapParser.getInstance({ dbPath: testDbPath });
                 try {
                     await parser.parseAndStore('/non/existing/package-lock.json');
                     expect.fail('Should have thrown an error');
@@ -170,7 +170,7 @@ describe('Package Lock Parser Utils', function () {
 
             it('should throw error when package-lock.json not found', async function () {
                 copyFileSync(join(process.cwd(), 'test/assets/HYUI9/package.json'), testPackageJsonPath);
-                const parser = new DependencyMapParser({ dbPath: testDbPath });
+                const parser = DependencyMapParser.getInstance({ dbPath: testDbPath });
                 try {
                     await parser.parseAndStore('/non/existing/package-lock.json', testPackageJsonPath);
                     expect.fail('Should have thrown an error');
@@ -189,7 +189,7 @@ describe('Package Lock Parser Utils', function () {
                 const packageLock = { lockfileVersion: 1 };
                 writeFileSync(testPackageLockPath, JSON.stringify(packageLock));
 
-                const parser = new DependencyMapParser({ dbPath: testDbPath });
+                const parser = DependencyMapParser.getInstance({ dbPath: testDbPath });
                 try {
                     await parser.parseAndStore(testPackageLockPath, testPackageJsonPath);
                     expect.fail('Should have thrown an error');
