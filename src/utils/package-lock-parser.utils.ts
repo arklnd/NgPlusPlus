@@ -198,7 +198,7 @@ export class DependencyMapParser {
                         version: dep.version || '',
                         dependents: [],
                     });
-                    this.logger.trace('Added new package to map', { name: depName, version: dep.version });
+                    // this.logger.trace('Added new package to map', { name: depName, version: dep.version });
                 }
 
                 if (parentName) {
@@ -210,10 +210,10 @@ export class DependencyMapParser {
                                 name: parentName,
                                 version: parentVersion || '',
                             });
-                            this.logger.trace('Added dependent relationship', { 
-                                package: depName, 
-                                dependent: parentName 
-                            });
+                            // this.logger.trace('Added dependent relationship', { 
+                            //     package: depName, 
+                            //     dependent: parentName 
+                            // });
                         }
                     }
                 }
