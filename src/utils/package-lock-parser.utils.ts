@@ -21,13 +21,21 @@ const DEFAULT_CONFIG: DependencyMapConfig = {
  * Utility class for parsing package-lock.json and storing dependency maps in SQLite
  */
 export class DependencyMapParser {
+    private static instance: DependencyMapParser | null = null;
     private db: Database.Database;
     private config: DependencyMapConfig;
 
-    constructor(config?: Partial<DependencyMapConfig>) {
+    private constructor(config?: Partial<DependencyMapConfig>) {
         this.config = { ...DEFAULT_CONFIG, ...(config || {}) };
         this.db = new Database(this.config.dbPath);
         this.initializeDatabase();
+    }
+
+    public static getInstance(config?: Partial<DependencyMapConfig>): DependencyMapParser {
+        if (!DependencyMapParser.instance) {
+            DependencyMapParser.instance = new DependencyMapParser(config);
+        }
+        return DependencyMapParser.instance;
     }
 
     private initializeDatabase(): void {
@@ -130,9 +138,9 @@ export class DependencyMapParser {
 
         // Build dependents
         for (const [pkgPath, pkgInfo] of Object.entries(packages as any)) {
-            const name = pkgPath === '' ? rootName : ((pkgInfo as any).name || pkgPath.split('/').pop());
+            const name = pkgPath === '' ? rootName : (pkgInfo as any).name || pkgPath.split('/').pop();
             const version = (pkgInfo as any).version || '';
-            const deps = { ...(pkgInfo as any).dependencies || {}, ...(pkgInfo as any).devDependencies || {} };
+            const deps = { ...((pkgInfo as any).dependencies || {}), ...((pkgInfo as any).devDependencies || {}) };
             for (const depName of Object.keys(deps)) {
                 const pkg = packageMap.get(depName);
                 if (pkg) {
@@ -213,7 +221,7 @@ export class DependencyMapParser {
         const stmt = this.db.prepare('SELECT name, version, dependents FROM packages');
         const rows = stmt.all() as Array<{ name: string; version: string; dependents: string }>;
 
-        return rows.map(row => ({
+        return rows.map((row) => ({
             name: row.name,
             version: row.version,
             dependents: JSON.parse(row.dependents),
@@ -232,7 +240,7 @@ export class DependencyMapParser {
  * Convenience function to parse and store dependency map
  */
 export async function parseAndStoreDependencyMap(packageLockPath: string, packageJsonPath?: string, dbPath?: string): Promise<DependencyMapParser> {
-    const parser = new DependencyMapParser(dbPath ? { dbPath } : undefined);
+    const parser = DependencyMapParser.getInstance(dbPath ? { dbPath } : undefined);
     await parser.parseAndStore(packageLockPath, packageJsonPath);
     return parser;
 }
@@ -241,8 +249,7 @@ export async function parseAndStoreDependencyMap(packageLockPath: string, packag
  * Convenience function to get dependents for a package
  */
 export function getPackageDependents(packageName: string, dbPath?: string): Array<{ name: string; version: string }> | null {
-    const parser = new DependencyMapParser(dbPath ? { dbPath } : undefined);
+    const parser = DependencyMapParser.getInstance(dbPath ? { dbPath } : undefined);
     const dependents = parser.getDependents(packageName);
-    parser.close();
     return dependents;
 }
