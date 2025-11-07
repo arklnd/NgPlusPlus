@@ -57,6 +57,7 @@ export interface updateMade {
     fromVersion: string;
     toVersion: string;
     reason: PackageRank;
+    reasoningComment: string;
 }
 
 export interface ReasoningRecording {
