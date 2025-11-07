@@ -1,0 +1,134 @@
+{{#if strategicResponse}}
+# ORIGINAL STRATEGIC RESPONSE SUGGESTIONS
+
+{{#each strategicResponse.suggestions}}
+- **{{this.name}}**: v{{this.fromVersion}} → v{{this.version}} ({{#if this.isDev}}devDependency{{else}}dependency{{/if}})
+  - Reason: {{this.reason}}
+{{/each}}
+
+**Original Analysis:** {{strategicResponse.analysis}}
+
+{{/if}}
+
+# DEPENDENCY REQUIREMENTS VALIDATION
+
+{{#if suggestedAndRequiredVersions}}
+The following shows for each suggested package upgrade what version constraints are imposed by its dependents:
+
+{{#each suggestedAndRequiredVersions}}
+## Package: **{{@key}}** {{#with (lookup ../allPackagesMap @key)}}(rank {{rank}}, tier {{tier}}){{/with}}
+- **Originally Suggested Version:** {{this.suggestedVersion}}
+{{#if this.requirements}}
+- **Must Satisfy These Dependent Requirements:**
+{{#each this.requirements}}
+  - `{{this.requiredByDependentPack}}` requires: `{{this.requiredVersion}}`
+{{/each}}
+
+**CRITICAL VALIDATION:** The suggested version `{{this.suggestedVersion}}` must satisfy ALL the above version constraints. If it does NOT, you MUST find an alternative version from the available versions listed in the conflict analysis below that satisfies all requirements.
+{{else}}
+- **No dependent requirements found** - package has no known dependents in the current project.
+{{/if}}
+
+{{/each}}
+{{/if}}
+
+# CONFLICT ANALYSIS & AVAILABLE VERSIONS
+
+{{#if conflictAnalysis}}
+The following packages have version conflicts that need resolution:
+
+{{#each conflictAnalysis.conflicts}}
+**CONFLICTING PACKAGE:** "{{this.packageName}}" {{#with (lookup ../allPackagesMap this.packageName)}}(rank {{rank}}){{/with}} current version installed v{{this.currentVersion}}
+{{#with (lookup ../allPackagesMap this.packageName)}}
+Available versions of {{../this.packageName}}: {{#each packagesVersionData}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/with}}
+
+**DEPENDENTS SATISFIED BY CURRENT VERSION OF "{{this.packageName}}":**
+{{#each this.requiredBy}}
+{{#if isSatisfied}}
+- {{dependent}}@{{dependentVersion}} {{#with (lookup ../../allPackagesMap dependent)}}(rank {{rank}}){{/with}} requires {{{ requiredRange }}} ({{type}})
+{{#with (lookup ../../allPackagesMap dependent)}}
+Available versions for {{../dependent}}: {{#each packagesVersionData}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/with}}
+{{/if}}
+{{/each}}
+
+**DEPENDENTS NOT SATISFIED BY CURRENT VERSION OF "{{this.packageName}}":**
+{{#each this.requiredBy}}
+{{#unless isSatisfied}}
+- {{dependent}}@{{dependentVersion}} {{#with (lookup ../../allPackagesMap dependent)}}(rank {{rank}}){{/with}} requires {{{ requiredRange }}} ({{type}})
+{{#with (lookup ../../allPackagesMap dependent)}}
+Available versions for {{../dependent}}: {{#each packagesVersionData}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/with}}
+{{/unless}}
+{{/each}}
+{{/each}}
+{{/if}}
+
+# YOUR TASK: RECTIFY THE STRATEGIC RESPONSE
+
+Based on the three sections above:
+1. **ORIGINAL STRATEGIC RESPONSE** - initial suggestions that may have conflicts
+2. **DEPENDENCY REQUIREMENTS VALIDATION** - showing what version constraints each suggested package must satisfy
+3. **CONFLICT ANALYSIS** - showing current conflicts and available versions
+
+You must provide a **RECTIFIED** StrategicResponse that:
+
+## MANDATORY REQUIREMENTS:
+1. **Validate ALL suggested versions** against their dependent requirements shown in section 2
+2. **Replace any invalid suggestions** with versions that satisfy ALL dependent constraints
+3. **Resolve ALL conflicts** shown in section 3
+4. **Prioritize higher-ranked packages** (lower rank number = higher priority) when making trade-offs
+5. **Maintain dependency vs devDependency classification** correctly
+6. **Select versions from the "Available Versions" lists** provided above
+7. **Ensure peer dependency compatibility** - peer dependencies are CRITICAL and must be satisfied
+
+## RESOLUTION STRATEGY:
+- For conflicting packages, choose a version that satisfies the MAXIMUM number of dependents
+- If no single version satisfies all, prefer satisfying higher-ranked dependents
+- Consider upgrading/downgrading other packages to resolve conflicts
+- Document your reasoning clearly for each change
+
+## OUTPUT FORMAT:
+Respond with JSON matching the StrategicResponse interface:
+
+```json
+{
+  "suggestions": [
+    {
+      "name": "package-name",
+      "version": "VALIDATED-version-that-satisfies-all-requirements",
+      "isDev": true/false,
+      "reason": "Detailed explanation: why this version was chosen, which constraints it satisfies, which conflicts it resolves",
+      "fromVersion": "current-version"
+    }
+  ],
+  "analysis": "Comprehensive analysis explaining: (1) what was wrong with original suggestions, (2) which dependency requirements were validated, (3) how conflicts were resolved, (4) any trade-offs made with justification based on package ranks",
+  "reasoning": {
+    "updateMade": [
+      {
+        "package": {
+          "name": "package-being-upgraded",
+          "rank": 123
+        },
+        "fromVersion": "1.0.0",
+        "toVersion": "2.0.0",
+        "reasoningComment": "Explain: (1) why this specific version, (2) which dependent requirements it satisfies, (3) how it resolves conflicts",
+        "reason": {
+          "name": "higher-ranked-package-or-dependent-causing-need-for-change",
+          "rank": 456
+        }
+      }
+    ]
+  }
+}
+```
+
+## CRITICAL REMINDERS:
+1. **USE EXACT RANK VALUES** from the conflict analysis sections above - do not make up rank numbers
+2. **VALIDATE EACH VERSION** against the "DEPENDENCY REQUIREMENTS VALIDATION" section
+3. **CHOOSE ONLY from available versions** listed in "Available Versions" for each package
+4. **PEER DEPENDENCIES are non-negotiable** - they MUST be satisfied
+5. **Respond ONLY with the JSON** - no additional text before or after the JSON block
+
+ 

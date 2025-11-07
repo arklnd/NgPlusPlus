@@ -106,7 +106,21 @@ export function createNoNewSuggestionErrorRetryMessage(errorMessage?: string): s
 /**
  * Creates a strategic response rectification prompt
  */
-export function createStrategicResponseRectificationPrompt(strategicResponse: StrategicResponse, conflictAnalysis: ConflictAnalysis, dependentsMap?: Record<string, Array<{ name: string; version: string }>>): string {
+export function createStrategicResponseRectificationPrompt(strategicResponse: StrategicResponse, conflictAnalysis: ConflictAnalysis, suggestedAndRequiredVersions: Record<string, { suggestedVersion: string; requirements: Array<{ requiredVersion: string; requiredByDependentPack: string }> }>): string {
     const template = loadTemplate('strategic-response-rectification-prompt');
-    return template({ strategicResponse, conflictAnalysis, dependentsMap });
+
+    // Prepare template data
+    const allPackagesMap = conflictAnalysis.allPackagesMentionedInError.reduce((acc, pkg) => {
+        acc[pkg.name] = pkg;
+        return acc;
+    }, {} as Record<string, any>);
+
+    const templateData = {
+        strategicResponse,
+        conflictAnalysis,
+        suggestedAndRequiredVersions,
+        allPackagesMap,
+    };
+
+    return template(templateData);
 }
