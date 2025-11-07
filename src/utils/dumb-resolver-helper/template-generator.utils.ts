@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ResolverAnalysis } from './dependency-analyzer.utils';
 import { fileURLToPath } from 'url';
-import { ConflictAnalysis, ReasoningRecording } from '@I/index';
+import { ConflictAnalysis, ReasoningRecording, StrategicResponse } from '@I/index';
 
 // ES module compatibility
 const __filename = fileURLToPath(import.meta.url);
@@ -101,4 +101,12 @@ export function createPackageRankingPrompt(packageName: string, readme?: string)
 export function createNoNewSuggestionErrorRetryMessage(errorMessage?: string): string {
     const template = loadTemplate('no-new-suggestion-error');
     return template({ errorMessage });
+}
+
+/**
+ * Creates a strategic response rectification prompt
+ */
+export function createStrategicResponseRectificationPrompt(strategicResponse: StrategicResponse, conflictAnalysis: ConflictAnalysis, dependentsMap?: Record<string, Array<{ name: string; version: string }>>): string {
+    const template = loadTemplate('strategic-response-rectification-prompt');
+    return template({ strategicResponse, conflictAnalysis, dependentsMap });
 }

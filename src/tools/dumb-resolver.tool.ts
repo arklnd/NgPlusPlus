@@ -8,7 +8,7 @@ import { simpleGit } from 'simple-git';
 import { readPackageJson, writePackageJson, updateDependency, installDependencies } from '@U/package-json.utils';
 import { validatePackageVersionsExist } from '@U/package-registry.utils';
 import { getOpenAIService } from '@S/openai.service';
-import { getLogger } from '@U/index';
+import { parseAndStoreDependencyMap, getLogger, rectifyStrategicResponseWithDependentInfo } from '@U/index';
 import OpenAI from 'openai';
 import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility, hydrateConflictAnalysisWithRegistryData, parseInstallErrorToConflictAnalysis, hydrateConflictAnalysisWithRanking } from '@U/dumb-resolver-helper';
 import { AIResponseFormatError, NoSuitableVersionFoundError, PackageVersionValidationError, NoNewSuggestionError } from '@E/index';
@@ -100,7 +100,8 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
         // Copy package-lock.json if it exists
         if (existsSync(originalPackageLockPath)) {
             await cpAsync(originalPackageLockPath, tempPackageLockPath);
-            logger.debug('Copied package-lock.json to temp directory');
+            await parseAndStoreDependencyMap(originalPackageLockPath, originalPackageJsonPath);
+            logger.debug('Copied package-lock.json to temp directory and parsed dependency map');
         }
         
         // Initialize git repository and add gitignore for node_modules
@@ -244,7 +245,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
                         }
 
                         // Parse and validate OpenAI response structure
-                        const suggestions = JSON.parse(jsonString);
+                        let suggestions = JSON.parse(jsonString);
 
                         // Validate response structure
                         if (!suggestions || typeof suggestions !== 'object') {
@@ -261,6 +262,9 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
                         if (invalidSuggestions.length > 0) {
                             throw new AIResponseFormatError(`Invalid suggestions found: ${invalidSuggestions.length} items missing name, version, or isDev`);
                         }
+
+                        // Rectify version suggestion using dependent package list
+                        suggestions = await rectifyStrategicResponseWithDependentInfo(suggestions, currentAnalysis);
 
                         // Validate version existence before applying suggestions
                         const validationUpdates = suggestions.suggestions.map((s: any) => ({
