@@ -33,7 +33,8 @@ export async function updatePackageWithDependencies(repoPath: string, runNpmInst
         logger.info('Phase 0: Starting package version validation');
         const validationStart = Date.now();
 
-        const validationResults = await validatePackageVersionsExist(plannedUpdates);
+        const suggestions = plannedUpdates.map((u) => ({ ...u, reason: 'Planned update', fromVersion: '' }));
+        const validationResults = await validatePackageVersionsExist({ suggestions, analysis: '', reasoning: { updateMade: [] } });
         const nonExistentVersions = validationResults.filter((result) => !result.exists);
 
         const validationTime = Date.now() - validationStart;

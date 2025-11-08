@@ -23,6 +23,8 @@ export const dependencyUpdateSchema = z.object({
     name: z.string().describe('Package name'),
     version: z.string().describe('Target version'),
     isDev: z.boolean().default(false).describe('Whether this is a dev dependency'),
+    reason: z.string().describe('Reason for the update'),
+    fromVersion: z.string().describe('Current version of the package'),
 });
 
 export const dumbResolverInputSchema = z.object({
@@ -62,7 +64,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
 
         // Validate initial target dependency versions exist in registry before proceeding
         logger.info('Validating initial target dependency versions exist in registry');
-        const validationResults = await validatePackageVersionsExist(update_dependencies);
+        const validationResults = await validatePackageVersionsExist({ suggestions: update_dependencies, analysis: '', reasoning: { updateMade: [] } });
         const nonExistentVersions = validationResults.filter((r) => !r.exists);
 
         if (nonExistentVersions.length > 0) {
@@ -269,13 +271,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
                         logger.debug('Parsed OpenAI suggestions : after rectification', { suggestions: suggestions });
 
                         // Validate version existence before applying suggestions
-                        const validationUpdates = suggestions.suggestions.map((s: any) => ({
-                            name: s.name,
-                            version: s.version,
-                            isDev: s.isDev,
-                        }));
-
-                        const validationResults = await validatePackageVersionsExist(validationUpdates);
+                        const validationResults = await validatePackageVersionsExist(suggestions);
                         const nonExistentVersions = validationResults.filter((r) => !r.exists);
 
                         if (nonExistentVersions.length > 0) {
@@ -333,12 +329,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
                                 });
                             } else {
                                 // Add new dependency suggested by strategic analysis
-                                const newDep = {
-                                    name: suggestion.name,
-                                    version: suggestion.version,
-                                    isDev: suggestion.isDev,
-                                };
-                                update_dependencies.push(newDep);
+                                update_dependencies.push(suggestion);
                                 logger.info('Applied strategic suggestion (added new)', {
                                     package: suggestion.name,
                                     version: suggestion.version,

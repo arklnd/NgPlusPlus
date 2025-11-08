@@ -465,86 +465,120 @@ describe('updatePackageWithDependencies', function () {
                 name: '@angular/animations',
                 version: '^20.0.0',
                 isDev: false,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^19.2.0',
             },
             {
                 name: '@angular/common',
                 version: '^20.0.0',
                 isDev: false,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^19.2.0',
             },
             {
                 name: '@angular/compiler',
                 version: '^20.0.0',
                 isDev: false,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^19.2.0',
             },
             {
                 name: '@angular/core',
                 version: '^20.0.0',
                 isDev: false,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^19.2.0',
             },
             {
                 name: '@angular/forms',
                 version: '^20.0.0',
                 isDev: false,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^19.2.0',
             },
             {
                 name: '@angular/platform-browser',
                 version: '^20.0.0',
                 isDev: false,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^19.2.0',
             },
             {
                 name: '@angular/platform-browser-dynamic',
                 version: '^20.0.0',
                 isDev: false,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^19.2.0',
             },
             {
                 name: '@angular/router',
                 version: '^20.0.0',
                 isDev: false,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^19.2.0',
             },
             {
                 name: '@angular/cdk',
                 version: '^20.0.0',
                 isDev: false,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^19.2.0',
             },
             {
                 name: '@angular/material',
                 version: '^20.0.0',
                 isDev: false,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^19.2.0',
             },
             {
                 name: '@angular/cli',
                 version: '^20.0.0',
                 isDev: true,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^19.2.0',
             },
             {
                 name: '@angular/compiler-cli',
                 version: '^20.0.0',
                 isDev: true,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^19.2.0',
             },
             {
                 name: '@angular-devkit/build-angular',
                 version: '^20.0.0',
                 isDev: true,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^19.2.0',
             },
             {
                 name: '@angular-devkit/architect',
                 version: '^0.2000.0',
                 isDev: true,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^0.1920.0',
             },
             {
                 name: '@angular-devkit/core',
                 version: '^20.0.0',
                 isDev: true,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^19.2.0',
             },
             {
                 name: '@angular/elements',
                 version: '^20.0.0',
                 isDev: true,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^19.2.0',
             },
             {
                 name: '@angular/language-service',
                 version: '^20.0.0',
                 isDev: true,
+                reason: 'Upgrade to latest major version',
+                fromVersion: '^19.2.0',
             },
         ];
 
@@ -657,86 +691,120 @@ describe('updatePackageWithDependencies', function () {
                 name: '@angular/animations',
                 version: '^19.0.0',
                 isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '16.0.0'
             },
             {
                 name: '@angular/common',
                 version: '^19.0.0',
                 isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '16.0.0'
             },
             {
                 name: '@angular/compiler',
                 version: '^19.0.0',
                 isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '16.0.0'
             },
             {
                 name: '@angular/core',
                 version: '^19.0.0',
                 isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '16.0.0'
             },
             {
                 name: '@angular/forms',
                 version: '^19.0.0',
                 isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '16.0.0'
             },
             {
                 name: '@angular/platform-browser',
                 version: '^19.0.0',
                 isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '16.0.0'
             },
             {
                 name: '@angular/platform-browser-dynamic',
                 version: '^19.0.0',
                 isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '16.0.0'
             },
             {
                 name: '@angular/router',
                 version: '^19.0.0',
                 isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '16.0.0'
             },
             {
                 name: '@angular/cdk',
                 version: '^19.0.0',
                 isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '16.0.0'
             },
             {
                 name: '@angular/material',
                 version: '^19.0.0',
                 isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '16.0.0'
             },
             {
                 name: '@angular/cli',
                 version: '^19.0.0',
                 isDev: true,
+                reason: 'Update to Angular 19',
+                fromVersion: '16.0.0'
             },
             {
                 name: '@angular/compiler-cli',
                 version: '^19.0.0',
                 isDev: true,
+                reason: 'Update to Angular 19',
+                fromVersion: '16.0.0'
             },
             {
                 name: '@angular-devkit/build-angular',
                 version: '^19.0.0',
                 isDev: true,
+                reason: 'Update to Angular 19',
+                fromVersion: '16.0.0'
             },
             {
                 name: '@angular-devkit/architect',
                 version: '^0.2000.0',
                 isDev: true,
+                reason: 'Update to Angular 19',
+                fromVersion: '0.1600.0'
             },
             {
                 name: '@angular-devkit/core',
                 version: '^19.0.0',
                 isDev: true,
+                reason: 'Update to Angular 19',
+                fromVersion: '16.0.0'
             },
             {
                 name: '@angular/elements',
                 version: '^19.0.0',
                 isDev: true,
+                reason: 'Update to Angular 19',
+                fromVersion: '16.0.0'
             },
             {
                 name: '@angular/language-service',
                 version: '^19.0.0',
                 isDev: true,
+                reason: 'Update to Angular 19',
+                fromVersion: '16.0.0'
             },
         ];
 

@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { getLogger } from '@U/index';
+import { getLogger, StrategicResponse } from '@U/index';
 import { RegistryData, PackageVersionData, ValidationResult } from '@I/index';
 import { NoSuitableVersionFoundError } from '@E/NoSuitableVersionFoundError';
 import { getCachedPackageData, setCachedPackageData } from '@U/cache.utils';
@@ -218,23 +218,23 @@ export async function getPackageVersions(name: string): Promise<string[]> {
  * @param plannedUpdates Array of planned dependency updates
  * @returns Array of validation results indicating which packages/versions exist
  */
-export async function validatePackageVersionsExist(plannedUpdates: Array<{ name: string; version: string; isDev: boolean }>): Promise<ValidationResult[]> {
+export async function validatePackageVersionsExist(plannedUpdates: StrategicResponse): Promise<ValidationResult[]> {
     const logger = getLogger().child('PackageVersionValidator');
 
     logger.info('Starting package version validation', {
-        packageCount: plannedUpdates.length,
-        packages: plannedUpdates.map((u) => `${u.name}@${u.version}`),
+        packageCount: plannedUpdates.suggestions.length,
+        packages: plannedUpdates.suggestions.map((u) => `${u.name}@${u.version}`),
     });
 
     const results: ValidationResult[] = [];
 
     // Process packages in parallel for better performance
-    const validationPromises = plannedUpdates.map(async (update) => {
-        const { name, version } = update;
+    const validationPromises = plannedUpdates.suggestions.map(async (update) => {
+        const { name, version, isDev, reason, fromVersion } = update;
 
         // if version is <NULL> throw error
-        if (!version || version.trim() === '') {
-            const errorMessage = `No Suitable Version Found for package: ${name} and version: <${version}>`;
+        if (!version || version.trim() === '' || version === '<NULL>') {
+            const errorMessage = `No Suitable Version Found for package: ${name} and version: <${version}>. isDev: ${isDev}, reason: ${reason}, fromVersion: ${fromVersion}`;
             logger.error(errorMessage);
             throw new NoSuitableVersionFoundError(errorMessage);
         }
@@ -288,7 +288,7 @@ export async function validatePackageVersionsExist(plannedUpdates: Array<{ name:
     } catch (error) {
         logger.error('Package version validation failed', {
             error: error instanceof Error ? error.message : String(error),
-            packageCount: plannedUpdates.length,
+            packageCount: plannedUpdates.suggestions.length,
         });
         throw error;
     }
