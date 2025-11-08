@@ -234,7 +234,7 @@ export async function validatePackageVersionsExist(plannedUpdates: Array<{ name:
 
         // if version is <NULL> throw error
         if (!version || version.trim() === '') {
-            const errorMessage = `No Suitable Version Found for package: ${name}`;
+            const errorMessage = `No Suitable Version Found for package: ${name} and version: <${version}>`;
             logger.error(errorMessage);
             throw new NoSuitableVersionFoundError(errorMessage);
         }
