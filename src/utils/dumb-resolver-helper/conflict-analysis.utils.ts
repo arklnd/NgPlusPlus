@@ -1,6 +1,6 @@
 import { getPackageData } from '@U/package-registry.utils';
 import { getCleanVersion } from '@U/version.utils';
-import { getLogger } from '@U/index';
+import { getLogger, getPackageDependents } from '@U/index';
 import { getOpenAIService } from '@S/openai.service';
 import { ConflictAnalysis, PackageVersionRankRegistryData, RegistryData } from '@I/index';
 import { createDependencyParsingPrompt, createPackageRankingPrompt } from './template-generator.utils';
@@ -190,16 +190,22 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
 
     try {
         logger.info('Ranking packages individually', { totalPackages: currentAnalysis.allPackagesMentionedInError.length });
+        // Get dependents for all packages mentioned in error
+        const dependentsMap: Record<string, Array<{ name: string; version: string }>> = {};
+        for (const pkg of currentAnalysis.allPackagesMentionedInError) {
+            const dependents = getPackageDependents(pkg.name);
+            dependentsMap[pkg.name] = dependents || [];
+        }
 
         // Get rankings for all packages in parallel
         const rankingPromises = Array.from(currentAnalysis.allPackagesMentionedInError).map(async (packageInfo) => {
             // Extract dependency context for this package
-            const ranking = await getRankingForPackage(packageInfo.name);
+            const ranking = await getRankingForPackage(packageInfo.name, dependentsMap);
             packageInfo.rank = ranking ? ranking.rank : -1;
             packageInfo.tier = ranking ? ranking.tier : 'UNRANKED';
             return { packageName: packageInfo.name, ranking };
         });
-
+        
         const rankingResults = await Promise.all(rankingPromises);
         const packageRankingMap = new Map<string, { rank: number; tier: string }>();
 
@@ -226,7 +232,7 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
 /**
  * Get ranking for a single package using AI with caching support
  */
-export async function getRankingForPackage(packageName: string): Promise<{ rank: number; tier: string } | null> {
+export async function getRankingForPackage(packageName: string, dependentsMap: Record<string, Array<{ name: string; version: string }>>): Promise<{ rank: number; tier: string } | null> {
     if (packageName.trim() === 'root project') {
         return { rank: 999999, tier: 'ROOT' };
     }
@@ -252,7 +258,7 @@ export async function getRankingForPackage(packageName: string): Promise<{ rank:
         const openai = getOpenAIService(); // vscode extension hack আর কাজ করছে না
 
         // Create ranking prompt for this specific package
-        const rankingPrompt = createPackageRankingPrompt(packageName, readme?.readme?.trim() && readme?.readme?.trim().length > 0 ? JSON.stringify(readme?.readme) : undefined);
+        const rankingPrompt = createPackageRankingPrompt(packageName, readme?.readme?.trim() && readme?.readme?.trim().length > 0 ? JSON.stringify(readme?.readme) : undefined, dependentsMap);
 
         // Get AI response for this package
         let rankingResponse = await openai.generateText(rankingPrompt);

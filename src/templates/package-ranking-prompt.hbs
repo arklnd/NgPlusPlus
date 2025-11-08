@@ -48,6 +48,15 @@ You are an expert npm package ranking analyzer for dependency conflict resolutio
 - **Deprecation**: -100 (README deprecation warnings)
 - **Experimental**: -50 (README mentions beta/unstable)
 {{/if}}
+{{#if hasDependents}}
+- **Dependency Impact** ({{dependentCount}} direct dependents in project): 
+  - +200 (>20 dependents - critical hub package)
+  - +150 (10-20 dependents - major integration point)
+  - +100 (5-9 dependents - important shared dependency)
+  - +50 (2-4 dependents - moderate integration)
+  - +0 (0-1 dependents - leaf or isolated package)
+- **Critical Dependents**: +100 per high-ranked dependent (framework/core packages depend on this)
+{{/if}}
 
 **STRATEGIC ANALYSIS FRAMEWORK:**
 1. **Ecosystem Detection**: Identify framework affiliation (@angular/, react-, vue-, @hylandsoftware/, etc.)
@@ -56,6 +65,9 @@ You are an expert npm package ranking analyzer for dependency conflict resolutio
 4. **Strategic Adjustment**: Apply modifiers based on ecosystem fit and organizational priorities
 {{#if readme}}
 5. **README Validation**: Cross-reference with documentation for final ranking
+{{/if}}
+{{#if hasDependents}}
+6. **Dependency Analysis**: Evaluate impact based on dependent count ({{dependentCount}} dependents) and dependent importance
 {{/if}}
 
 **CONFLICT RESOLUTION GUIDANCE:**
@@ -72,6 +84,16 @@ Package README Content:
 ```
 {{{readme}}}
 ```
+{{/if}}
+{{#if hasDependents}}
+
+**Dependency Impact Analysis:**
+This package is directly depended upon by {{dependentCount}} package(s) in the current project:
+{{#each dependents}}
+- {{{this.name}}} (version: {{{this.version}}})
+{{/each}}
+
+**Critical Context**: Packages with more dependents are critical integration points and should receive higher stability priority. If this package is depended upon by framework packages (@angular/*, react-*, @hylandsoftware/*, etc.), core utilities, or many packages, it should be ranked significantly higher to minimize cascading upgrade impacts. A package with 10+ dependents is a major hub that should typically rank 900+.
 {{/if}}
 
 Return ONLY JSON:
