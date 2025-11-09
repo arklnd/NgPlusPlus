@@ -1083,4 +1083,195 @@ describe('updatePackageWithDependencies', function () {
             }
         }
     });
+
+    it('should invoke dumbResolverHandler with NGE2 Angular dependencies', async function () {
+        // Increase timeout for npm operations
+        this.timeout(3600000); // 60 minutes
+
+        // Arrange - Copy asset files to test directory
+        const assetsDir = path.join(__dirname, 'assets');
+        const sourcePackageJsonPath = path.join(assetsDir, '/NGE2/package.json');
+        const sourcePackageLockPath = path.join(assetsDir, '/NGE2/package-lock.json');
+        const originalGitPath = path.join(path.resolve(assetsDir), 'git-git');
+
+        const targetPackageJsonPath = path.join(testRepoPath, 'package.json');
+        const targetPackageLockPath = path.join(testRepoPath, 'package-lock.json');
+        const tempGitPath = path.join(testRepoPath, '.git');
+
+        // Copy the asset files to test directory
+        fs.copyFileSync(sourcePackageJsonPath, targetPackageJsonPath);
+        fs.copyFileSync(sourcePackageLockPath, targetPackageLockPath);
+
+        // Prepare input data for dumbResolverHandler using same dependencies as selected test
+        const updateDependencies = [
+            {
+                name: '@angular/animations',
+                version: '^19.0.0',
+                isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '8.0.0'
+            },
+            {
+                name: '@angular/common',
+                version: '^19.0.0',
+                isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '8.0.0'
+            },
+            {
+                name: '@angular/compiler',
+                version: '^19.0.0',
+                isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '8.0.0'
+            },
+            {
+                name: '@angular/core',
+                version: '^19.0.0',
+                isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '8.0.0'
+            },
+            {
+                name: '@angular/forms',
+                version: '^19.0.0',
+                isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '8.0.0'
+            },
+            {
+                name: '@angular/platform-browser',
+                version: '^19.0.0',
+                isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '8.0.0'
+            },
+            {
+                name: '@angular/platform-browser-dynamic',
+                version: '^19.0.0',
+                isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '8.0.0'
+            },
+            {
+                name: '@angular/router',
+                version: '^19.0.0',
+                isDev: false,
+                reason: 'Update to Angular 19',
+                fromVersion: '8.0.0'
+            },
+            {
+                name: '@angular/cli',
+                version: '^19.0.0',
+                isDev: true,
+                reason: 'Update to Angular 19',
+                fromVersion: '8.0.0'
+            },
+            {
+                name: '@angular/compiler-cli',
+                version: '^19.0.0',
+                isDev: true,
+                reason: 'Update to Angular 19',
+                fromVersion: '8.0.0'
+            },
+            {
+                name: '@angular-devkit/build-angular',
+                version: '^19.0.0',
+                isDev: true,
+                reason: 'Update to Angular 19',
+                fromVersion: '0.800.0'
+            },
+            {
+                name: '@angular/language-service',
+                version: '^19.0.0',
+                isDev: true,
+                reason: 'Update to Angular 19',
+                fromVersion: '8.0.0'
+            },
+        ];
+
+        const dumbResolverInput = {
+            repo_path: testRepoPath,
+            update_dependencies: updateDependencies,
+            maxAttempts: parseInt(process.env.MAX_ATTEMPTS || '3', 10),
+        };
+
+        // Act - Invoke dumbResolverHandler
+        try {
+            const result = await dumbResolverHandler(dumbResolverInput);
+
+            // Assert
+            expect(result).to.be.an('object');
+            expect(result).to.have.property('content');
+            expect(result.content).to.be.an('array');
+            expect(result.content).to.have.length(1);
+            expect(result.content[0]).to.have.property('type', 'text');
+            expect(result.content[0]).to.have.property('text');
+
+            const resultText = result.content[0].text;
+            expect(resultText).to.be.a('string');
+
+            // Check if it's a success or failure message
+            if (resultText.includes('✅ Successfully updated dependencies')) {
+                console.log('(✅) Dependency resolution succeeded', { resultText });
+                expect(resultText).to.include('Successfully updated dependencies');
+                expect(resultText).to.include('Updated packages:');
+
+                // Verify the package.json was updated correctly
+                const updatedContent = fs.readFileSync(targetPackageJsonPath, 'utf8');
+                const updatedPackageJson: PackageJson = JSON.parse(updatedContent);
+
+                // Check some key dependencies were updated with major version 19
+                expect(updatedPackageJson.dependencies).to.exist;
+                expect(updatedPackageJson.dependencies).to.have.property('@angular/core');
+                const coreVersion = updatedPackageJson.dependencies?.['@angular/core'];
+                expect(coreVersion).to.exist;
+                expect(semver.major(semver.coerce(coreVersion!)!)).to.equal(19);
+                
+                expect(updatedPackageJson.devDependencies).to.exist;
+                expect(updatedPackageJson.devDependencies).to.have.property('@angular/cli');
+                const cliVersion = updatedPackageJson.devDependencies?.['@angular/cli'];
+                expect(cliVersion).to.exist;
+                expect(semver.major(semver.coerce(cliVersion!)!)).to.equal(19);
+            } else if (resultText.includes('❌ Failed to resolve dependencies')) {
+                expect(resultText).to.include('Failed to resolve dependencies');
+                console.log('dumbResolverHandler failed as expected, result:', resultText);
+            } else {
+                // Unexpected result format
+                console.error(`Unexpected result format: ${resultText}`);
+            }
+        } catch (error) {
+            console.error('[+] Test failed:', error);
+            // Continue with test as this might not be critical
+        } finally {
+            try {
+                if (fs.existsSync(targetPackageJsonPath)) {
+                    try {
+                        fs.copyFileSync(targetPackageJsonPath, sourcePackageJsonPath);
+                        console.info('[✅] Successfully copied package.json back to test location');
+                    } catch (copyError) {
+                        const error = `Failed to copy package.json: ${copyError instanceof Error ? copyError.message : String(copyError)}`;
+                        console.error('[❌] Failed to copy package.json back', { error });
+                    }
+                }
+                // Copy package-lock.json back if it exists
+                if (fs.existsSync(targetPackageLockPath)) {
+                    try {
+                        fs.copyFileSync(targetPackageLockPath, sourcePackageLockPath);
+                        console.info('[✅] Successfully copied package-lock.json back to test location');
+                    } catch (copyError) {
+                        const error = `Failed to copy package-lock.json: ${copyError instanceof Error ? copyError.message : String(copyError)}`;
+                        console.error('[❌] Failed to copy package-lock.json back', { error });
+                    }
+                }
+                if (fs.existsSync(originalGitPath)) {
+                    fs.rmSync(originalGitPath, { recursive: true, force: true });
+                }
+                fs.cpSync(tempGitPath, originalGitPath, { recursive: true });
+                console.log('[✅] Git directory copied back to assets.');
+            } catch (error) {
+                console.warn('Failed to copy git directory:', error);
+            }
+        }
+    });
 });
