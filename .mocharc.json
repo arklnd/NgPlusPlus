@@ -3,6 +3,7 @@
         "test.ts"
     ],
     "spec": "test/**/*.test.ts",
+    "exclude": ["**/node_modules/**"],
     "timeout": 3600000,
     "import": [
         "tsx"
