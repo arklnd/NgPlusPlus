@@ -23,6 +23,7 @@ async function main() {
     const red = '\x1b[31m';
     const green = '\x1b[32m';
     const reset = '\x1b[0m';
+    const isGitHub = process.env.GITHUB_ACTIONS === 'true';
 
     for (const hash of hashesToShow) {
         commitCount++;
@@ -47,9 +48,9 @@ async function main() {
             if (line.startsWith('+')) return green + line + reset;
             return line;
         }).join('\n');
-        console.log(`::group::------[Commit ${commitCount}]: ${hash.substring(0, 10)} => ${finalFiltered[1].trim()} -----------------------------------------------------------------`);
+        console.log(`${isGitHub ? '::group::' : '\n'}------[Commit ${commitCount}]: ${hash.substring(0, 10)} => ${finalFiltered[1].trim()} -----------------------------------------------------------------`);
         console.log('🚀 ' + coloredOutput.trim());
-        console.log('::endgroup::');
+        console.log(`${isGitHub ? '::endgroup::' : '\n'}`);
     }
 }
 
