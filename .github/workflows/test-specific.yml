@@ -102,7 +102,7 @@ jobs:
       if: always()
       run: npx tsx .github/scripts/debug-files.ts
 
-    - name: 🐛 Debug - Show Git logs from test run
+    - name: 🐛 Debug - Show Git🚀 logs from test run
       if: always()
       run:
         npx tsx .github/scripts/show-git-logs.ts
