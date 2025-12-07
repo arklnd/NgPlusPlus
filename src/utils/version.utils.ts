@@ -1,5 +1,5 @@
 import * as semver from 'semver';
-import { getLogger } from '@U/index';
+import { getLogger, getCallerDetails } from '@U/index';
 
 /**
  * Safely extracts a clean version from a version spec using semver
@@ -7,7 +7,8 @@ import { getLogger } from '@U/index';
  * @returns Clean version string or null if invalid
  */
 export function getCleanVersion(spec: string): string | null {
-    const logger = getLogger().child('Version');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'Version'} ${caller?.fileName}:${caller?.lineNumber}`);
 
     logger.trace('Parsing version specification', { spec });
 
@@ -38,7 +39,8 @@ export function getCleanVersion(spec: string): string | null {
  * @returns True if version satisfies the range
  */
 export function satisfiesVersionRange(version: string, range: string): boolean {
-    const logger = getLogger().child('Version');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'Version'} ${caller?.fileName}:${caller?.lineNumber}`);
 
     logger.trace('Checking version compatibility', { version, range });
 
@@ -77,7 +79,8 @@ export function satisfiesVersionRange(version: string, range: string): boolean {
  * @returns Best matching version or null if none found
  */
 export function findCompatibleVersion(availableVersions: string[], requiredRange: string): string | null {
-    const logger = getLogger().child('Version');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'Version'} ${caller?.fileName}:${caller?.lineNumber}`);
 
     logger.debug('Finding compatible version', {
         availableCount: availableVersions.length,

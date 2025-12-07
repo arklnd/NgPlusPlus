@@ -8,7 +8,7 @@ import { simpleGit } from 'simple-git';
 import { readPackageJson, writePackageJson, updateDependency, installDependencies } from '@U/package-json.utils';
 import { validatePackageVersionsExist } from '@U/package-registry.utils';
 import { getOpenAIService } from '@S/openai.service';
-import { parseAndStoreDependencyMap, getLogger, rectifyStrategicResponseWithDependentInfo } from '@U/index';
+import { parseAndStoreDependencyMap, getLogger, rectifyStrategicResponseWithDependentInfo, getCallerDetails } from '@U/index';
 import OpenAI from 'openai';
 import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility, hydrateConflictAnalysisWithRegistryData, parseInstallErrorToConflictAnalysis, hydrateConflictAnalysisWithRanking } from '@U/dumb-resolver-helper';
 import { AIResponseFormatError, NoSuitableVersionFoundError, PackageVersionValidationError, NoNewSuggestionError } from '@E/index';
@@ -40,7 +40,8 @@ const cpAsync = promisify(cp);
 
 export const dumbResolverHandler = async (input: DumbResolverInput) => {
     const { repo_path, update_dependencies, maxAttempts } = input;
-    const logger = getLogger().child('dumb-resolver');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'dumb-resolver'} ${caller?.fileName}:${caller?.lineNumber}`);
     let attempt = 0;
     let tempDir: string | null = null;
     let installSuccess = false;

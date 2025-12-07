@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import Database from 'better-sqlite3';
 import { buildDepTreeFromFiles, PkgTree } from 'snyk-nodejs-lockfile-parser';
-import { getLogger } from '@U/index';
+import { getLogger, getCallerDetails } from '@U/index';
 
 export interface PackageInfo {
     name: string;
@@ -25,9 +25,11 @@ export class DependencyMapParser {
     private static instance: DependencyMapParser | null = null;
     private db: Database.Database;
     private config: DependencyMapConfig;
-    private logger = getLogger().child('DependencyMapParser');
+    private logger: any;
 
     private constructor(config?: Partial<DependencyMapConfig>) {
+        const caller = getCallerDetails();
+        this.logger = getLogger().child(`${'DependencyMapParser'} ${caller?.fileName}:${caller?.lineNumber}`);
         this.config = { ...DEFAULT_CONFIG, ...(config || {}) };
         this.db = new Database(this.config.dbPath);
         this.logger.info('Initializing DependencyMapParser', { dbPath: this.config.dbPath });
@@ -288,7 +290,8 @@ export class DependencyMapParser {
  * Convenience function to parse and store dependency map
  */
 export async function parseAndStoreDependencyMap(packageLockPath: string, packageJsonPath?: string, dbPath?: string): Promise<DependencyMapParser> {
-    const logger = getLogger().child('parseAndStoreDependencyMap');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'parseAndStoreDependencyMap'} ${caller?.fileName}:${caller?.lineNumber}`);
     logger.info('Starting convenience function for parsing and storing dependency map', { packageLockPath, packageJsonPath, dbPath });
     
     const parser = DependencyMapParser.getInstance(dbPath ? { dbPath } : undefined);
@@ -302,7 +305,8 @@ export async function parseAndStoreDependencyMap(packageLockPath: string, packag
  * Convenience function to get dependents for a package
  */
 export function getPackageDependents(packageName: string, dbPath?: string): Array<{ name: string; version: string }> | null {
-    const logger = getLogger().child('getPackageDependents');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'getPackageDependents'} ${caller?.fileName}:${caller?.lineNumber}`);
     logger.debug('Retrieving package dependents via convenience function', { packageName, dbPath });
     
     const parser = DependencyMapParser.getInstance(dbPath ? { dbPath } : undefined);

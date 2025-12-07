@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { getLogger, ChildLogger } from '@U/logger.utils';
+import { getCallerDetails } from '@U/index';
 
 /**
  * Cache configuration interface
@@ -40,7 +41,8 @@ export class Cache {
 
     private constructor(config?: Partial<CacheConfig>) {
         this.config = { ...DEFAULT_CONFIG, ...(config || {}) };
-        this.logger = getLogger().child('Cache');
+        const caller = getCallerDetails();
+        this.logger = getLogger().child(`${'Cache'} ${caller?.fileName}:${caller?.lineNumber}`);
     }
 
     /** Get singleton instance */

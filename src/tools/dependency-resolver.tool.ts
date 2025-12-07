@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { readPackageJson, writePackageJson, updateDependency, analyzeConflicts, resolveConflicts, updateTransitiveDependencies, getLogger, validatePackageVersionsExist } from '@U/index';
+import { readPackageJson, writePackageJson, updateDependency, analyzeConflicts, resolveConflicts, updateTransitiveDependencies, getLogger, validatePackageVersionsExist, getCallerDetails } from '@U/index';
 import { ValidationResult } from '@I/index';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,7 +15,8 @@ const __dirname = path.dirname(__filename);
  * @returns String with all operation results
  */
 export async function updatePackageWithDependencies(repoPath: string, runNpmInstall: boolean, plannedUpdates: Array<{ name: string; version: string; isDev: boolean }>): Promise<string> {
-    const logger = getLogger().child(` ${__filename} `);
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`DependencyResolver ${caller?.fileName}:${caller?.lineNumber}`);
 
     logger.info('Starting dependency update process', {
         repoPath,
@@ -228,7 +229,8 @@ export async function updatePackageWithDependencies(repoPath: string, runNpmInst
 }
 
 export function registerDependencyResolverTools(server: McpServer) {
-    const logger = getLogger().child(`dependency-resolver-tool:${__dirname}`);
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${`dependency-resolver-tool:${__dirname}`} ${caller?.fileName}:${caller?.lineNumber}`);
 
     logger.info('Registering dependency resolver tools');
 

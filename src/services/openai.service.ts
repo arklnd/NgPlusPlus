@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { z } from 'zod';
 import dotenv from 'dotenv';
 import { getLogger, ChildLogger } from '@U/logger.utils';
+import { getCallerDetails } from '@U/index';
 dotenv.config();
 // Configuration schema for OpenAI
 export const OpenAIConfigSchema = z.object({
@@ -34,7 +35,8 @@ export class OpenAIService {
     private logger: ChildLogger;
 
     constructor(config?: Partial<OpenAIConfig>) {
-        this.logger = getLogger().child('OpenAIService');
+        const caller = getCallerDetails();
+        this.logger = getLogger().child(`${'OpenAIService'} ${caller?.fileName}:${caller?.lineNumber}`);
         this.logger.debug('Initializing OpenAI service', { providedConfig: config });
         
         // Merge provided config with defaults
@@ -349,7 +351,8 @@ let openAIServiceInstance: OpenAIService | null = null;
  * Get the singleton OpenAI service instance
  */
 export function getOpenAIService(config?: Partial<OpenAIConfig>): OpenAIService {
-    const logger = getLogger().child('OpenAIService:Singleton');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'OpenAIService:Singleton'} ${caller?.fileName}:${caller?.lineNumber}`);
     
     if (!openAIServiceInstance) {
         logger.debug('Creating new OpenAI service instance');
@@ -367,7 +370,8 @@ export function getOpenAIService(config?: Partial<OpenAIConfig>): OpenAIService 
  * Initialize OpenAI service with configuration
  */
 export function initializeOpenAI(config?: Partial<OpenAIConfig>): OpenAIService {
-    const logger = getLogger().child('OpenAIService:Initialize');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'OpenAIService:Initialize'} ${caller?.fileName}:${caller?.lineNumber}`);
     logger.info('Initializing new OpenAI service instance', { hasConfig: !!config });
     openAIServiceInstance = new OpenAIService(config);
     return openAIServiceInstance;

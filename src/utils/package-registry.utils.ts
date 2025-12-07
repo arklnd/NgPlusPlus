@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { getLogger, StrategicResponse } from '@U/index';
+import { getLogger, StrategicResponse, getCallerDetails } from '@U/index';
 import { RegistryData, PackageVersionData, ValidationResult } from '@I/index';
 import { NoSuitableVersionFoundError } from '@E/NoSuitableVersionFoundError';
 import { getCachedPackageData, setCachedPackageData } from '@U/cache.utils';
@@ -10,7 +10,8 @@ import { getCachedPackageData, setCachedPackageData } from '@U/cache.utils';
  * @returns Registry data with version information
  */
 export async function getPackageData(name: string, fields: string[] = []): Promise<RegistryData> {
-    const logger = getLogger().child('PackageRegistry');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'PackageRegistry'} ${caller?.fileName}:${caller?.lineNumber}`);
 
     logger.debug('Fetching package data via npm', { package: name });
 
@@ -80,7 +81,8 @@ export async function getPackageData(name: string, fields: string[] = []): Promi
  * @returns Package version data with dependencies
  */
 export async function getPackageVersionData(name: string, version: string): Promise<PackageVersionData> {
-    const logger = getLogger().child('PackageRegistry');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'PackageRegistry'} ${caller?.fileName}:${caller?.lineNumber}`);
     const cacheKey = `ver-${name}@${version}`;
 
     logger.debug('Fetching specific version data via npm', { package: name, version });
@@ -158,7 +160,8 @@ export async function getPackageVersionData(name: string, version: string): Prom
  * @returns Array of version strings
  */
 export async function getPackageVersions(name: string): Promise<string[]> {
-    const logger = getLogger().child('PackageRegistry');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'PackageRegistry'} ${caller?.fileName}:${caller?.lineNumber}`);
 
     logger.debug('Fetching versions list via npm', { package: name });
 
@@ -219,7 +222,8 @@ export async function getPackageVersions(name: string): Promise<string[]> {
  * @returns Array of validation results indicating which packages/versions exist
  */
 export async function validatePackageVersionsExist(plannedUpdates: StrategicResponse): Promise<ValidationResult[]> {
-    const logger = getLogger().child('PackageVersionValidator');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'PackageVersionValidator'} ${caller?.fileName}:${caller?.lineNumber}`);
 
     logger.info('Starting package version validation', {
         packageCount: plannedUpdates.suggestions.length,

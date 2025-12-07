@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { existsSync, readFileSync } from 'fs';
 import { join, resolve } from 'path';
 import { spawn } from 'child_process';
-import { getLogger } from '@U/index';
+import { getLogger, getCallerDetails } from '@U/index';
 
 /**
  * Base schema for NCU operations that require a repository path
@@ -41,7 +41,8 @@ export enum NcuTools {
  * by checking for package.json file
  */
 export function validateProjectPath(repoPath: string): { isValid: boolean; error?: string } {
-    const logger = getLogger().child('ncu:validate');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'ncu:validate'} ${caller?.fileName}:${caller?.lineNumber}`);
 
     logger.debug('Validating project path', { repoPath });
 
@@ -90,7 +91,8 @@ export function validateProjectPath(repoPath: string): { isValid: boolean; error
  * Common repository path validation and resolution for NCU tools
  */
 export async function validateAndResolveRepoPath(repoPath: string): Promise<{ success: boolean; resolvedPath?: string; error?: string }> {
-    const logger = getLogger().child('ncu:validate');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'ncu:validate'} ${caller?.fileName}:${caller?.lineNumber}`);
 
     logger.debug('Validating and resolving repository path', { repoPath });
 
@@ -127,7 +129,8 @@ export async function validateAndResolveRepoPath(repoPath: string): Promise<{ su
  * Execute npm-check-updates command
  */
 async function executeNcu(args: string[], cwd: string): Promise<{ success: boolean; output: string; error?: string }> {
-    const logger = getLogger().child('ncu:execute');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'ncu:execute'} ${caller?.fileName}:${caller?.lineNumber}`);
 
     logger.debug('Executing NCU command', { args, cwd });
 

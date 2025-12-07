@@ -1,6 +1,6 @@
 import { getPackageData, getPackageVersionData, getPackageVersions } from '@U/package-registry.utils';
 import { getCleanVersion, satisfiesVersionRange, findCompatibleVersion } from '@U/version.utils';
-import { getAllDependencies, getAllDependent, isDevDependency, updateDependency, installDependencies, getLogger } from '@U/index';
+import { getAllDependencies, getAllDependent, isDevDependency, updateDependency, installDependencies, getLogger, getCallerDetails } from '@U/index';
 import { ConflictInfo, ConflictResolution, PackageJson } from '@I/index';
 
 /**
@@ -10,7 +10,8 @@ import { ConflictInfo, ConflictResolution, PackageJson } from '@I/index';
  * @returns Conflict analysis results
  */
 export async function analyzeConflicts(repoPath: string, runNpmInstall: boolean, packageJson: PackageJson, plannedUpdates: Array<{ name: string; version: string; isDev: boolean }>): Promise<ConflictResolution> {
-    const logger = getLogger().child('ConflictResolution');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'ConflictResolution'} ${caller?.fileName}:${caller?.lineNumber}`);
     logger.info('Starting conflict analysis', { plannedUpdateCount: plannedUpdates.length });
 
     // #region Dependency Installation for Conflict Analysis
@@ -138,7 +139,8 @@ export async function analyzeConflicts(repoPath: string, runNpmInstall: boolean,
  * @returns Array of resolution messages
  */
 export async function resolveConflicts(packageJson: PackageJson, conflicts: ConflictInfo[]): Promise<string[]> {
-    const logger = getLogger().child('ConflictResolution');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'ConflictResolution'} ${caller?.fileName}:${caller?.lineNumber}`);
     logger.info('Starting conflict resolution', { conflictCount: conflicts.length });
 
     const resolutions: string[] = [];

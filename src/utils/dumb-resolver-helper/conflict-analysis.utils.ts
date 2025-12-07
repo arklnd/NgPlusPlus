@@ -1,6 +1,6 @@
 import { getPackageData } from '@U/package-registry.utils';
 import { getCleanVersion } from '@U/version.utils';
-import { getLogger, getPackageDependents } from '@U/index';
+import { getLogger, getPackageDependents, getCallerDetails } from '@U/index';
 import { getOpenAIService } from '@S/openai.service';
 import { ConflictAnalysis, PackageVersionRankRegistryData, RegistryData } from '@I/index';
 import { createDependencyParsingPrompt, createPackageRankingPrompt } from './template-generator.utils';
@@ -16,7 +16,8 @@ const JSON_RESPONSE_REGEX = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
  * @returns Initial conflict analysis parsed from the error
  */
 export async function parseInstallErrorToConflictAnalysis(installError: string): Promise<ConflictAnalysis> {
-    const logger = getLogger().child('conflict-analysis');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'conflict-analysis'} ${caller?.fileName}:${caller?.lineNumber}`);
     const openai = getOpenAIService();
 
     logger.info('Parsing install error to generate conflict analysis');
@@ -95,7 +96,8 @@ export async function parseInstallErrorToConflictAnalysis(installError: string):
  * @returns Enhanced conflict analysis with available versions populated
  */
 export async function hydrateConflictAnalysisWithRegistryData(currentAnalysis: ConflictAnalysis): Promise<ConflictAnalysis> {
-    const logger = getLogger().child('conflict-analysis');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'conflict-analysis'} ${caller?.fileName}:${caller?.lineNumber}`);
 
     logger.info('Fetching available versions for packages involved in conflict');
 
@@ -184,7 +186,8 @@ export async function hydrateConflictAnalysisWithRegistryData(currentAnalysis: C
  * @returns Enhanced conflict analysis with ranking information
  */
 export async function hydrateConflictAnalysisWithRanking(currentAnalysis: ConflictAnalysis): Promise<ConflictAnalysis> {
-    const logger = getLogger().child('conflict-analysis-ranking');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'conflict-analysis-ranking'} ${caller?.fileName}:${caller?.lineNumber}`);
 
     logger.info('Adding ranking information to conflict analysis using AI for individual packages');
 
@@ -236,7 +239,8 @@ export async function getRankingForPackage(packageName: string, dependentsMap: R
     if (packageName.trim() === 'root project') {
         return { rank: 999999, tier: 'ROOT' };
     }
-    const logger = getLogger().child('package-ranking');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'package-ranking'} ${caller?.fileName}:${caller?.lineNumber}`);
     const cacheKey = `ranking:${packageName}`;
 
     try {

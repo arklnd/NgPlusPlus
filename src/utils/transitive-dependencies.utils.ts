@@ -2,6 +2,7 @@ import { getPackageData, getPackageVersionData } from '@U/package-registry.utils
 import { getCleanVersion, satisfiesVersionRange, findCompatibleVersion } from '@U/version.utils';
 import { getAllDependencies, isDevDependency, updateDependency } from '@U/package-json.utils';
 import { getLogger } from '@U/logger.utils';
+import { getCallerDetails } from '@U/index';
 import { PackageJson } from '@I/package-json.interfaces';
 
 /**
@@ -21,7 +22,8 @@ import { PackageJson } from '@I/package-json.interfaces';
  * @returns Array of update messages detailing transitive dependency resolution
  */
 export async function updateTransitiveDependencies(packageJson: PackageJson, updates: Array<{ name: string; version: string }>): Promise<string[]> {
-    const logger = getLogger().child('TransitiveDependencies');
+    const caller = getCallerDetails();
+    const logger = getLogger().child(`${'TransitiveDependencies'} ${caller?.fileName}:${caller?.lineNumber}`);
     logger.info('Starting transitive dependency resolution', { updateCount: updates.length });
 
     // Collect all resolution messages for user feedback
