@@ -140,23 +140,30 @@ export class Logger {
     private writeToConsole(level: string, message: string, context?: string, metadata?: Record<string, any>): void {
         if (!this.config.enableConsoleLogging) return;
 
-        const contextStr = context ? ` [${context}]` : '';
-        const metadataStr = metadata ? ` ${JSON.stringify(metadata)}` : '';
-        const fullMessage = `${contextStr}${message}${metadataStr}`;
+        const redBright = '\x1b[91m';
+        const yellowBright = '\x1b[93m';
+        const cyanBright = '\x1b[96m';
+        const blueBright = '\x1b[94m';
+        const magentaBright = '\x1b[95m';
+        const gray = '\x1b[90m';
+        const reset = '\x1b[0m';
+
+        const contextStr = context ? `${magentaBright} [${context}]${reset}` : '';
+        const metadataStr = metadata ? `${gray} ${JSON.stringify(metadata)}${reset}` : '';
 
         switch (level.toLowerCase()) {
             case 'error':
-                console.error(fullMessage);
+                console.error(`${contextStr} ${redBright}${message}${reset}${metadataStr}`);
                 break;
             case 'warn':
-                console.warn(fullMessage);
+                console.warn(`${contextStr} ${yellowBright}${message}${reset}${metadataStr}`);
                 break;
             case 'debug':
             case 'trace':
-                console.debug(fullMessage);
+                console.debug(`${contextStr} ${cyanBright}${message}${reset}${metadataStr}`);
                 break;
             default:
-                console.log(fullMessage);
+                console.log(`${contextStr} ${blueBright}${message}${reset}${metadataStr}`);
         }
     }
 
