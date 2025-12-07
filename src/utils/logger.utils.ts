@@ -114,9 +114,9 @@ export class Logger {
             })
             .replace(', ', '_');
         const contextStr = context ? ` [${context}]` : '';
-        const metadataStr = metadata ? ` ${JSON.stringify(metadata)}` : '';
+        const metadataStr = metadata ? `${Object.keys(metadata).length > 200 ? JSON.stringify(metadata, null, 1) : JSON.stringify(metadata)}` : '';
 
-        return `${timestamp} [${level.toUpperCase()}]${contextStr} ${message}${metadataStr}`;
+        return `${timestamp} ${level.toUpperCase()} ${contextStr} ${message}${metadataStr}`;
     }
 
     /**
@@ -148,22 +148,43 @@ export class Logger {
         const gray = '\x1b[90m';
         const reset = '\x1b[0m';
 
-        const contextStr = context ? `${magentaBright} [${context}]${reset}` : '';
-        const metadataStr = metadata ? `${gray} ${JSON.stringify(metadata)}${reset}` : '';
+        const emoji = this.getEmoji(level);
+        const contextStr = context ? `${magentaBright}[${context}]${reset}` : '';
+        const metadataStr = metadata ? `${Object.keys(metadata).length > 200 ? JSON.stringify(metadata, null, 4) : JSON.stringify(metadata)}` : '';
 
         switch (level.toLowerCase()) {
             case 'error':
-                console.error(`${contextStr} ${redBright}${message}${reset}${metadataStr}`);
+                console.error(`${contextStr} ${redBright}${emoji} ${message}${reset}${metadataStr}`);
                 break;
             case 'warn':
-                console.warn(`${contextStr} ${yellowBright}${message}${reset}${metadataStr}`);
+                console.warn(`${contextStr} ${yellowBright}${emoji} ${message}${reset}${metadataStr}`);
                 break;
             case 'debug':
             case 'trace':
-                console.debug(`${contextStr} ${cyanBright}${message}${reset}${metadataStr}`);
+                console.debug(`${contextStr} ${cyanBright}${emoji} ${message}${reset}${metadataStr}`);
                 break;
             default:
-                console.log(`${contextStr} ${blueBright}${message}${reset}${metadataStr}`);
+                console.log(`${contextStr} ${blueBright}${emoji} ${message}${reset}${metadataStr}`);
+        }
+    }
+
+    /**
+     * Get emoji for log level
+     */
+    private getEmoji(level: string): string {
+        switch (level.toLowerCase()) {
+            case 'error':
+                return '💥';
+            case 'warn':
+                return '⚠️';
+            case 'info':
+                return 'ℹ️';
+            case 'debug':
+                return '🐛';
+            case 'trace':
+                return '🔍';
+            default:
+                return '';
         }
     }
 

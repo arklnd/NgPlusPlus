@@ -48,7 +48,7 @@ describe('OpenAI Text Generation', function () {
         it('should generate text with custom options', async function () {
             const prompt = 'Write a short greeting';
             const options = {
-                model: 'copilot-gpt-5',
+                model: 'copilot-gpt-4.1',
                 temperature: 0.1,
                 maxTokens: 30
             };
