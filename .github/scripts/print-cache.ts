@@ -11,8 +11,8 @@ const dbPath = path.join(__dirname, '../../', 'package-cache.db');
 
 // Check if database file exists before proceeding
 if (!fs.existsSync(dbPath)) {
-    console.error('Database file does not exist:', dbPath);
-    process.exit(1);
+    console.warn('Database file does not exist:', dbPath);
+    process.exit(0);
 }
 
 const db = new Database(dbPath);
