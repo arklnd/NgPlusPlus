@@ -15,19 +15,16 @@ export class Logger {
             level: LogLevel.TRACE,
             enableFileLogging: true,
             logDirectory: './logs',
-            logFileName: `ngplusplus-${new Date()
-                .toLocaleString('en-IN', {
-                    timeZone: 'Asia/Kolkata',
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: false,
-                })
-                .replace(/[/,:]/g, '-')
-                .replace(/\s/g, '_')}.log`,
+            logFileName: (() => {
+                const now = new Date();
+                const year = now.toLocaleString('en-IN', {timeZone: 'Asia/Kolkata', year: 'numeric'});
+                const month = now.toLocaleString('en-IN', {timeZone: 'Asia/Kolkata', month: '2-digit'});
+                const day = now.toLocaleString('en-IN', {timeZone: 'Asia/Kolkata', day: '2-digit'});
+                const hour = now.toLocaleString('en-IN', {timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false});
+                const minute = now.toLocaleString('en-IN', {timeZone: 'Asia/Kolkata', minute: '2-digit'});
+                const second = now.toLocaleString('en-IN', {timeZone: 'Asia/Kolkata', second: '2-digit'});
+                return `ngplusplus-${year}-${month}-${day}_${hour}-${minute}-${second}.log`;
+            })(),
             maxFileSize: 10 * 1024 * 1024, // 10MB
             maxFiles: 5,
             enableConsoleLogging: true,

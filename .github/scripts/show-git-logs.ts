@@ -48,9 +48,15 @@ async function main() {
             if (line.startsWith('+')) return green + line + reset;
             return line;
         }).join('\n');
-        console.log(`${isGitHub ? '::group::' : '\n'}------[Commit ${commitCount}]: ${hash.substring(0, 10)} => ${finalFiltered[1].trim()} -----------------------------------------------------------------`);
+        if (isGitHub)
+            console.log(`::group::------[Commit ${commitCount}]: ${hash.substring(0, 10)} => ${finalFiltered[1].trim()} -----------------------------------------------------------------`);
+        else
+            console.group(`------[Commit ${commitCount}]: ${hash.substring(0, 10)} => ${finalFiltered[1].trim()} -----------------------------------------------------------------`);
         console.log('🚀 ' + coloredOutput.trim());
-        console.log(`${isGitHub ? '::endgroup::' : '\n'}`);
+        if (isGitHub)
+            console.log('::endgroup::');
+        else
+            console.groupEnd();
     }
 }
 
