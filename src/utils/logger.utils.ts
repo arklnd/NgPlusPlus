@@ -142,7 +142,7 @@ export class Logger {
 
         const contextStr = context ? ` [${context}]` : '';
         const metadataStr = metadata ? ` ${JSON.stringify(metadata)}` : '';
-        const fullMessage = `${message}${contextStr}${metadataStr}`;
+        const fullMessage = `${contextStr}${message}${metadataStr}`;
 
         switch (level.toLowerCase()) {
             case 'error':
