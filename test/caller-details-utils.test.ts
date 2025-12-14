@@ -6,7 +6,7 @@ describe('Caller Details Utils', function () {
     describe('getCallerDetails', function () {
         it('should return caller details when called from a test function', function () {
             function testCaller() {
-                return getCallerDetails();
+                return getCallerDetails(-2);
             }
 
             const details = testCaller();
