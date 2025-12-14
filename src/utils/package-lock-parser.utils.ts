@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import Database from 'better-sqlite3';
-import { buildDepTreeFromFiles, PkgTree } from 'snyk-nodejs-lockfile-parser';
+import Arborist from '@npmcli/arborist';
 import { getLogger } from '@U/index';
 
 export interface PackageInfo {
@@ -22,7 +22,7 @@ const DEFAULT_CONFIG: DependencyMapConfig = {
  * Utility class for parsing package-lock.json and storing dependency maps in SQLite
  */
 export class DependencyMapParser {
-    private static instance: DependencyMapParser | null = null;
+    private static instances: Map<string, DependencyMapParser> = new Map();
     private db: Database.Database;
     private config: DependencyMapConfig;
     private logger = getLogger().child('DependencyMapParser');
@@ -35,10 +35,12 @@ export class DependencyMapParser {
     }
 
     public static getInstance(config?: Partial<DependencyMapConfig>): DependencyMapParser {
-        if (!DependencyMapParser.instance) {
-            DependencyMapParser.instance = new DependencyMapParser(config);
+        const fullConfig = { ...DEFAULT_CONFIG, ...(config || {}) };
+        const key = fullConfig.dbPath;
+        if (!DependencyMapParser.instances.has(key)) {
+            DependencyMapParser.instances.set(key, new DependencyMapParser(fullConfig));
         }
-        return DependencyMapParser.instance;
+        return DependencyMapParser.instances.get(key)!;
     }
 
     private initializeDatabase(): void {
@@ -74,26 +76,9 @@ export class DependencyMapParser {
             throw new Error('package-lock.json not found');
         }
 
-        // Read lockfile to check version
-        this.logger.debug('Reading package-lock.json file');
-        const lockfileContent = fs.readFileSync(packageLockPath, 'utf-8');
-        const lockfile = JSON.parse(lockfileContent);
-        const lockfileVersion = lockfile.lockfileVersion;
-        
-        this.logger.info('Detected lockfile version', { version: lockfileVersion });
-
-        let packageMap: Map<string, PackageInfo>;
-
-        if (lockfileVersion === 2) {
-            this.logger.debug('Parsing package-lock.json v2');
-            packageMap = await this.parsePackageLockV2(packageJson, packageLockPath);
-        } else if (lockfileVersion === 3) {
-            this.logger.debug('Parsing package-lock.json v3');
-            packageMap = await this.parsePackageLockV3(packageJson, packageLockPath);
-        } else {
-            this.logger.error('Unsupported lockfile version', { version: lockfileVersion });
-            throw new Error(`Unsupported lockfile version: ${lockfileVersion}. Only v2 and v3 are supported.`);
-        }
+        // Parse using Arborist
+        this.logger.debug('Parsing package-lock.json using Arborist');
+        const packageMap = await this.parseWithArborist(path.dirname(packageLockPath));
 
         // Store in database
         this.logger.info('Storing package map in database', { packageCount: packageMap.size });
@@ -101,126 +86,56 @@ export class DependencyMapParser {
         this.logger.info('Dependency map parsing and storage completed successfully');
     }
 
-    private async parsePackageLockV2(packageJsonPath: string, lockFilePath: string): Promise<Map<string, PackageInfo>> {
-        this.logger.debug('Building dependency tree using snyk-nodejs-lockfile-parser');
-        const depTree: PkgTree = await buildDepTreeFromFiles(
-            path.dirname(lockFilePath),
-            packageJsonPath,
-            lockFilePath,
-            true, // includeDev
-            false // strictOutOfSync
-        );
+    private async parseWithArborist(rootPath: string): Promise<Map<string, PackageInfo>> {
+        this.logger.debug('Building dependency tree using @npmcli/arborist');
+        const arb = new Arborist({ path: rootPath });
+        const root = await arb.loadVirtual();
 
         const packageMap = new Map<string, PackageInfo>();
-        this.traverseDependencies(depTree, packageMap);
+        const seen = new Set<any>();
+        const stack = [root];
 
-        // For top-level dependencies, add the root package as a dependent
-        if (depTree.dependencies) {
-            const topLevelDeps = Object.keys(depTree.dependencies);
-            this.logger.debug('Processing top-level dependencies', { count: topLevelDeps.length });
-            for (const [depName] of Object.entries(depTree.dependencies)) {
-                const pkg = packageMap.get(depName);
-                if (pkg) {
-                    const existingDependent = pkg.dependents.find((d) => d.name === depTree.name);
-                    if (!existingDependent) {
-                        pkg.dependents.push({
-                            name: depTree.name || 'root',
-                            version: depTree.version || '',
-                        });
-                    }
-                }
-            }
-        }
+        while (stack.length > 0) {
+            const node = stack.pop()!;
+            if (seen.has(node)) continue;
+            seen.add(node);
 
-        this.logger.info('Package-lock.json v2 parsing completed', { packagesFound: packageMap.size });
-        return packageMap;
-    }
+            const name = node.name;
+            const version = node.version || '';
 
-    private async parsePackageLockV3(packageJsonPath: string, lockFilePath: string): Promise<Map<string, PackageInfo>> {
-        this.logger.debug('Reading package.json and package-lock.json for v3 parsing');
-        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-        const lockfile = JSON.parse(fs.readFileSync(lockFilePath, 'utf-8'));
-
-        const rootName = packageJson.name;
-        const rootVersion = packageJson.version;
-        const packages = lockfile.packages;
-
-        const packageMap = new Map<string, PackageInfo>();
-
-        // Add all packages from lockfile
-        const packageKeys = Object.keys(packages);
-        this.logger.debug('Processing packages from lockfile', { packageCount: packageKeys.length });
-        for (const [pkgPath, pkgInfo] of Object.entries(packages as any)) {
-            if (pkgPath === '') continue; // skip root
-            const name = (pkgInfo as any).name || pkgPath.split('/').pop();
-            const version = (pkgInfo as any).version || '';
-            if (!packageMap.has(name)) {
-                packageMap.set(name, {
-                    name,
-                    version,
-                    dependents: [],
-                });
-            }
-        }
-
-        // Build dependents
-        this.logger.debug('Building dependency relationships');
-        for (const [pkgPath, pkgInfo] of Object.entries(packages as any)) {
-            const name = pkgPath === '' ? rootName : (pkgInfo as any).name || pkgPath.split('/').pop();
-            const version = (pkgInfo as any).version || '';
-            const deps = { ...((pkgInfo as any).dependencies || {}), ...((pkgInfo as any).devDependencies || {}) };
-            for (const depName of Object.keys(deps)) {
-                const pkg = packageMap.get(depName);
-                if (pkg) {
-                    const existing = pkg.dependents.find((d) => d.name === name);
-                    if (!existing) {
-                        pkg.dependents.push({
-                            name,
-                            version,
-                        });
-                    }
-                }
-            }
-        }
-
-        this.logger.info('Package-lock.json v3 parsing completed', { packagesFound: packageMap.size });
-        return packageMap;
-    }
-
-    private traverseDependencies(depTree: any, packageMap: Map<string, PackageInfo>, parentName?: string, parentVersion?: string): void {
-        if (depTree.dependencies) {
-            for (const [depName, depInfo] of Object.entries(depTree.dependencies)) {
-                const dep = depInfo as any;
-
-                if (!packageMap.has(depName)) {
-                    packageMap.set(depName, {
-                        name: depName,
-                        version: dep.version || '',
+            if (name) {
+                if (!packageMap.has(name)) {
+                    packageMap.set(name, {
+                        name,
+                        version,
                         dependents: [],
                     });
-                    // this.logger.trace('Added new package to map', { name: depName, version: dep.version });
                 }
 
-                if (parentName) {
-                    const pkg = packageMap.get(depName);
-                    if (pkg) {
-                        const existingDependent = pkg.dependents.find((d) => d.name === parentName);
-                        if (!existingDependent) {
-                            pkg.dependents.push({
-                                name: parentName,
-                                version: parentVersion || '',
+                // Add dependents from incoming edges
+                for (const edge of node.edgesIn) {
+                    const from = edge.from;
+                    if (from && from.name) {
+                        const depPkg = packageMap.get(name)!;
+                        const existing = depPkg.dependents.find(d => d.name === from.name && d.version === (from.version || ''));
+                        if (!existing) {
+                            depPkg.dependents.push({
+                                name: from.name,
+                                version: from.version || '',
                             });
-                            // this.logger.trace('Added dependent relationship', { 
-                            //     package: depName, 
-                            //     dependent: parentName 
-                            // });
                         }
                     }
                 }
+            }
 
-                this.traverseDependencies(dep, packageMap, depName, dep.version);
+            // Traverse children
+            for (const child of node.children.values()) {
+                stack.push(child);
             }
         }
+
+        this.logger.info('Package-lock.json parsing completed using Arborist', { packagesFound: packageMap.size });
+        return packageMap;
     }
 
     private storePackageMap(packageMap: Map<string, PackageInfo>): void {
@@ -281,6 +196,7 @@ export class DependencyMapParser {
     close(): void {
         this.logger.info('Closing database connection');
         this.db.close();
+        DependencyMapParser.instances.delete(this.config.dbPath);
     }
 }
 

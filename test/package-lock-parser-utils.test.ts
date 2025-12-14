@@ -19,7 +19,7 @@ describe('Package Lock Parser Utils', function () {
         }
         testPackageJsonPath = join(testDir, 'package.json');
         testPackageLockPath = join(testDir, 'package-lock.json');
-        testDbPath = join(__dirname, 'test-dependency-map.db');
+        testDbPath = join(testDir, 'test-dependency-map.db');
     });
 
     afterEach(function () {
@@ -176,25 +176,6 @@ describe('Package Lock Parser Utils', function () {
                     expect.fail('Should have thrown an error');
                 } catch (error: any) {
                     expect(error.message).to.include('package-lock.json not found');
-                }
-                parser.close();
-            });
-
-            it('should throw error for unsupported lockfile version', async function () {
-                // Create a mock package.json
-                const packageJson = { name: 'test', version: '1.0.0' };
-                writeFileSync(testPackageJsonPath, JSON.stringify(packageJson));
-
-                // Create a mock package-lock.json with unsupported version
-                const packageLock = { lockfileVersion: 1 };
-                writeFileSync(testPackageLockPath, JSON.stringify(packageLock));
-
-                const parser = DependencyMapParser.getInstance({ dbPath: testDbPath });
-                try {
-                    await parser.parseAndStore(testPackageLockPath, testPackageJsonPath);
-                    expect.fail('Should have thrown an error');
-                } catch (error: any) {
-                    expect(error.message).to.include('Unsupported lockfile version');
                 }
                 parser.close();
             });
