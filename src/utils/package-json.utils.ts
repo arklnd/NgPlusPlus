@@ -3,6 +3,7 @@ import { join, resolve } from 'path';
 import { spawn } from 'child_process';
 import { getLogger } from '@U/index';
 import { PackageJson } from '@I/index';
+import Arborist from '@npmcli/arborist';
 
 /**
  * Reads and parses package.json from a given repository path
@@ -259,104 +260,44 @@ export async function getAllDependent(repoPath: string, packageName: string): Pr
 }
 
 /**
- * do npm install in the given repo path
+ * do npm install in the given repo path using @npmcli/arborist
  * @param repoPath Path to the repository
  * @returns Promise with stdout, stderr, and success status (only resolves on success, rejects on failure)
  */
 export async function installDependencies(repoPath: string): Promise<{ stdout: string; stderr: string; success: boolean }> {
     const logger = getLogger().child('PackageJson');
-    logger.debug('Installing dependencies', { repoPath });
-
-    const abortController = new AbortController();
+    logger.debug('Installing dependencies using Arborist', { repoPath });
 
     try {
-        const processPromise = new Promise<{ stdout: string; stderr: string; success: boolean }>((resolve, reject) => {
-            let completed = false;
+        // Ensure Cypress and Puppeteer use global caches by inheriting environment variables
+        // This prevents re-downloading Cypress binary and Chrome browser on every temp directory install
+        const env = {
+            ...process.env,
+            // Explicitly set Cypress cache folder if not already set
+            CYPRESS_CACHE_FOLDER: process.env.CYPRESS_CACHE_FOLDER || (process.platform === 'win32' ? `${process.env.LOCALAPPDATA}\\Cypress\\Cache` : `${process.env.HOME}/.cache/Cypress`),
+            // Explicitly set Puppeteer cache folder for browser downloads
+            PUPPETEER_CACHE_DIR: process.env.PUPPETEER_CACHE_DIR || (process.platform === 'win32' ? `${process.env.USERPROFILE}\\.cache\\puppeteer` : `${process.env.HOME}/.cache/puppeteer`),
+        };
 
-            // Ensure Cypress and Puppeteer use global caches by inheriting environment variables
-            // This prevents re-downloading Cypress binary and Chrome browser on every temp directory install
-            const env = {
-                ...process.env,
-                // Explicitly set Cypress cache folder if not already set
-                CYPRESS_CACHE_FOLDER: process.env.CYPRESS_CACHE_FOLDER || (process.platform === 'win32' ? `${process.env.LOCALAPPDATA}\\Cypress\\Cache` : `${process.env.HOME}/.cache/Cypress`),
-                // Explicitly set Puppeteer cache folder for browser downloads
-                PUPPETEER_CACHE_DIR: process.env.PUPPETEER_CACHE_DIR || (process.platform === 'win32' ? `${process.env.USERPROFILE}\\.cache\\puppeteer` : `${process.env.HOME}/.cache/puppeteer`),
-            };
-
-            const child = spawn('npm', ['install'], {
-                stdio: ['pipe', 'pipe', 'pipe'],
-                shell: true,
-                cwd: repoPath,
-                signal: abortController.signal, // Pass the abort signal
-                env, // Pass environment variables with Cypress and Puppeteer cache locations
-            });
-
-            let stdout = '';
-            let stderr = '';
-
-            child.stdout?.on('data', (chunk: Buffer) => {
-                stdout += chunk.toString();
-            });
-
-            child.stderr?.on('data', (chunk: Buffer) => {
-                stderr += chunk.toString();
-            });
-
-            // Set timeout that will abort the process and reject the promise
-            const timeoutId = setTimeout(() => {
-                if (!completed) {
-                    completed = true;
-                    logger.warn('npm install timeout', { repoPath });
-                    abortController.abort(); // This will terminate the child process
-                    reject(new Error('npm install timed out after 60 minutes'));
-                }
-            }, 3600000); // 60 minutes timeout
-
-            child.on('close', (code: number | null) => {
-                if (!completed) {
-                    completed = true;
-                    clearTimeout(timeoutId);
-
-                    const success = code === 0;
-
-                    if (success) {
-                        logger.info('Successfully installed dependencies', {
-                            repoPath,
-                            stdout: stdout.trim(),
-                        });
-                        resolve({ stdout, stderr, success: true });
-                    } else {
-                        const errorMessage = `npm install failed with exit code ${code}`;
-                        logger.error(errorMessage, {
-                            repoPath,
-                            stderr: stderr.trim(),
-                            stdout: stdout.trim(),
-                            exitCode: code,
-                        });
-                        reject(new Error(`${errorMessage}: ${stderr || stdout}`));
-                    }
-                }
-            });
-
-            child.on('error', (error: Error) => {
-                if (!completed) {
-                    completed = true;
-                    clearTimeout(timeoutId);
-                    logger.error('Failed to spawn npm install process', {
-                        repoPath,
-                        error: error.message,
-                    });
-                    reject(new Error(`Failed to spawn npm install process: ${error.message}`));
-                }
-            });
+        const arb = new Arborist({
+            path: repoPath,
+            env,
         });
 
-        return await processPromise;
+        // Build the ideal tree from package.json
+        await arb.buildIdealTree();
+
+        // Reify the tree to install dependencies
+        await arb.reify();
+
+        logger.info('Successfully installed dependencies using Arborist', { repoPath });
+        return { stdout: '', stderr: '', success: true };
     } catch (error) {
-        logger.error('Failed to install dependencies', {
+        const errorMessage = `Arborist install failed: ${error instanceof Error ? error.message : String(error)}`;
+        logger.error(errorMessage, {
             repoPath,
             error: error instanceof Error ? error.message : String(error),
         });
-        throw error;
+        throw new Error(errorMessage);
     }
 }

@@ -32,6 +32,7 @@
         "@types/handlebars": "4.0.40",
         "@types/mocha": "10.0.10",
         "@types/node": "^24.2.1",
+        "@types/npmcli__arborist": "6.3.1",
         "chai": "5.2.1",
         "mocha": "11.7.1",
         "nyc": "17.1.0",
@@ -41,6 +42,7 @@
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.17.2",
+        "@npmcli/arborist": "9.1.9",
         "@types/semver": "7.7.0",
         "adm-zip": "0.5.16",
         "better-sqlite3": "12.4.1",
