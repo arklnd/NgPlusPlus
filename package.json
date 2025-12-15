@@ -11,18 +11,19 @@
         "dist"
     ],
     "scripts": {
-        "dev": "tsx src/index.ts",
         "build": "tsc -p tsconfig.build.json",
-        "start": "node dist/index.js",
-        "clean:build": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true})\"",
-        "clean:gitgit": "node -e \"require('fs').rmSync('test/assets/git-git', {recursive: true, force: true})\"",
-        "clean:db": "node -e \"const fs=require('fs'),path=require('path');function d(dir){const f=fs.readdirSync(dir);for(const e of f){const p=path.join(dir,e);fs.statSync(p).isDirectory()?d(p):e.endsWith('.db')&&fs.rmSync(p,{force:true})}}d('.')\"",
         "build:watch": "tsc -p tsconfig.build.json --watch",
-        "test": "npx mocha",
+        "clean:build": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true})\"",
+        "clean:db": "node -e \"const fs=require('fs'),path=require('path');function d(dir){const f=fs.readdirSync(dir);for(const e of f){const p=path.join(dir,e);fs.statSync(p).isDirectory()?d(p):e.endsWith('.db')&&fs.rmSync(p,{force:true})}}d('.')\"",
+        "clean:gitgit": "node -e \"require('fs').rmSync('test/assets/git-git', {recursive: true, force: true})\"",
+        "dev": "tsx src/index.ts",
+        "export:test-assets": "tsx .github/scripts/compress-test-assets.ts",
         "import:github": "tsx .github/scripts/import-github.ts",
         "rebuild": "npm run clean:build && tsc -p tsconfig.build.json",
+        "show:cache": "tsx .github/scripts/print-cache.ts",
         "show:gitgitlogs": "tsx .github/scripts/show-git-logs.ts",
-        "show:cache": "tsx .github/scripts/print-cache.ts"
+        "start": "node dist/index.js",
+        "test": "npx mocha"
     },
     "author": "Arijit Kundu",
     "license": "ISC",
