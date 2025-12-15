@@ -290,13 +290,14 @@ export async function installDependencies(repoPath: string): Promise<{ stdout: s
         logger.info('Successfully installed dependencies using Arborist', { repoPath });
         return { stdout: '', stderr: '', success: true };
     } catch (error) {
-        const errorMessage = `Arborist install failed: ${error instanceof Error ? error.message : String(error)}`;
+        const errorJson = JSON.stringify(error);
+        const errorMessage = `Arborist install failed: ${error instanceof Error ? error.message : errorJson}`;
         logger.error(errorMessage, {
             repoPath,
-            error: error instanceof Error ? error.message : String(error),
+            error: errorJson,
         });
         if (error && typeof error === 'object' && 'code' in error && error.code === 'ERESOLVE') {
-            return { stdout: '', stderr: JSON.stringify(error), success: false };
+            return { stdout: '', stderr: errorJson, success: false };
         }
         throw error;
     }
