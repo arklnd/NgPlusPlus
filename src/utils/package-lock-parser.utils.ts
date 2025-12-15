@@ -90,6 +90,7 @@ export class DependencyMapParser {
         this.logger.debug('Building dependency tree using @npmcli/arborist');
         const arb = new Arborist({ path: rootPath });
         const root = await arb.loadVirtual();
+        const rootName = root.package?.name || ''; // from package-lock/package.json
 
         const packageMap = new Map<string, PackageInfo>();
         const seen = new Set<any>();
@@ -100,7 +101,7 @@ export class DependencyMapParser {
             if (seen.has(node)) continue;
             seen.add(node);
 
-            const name = node.name;
+            const name = node.isRoot ? rootName : node.name;
             const version = node.version || '';
 
             if (name) {
