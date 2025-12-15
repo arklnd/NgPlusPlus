@@ -287,9 +287,6 @@ export async function installDependencies(repoPath: string): Promise<{ stdout: s
         // Build the ideal tree from package.json
         await arb.buildIdealTree();
 
-        // Reify the tree to install dependencies
-        await arb.reify();
-
         logger.info('Successfully installed dependencies using Arborist', { repoPath });
         return { stdout: '', stderr: '', success: true };
     } catch (error) {
