@@ -121,7 +121,7 @@ export class DependencyMapParser {
                         const existing = depPkg.dependents.find(d => d.name === from.name && d.version === (from.version || ''));
                         if (!existing) {
                             depPkg.dependents.push({
-                                name: from.name,
+                                name: from.isRoot ? rootName : from.name,
                                 version: from.version || '',
                             });
                         }
