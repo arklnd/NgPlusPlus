@@ -295,6 +295,9 @@ export async function installDependencies(repoPath: string): Promise<{ stdout: s
             repoPath,
             error: error instanceof Error ? error.message : String(error),
         });
-        throw new Error(errorMessage);
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'ERESOLVE') {
+            return { stdout: '', stderr: JSON.stringify(error), success: false };
+        }
+        throw error;
     }
 }

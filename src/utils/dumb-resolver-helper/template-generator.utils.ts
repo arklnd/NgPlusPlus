@@ -15,6 +15,19 @@ const __dirname = path.dirname(__filename);
 const templateCache = new Map<string, HandlebarsTemplateDelegate>();
 
 /**
+ * Register custom Handlebars helpers
+ */
+function registerHelpers() {
+    // Register json helper for stringifying objects
+    Handlebars.registerHelper('json', function(context) {
+        return JSON.stringify(context, null, 2);
+    });
+}
+
+// Register helpers on module load
+registerHelpers();
+
+/**
  * Load and compile a Handlebars template
  */
 function loadTemplate(templateName: string): HandlebarsTemplateDelegate {
@@ -84,7 +97,21 @@ export function createPackageValidationErrorMessage(errorMessage: string, additi
  */
 export function createDependencyParsingPrompt(installError: string): string {
     const template = loadTemplate('dependency-parsing-prompt');
-    return template({ installError });
+    
+    // Parse the JSON string to get structured error data
+    let errorObject;
+    try {
+        errorObject = JSON.parse(installError);
+    } catch (error) {
+        // If parsing fails, treat it as a text error message (backward compatibility)
+        errorObject = null;
+    }
+    
+    return template({ 
+        installError,
+        errorObject,
+        hasStructuredError: errorObject !== null
+    });
 }
 
 /**

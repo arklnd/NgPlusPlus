@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { describe, it, beforeEach, afterEach } from 'mocha';
-import { existsSync, mkdirSync, writeFileSync, unlinkSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, unlinkSync, rmSync, copyFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { readPackageJson, writePackageJson, getAllDependencies, updateDependency, isDevDependency, getAllDependent, installDependencies } from '@U/index';
@@ -398,55 +398,40 @@ describe('Package JSON Utils', function () {
         });
     });
 
-    // describe('installDependencies', function () {
-    //     it('should successfully install dependencies in a valid project', async function () {
-    //         this.timeout(120000); // npm install can take time
-
-    //         // Create a minimal package.json for testing
-    //         const minimalPackage: PackageJson = {
-    //             name: 'test-install',
-    //             version: '1.0.0',
-    //             dependencies: {
-    //                 lodash: '4.17.21', // Specific version for predictable install
-    //             },
-    //         };
-
-    //         await writePackageJson(testDir, minimalPackage);
-
-    //         const result = await installDependencies(testDir);
-
-    //         expect(result).to.have.property('success', true);
-    //         expect(result).to.have.property('stdout').that.is.a('string');
-    //         expect(result).to.have.property('stderr').that.is.a('string');
-
-    //         // Verify node_modules was created
-    //         expect(existsSync(join(testDir, 'node_modules'))).to.be.true;
-    //     });
-
-    //     it('should throw error for invalid package.json', async function () {
-    //         this.timeout(120000);
-
-    //         // Create invalid package.json
-    //         writeFileSync(testPackageJsonPath, '{ invalid json }');
-
-    //         try {
-    //             await installDependencies(testDir);
-    //             expect.fail('Should have thrown an error');
-    //         } catch (error) {
-    //             expect(error).to.be.instanceOf(Error);
-    //             expect((error as Error).message).to.include('npm install failed');
-    //         }
-    //     });
-
-    //     it('should throw error for non-existent directory', async function () {
-    //         this.timeout(120000);
-
-    //         try {
-    //             await installDependencies('/nonexistent/directory/xyz');
-    //             expect.fail('Should have thrown an error');
-    //         } catch (error) {
-    //             expect(error).to.be.instanceOf(Error);
-    //         }
-    //     });
-    // });
+    describe('installDependencies HYUI8', function () {
+        it('should successfully install dependencies in a valid project', async function () {
+            this.timeout(120000); // npm install can take time
+            const assetsDir = join(__dirname, 'assets');
+            const sourcePackageJsonPath = join(assetsDir, '/HYUI8/package.json');
+            const targetPackageJsonPath = join(testDir, 'package.json');
+            copyFileSync(sourcePackageJsonPath, targetPackageJsonPath);
+            const result = await installDependencies(testDir);
+            expect(result).to.have.property('success', true);
+            expect(result).to.have.property('stdout').that.is.a('string');
+            expect(result).to.have.property('stderr').that.is.a('string');
+            // Verify node_modules was created
+            expect(existsSync(join(testDir, 'node_modules'))).to.be.true;
+        });
+        it('should throw error for invalid package.json', async function () {
+            this.timeout(120000);
+            // Create invalid package.json
+            writeFileSync(testPackageJsonPath, '{ invalid json }');
+            try {
+                await installDependencies(testDir);
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error).to.be.instanceOf(Error);
+                expect((error as Error).message).to.include('npm install failed');
+            }
+        });
+        it('should throw error for non-existent directory', async function () {
+            this.timeout(120000);
+            try {
+                await installDependencies('/nonexistent/directory/xyz');
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error).to.be.instanceOf(Error);
+            }
+        });
+    });
 });

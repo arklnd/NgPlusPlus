@@ -2,17 +2,54 @@ You are an expert npm dependency conflict analyzer. Your task is to parse npm ER
 
 Given an npm error message in the variable `installError`, analyze the error and extract information about each conflicting package, including their current versions and all requirements (dependencies and peer dependencies).
 
+{{#if hasStructuredError}}
+**Structured Error Object:**
+```json
+{{{json errorObject}}}
+```
+
+The error object contains:
+- `code`: Error code (ERESOLVE)
+- `current`: Currently installed package information with name, version, location, and dependents
+- `currentEdge`: The dependency edge that's currently installed (type, name, spec, from)
+- `edge`: The conflicting dependency edge that cannot be satisfied (type, name, spec, error, from)
+- `strictPeerDeps`: Whether strict peer dependency resolution is enabled
+
+Each package object may contain:
+- `name`: Package name
+- `version`: Package version
+- `location`: Installation location
+- `dependents`: Array of packages that depend on this package
+- `whileInstalling`: Context about what was being installed when the conflict occurred
+
+**Your task:** Analyze this structured error and extract conflict information.
+{{else}}
 **Input Error Message:**
 ```
 {{{installError}}}
 ```
+{{/if}}
 
 **Instructions:**
+{{#if hasStructuredError}}
+- Extract conflict information from the structured error object:
+  - The `current` object shows the currently installed package (name, version, dependents)
+  - The `edge` object shows the conflicting requirement (name, spec/range, type, from)
+  - The `currentEdge` object shows what's currently installed
+- Identify the conflicting package from `edge.name` or `current.name`
+- Get current version from `current.version`
+- Get required range from `edge.spec`
+- Get dependent package from `edge.from.name` and `edge.from.version`
+- Determine dependency type from `edge.type` (peer, dev, prod)
+- Check if current version satisfies the required range in `edge.spec`
+- Include information from `current.dependents` to understand what requires the current version
+{{else}}
 - Parse "Could not resolve dependency:" lines to identify primary conflicts (package, required range, dependent)
 - Parse "Found:" lines to get current installed versions of packages
 - Parse "peer [package]@[version-range] from [dependent-package]@[version]" lines for peer requirements
 - Parse "Conflicting peer dependency: [package]@[version]" lines to identify additional conflicts
 - For each requirement, determine if the current version (if available) satisfies the required range
+{{/if}}
 - A version range is satisfied if the current version falls within the specified range
 - Version range patterns: "^X.Y.Z" (compatible), "~X.Y.Z" (approximately equivalent), ">=X.Y.Z <W.X.Y" (range), "X.Y.Z" (exact)
 
@@ -38,18 +75,31 @@ Given an npm error message in the variable `installError`, analyze the error and
 ```
 
 **Analysis Rules:**
+{{#if hasStructuredError}}
+1. Create a conflict entry for the package mentioned in `edge.name` or `current.name`
+2. Extract current version from `current.version`
+3. Extract required range from `edge.spec`
+4. Extract dependent information:
+   - Dependent name: `edge.from.name` (or "root project" if from.location points to root)
+   - Dependent version: `edge.from.version`
+   - Dependency type: `edge.type` (peer, dev, prod)
+5. For each entry in `current.dependents`, add a requirement:
+   - Dependent: Use the dependent's location or "root project" if it's the project root
+   - Required range: `dependent.spec`
+   - Type: `dependent.type`
+6. Check if `current.version` satisfies `edge.spec` and set isSatisfied accordingly
+7. If the error is INVALID (from `edge.error`), mark isSatisfied as false
+{{else}}
 1. Create a conflict entry for each unique package mentioned in "Could not resolve dependency", "Found", or "Conflicting peer dependency" lines
 2. For "Could not resolve dependency: [type] [package]@[range] from [dependent]":
-   - Add to conflicts[package].requiredBy with type="dependency", requiredRange=range, dependent=dependent, isSatisfied=false (since it couldn't resolve)
+   - Add to conflicts[package].requiredBy with type="dependency", requiredRange=range, dependent=dependent, isSatisfied=false
 3. For "Found: [package]@[version]":
    - Set conflicts[package].currentVersion = version
 4. For "peer [package]@[range] from [dependent]@[version]":
-   - Add to conflicts[package].requiredBy with type="peer", requiredRange=range, dependent=dependent, dependentVersion=version, isSatisfied=check if currentVersion satisfies range
-5. For "Conflicting peer dependency: [package]@[version]":
-   - Ensure conflicts[package] exists, set currentVersion=version if not set
-6. Group all requirements by package name in the conflicts array
-7. For dependencies from "root project", use "root project" as dependent
-8. Include all conflicts, prioritizing the one from "Could not resolve dependency" as the first in the array
+   - Add to conflicts[package].requiredBy with type="peer", requiredRange=range, dependent=dependent, dependentVersion=version
+5. Group all requirements by package name in the conflicts array
+6. For dependencies from "root project", use "root project" as dependent
+{{/if}}
 
 **Version Compatibility Examples:**
 - somepackage@4.1.5 satisfies ">=4.0 <4.2" ✓
