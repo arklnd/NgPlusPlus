@@ -1,5 +1,5 @@
 {
-  "name": "hyland-ui",
+  "name": "@hyland/ui",
   "version": "9.0.4",
   "scripts": {
     "ng": "ng",
