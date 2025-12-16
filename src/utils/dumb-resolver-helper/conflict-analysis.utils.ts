@@ -94,7 +94,7 @@ export async function parseInstallErrorToConflictAnalysisStatically(installError
 
             // If there's a current edge with additional dependency info
             // Current edge represents the currently satisfied dependency, often from root project
-            if (errorObj.currentEdge) {
+            /* if (errorObj.currentEdge) {
                 const dependentName = errorObj.currentEdge.from?.name || errorObj.current.whileInstalling?.name || 'root project';
                 const dependentVersion = errorObj.currentEdge.from?.version || errorObj.current.whileInstalling?.version || undefined;
                 
@@ -117,7 +117,7 @@ export async function parseInstallErrorToConflictAnalysisStatically(installError
                         packagesVersionData: [],
                     });
                 }
-            }
+            } */
 
             conflicts.push(conflictDetail);
         }
