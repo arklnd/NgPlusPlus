@@ -7,6 +7,45 @@ import { getLogger } from './logger.utils';
 
 const JSON_RESPONSE_REGEX = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
 
+/**
+ * Rectifies and enriches an AI-generated strategic response with dependency requirement data from dependent packages.
+ * 
+ * This function refines an initial AI-generated strategic response by enriching it with dependency requirement data from dependent packages.
+ * 
+ * WHAT IT DOES:
+ * 
+ * 1. Collects Dependent Information: For each package suggested in the strategic response, it finds all packages that 
+ *    depend on it using getPackageDependents()
+ * 
+ * 2. Gathers Version Requirements: For each dependent package, it retrieves the actual version requirements it specifies 
+ *    for the suggested package (from dependencies, devDependencies, and peerDependencies)
+ * 
+ * 3. Builds Enriched Context: Creates a suggestedAndRequiredVersions object that maps each suggested package to:
+ *    - The suggested version
+ *    - A list of all requirements from dependent packages (what version each dependent actually needs)
+ * 
+ * 4. Re-prompts OpenAI: Passes this enriched context to createStrategicResponseRectificationPrompt(), which creates a new 
+ *    prompt that includes:
+ *    - Original conflict analysis and suggestions
+ *    - NEW: Actual version requirements from packages that depend on the suggested packages
+ * 
+ * 5. Returns Refined Response: Parses and returns the rectified strategic response from OpenAI
+ * 
+ * NEW DATA BEING USED:
+ * 
+ * The key new/enriched data introduced in this rectification step is:
+ * - Dependent packages and their specific version requirements for each suggested package
+ * - This allows the AI to validate/adjust suggestions against what's actually required downstream in the dependency tree, 
+ *   rather than making suggestions in isolation
+ * - The rectification ensures suggested versions don't break compatibility with other packages that depend on them
+ * 
+ * In essence, this is a feedback refinement loop that takes raw AI suggestions and validates/adjusts them against real 
+ * dependency constraints discovered from the package lock file.
+ * 
+ * @param strategicResponse - Initial AI-generated suggestions for package versions
+ * @param conflictAnalysis - Analysis of dependency conflicts from the project
+ * @returns Promise<StrategicResponse> - Rectified strategic response validated against dependent package requirements
+ */
 export async function rectifyStrategicResponseWithDependentInfo(strategicResponse: StrategicResponse, conflictAnalysis: ConflictAnalysis): Promise<StrategicResponse> {
     const logger = getLogger().child('rectifyStrategicResponseWithDependentInfo');
     logger.info('Starting strategic response rectification', {
