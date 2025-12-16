@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 import { spawn } from 'child_process';
-import { getLogger } from '@U/index';
+import { ERESOLVErrorInfo, getLogger } from '@U/index';
 import { PackageJson } from '@I/index';
 import Arborist from '@npmcli/arborist';
 
@@ -300,5 +300,63 @@ export async function installDependencies(repoPath: string): Promise<{ stdout: s
             return { stdout: '', stderr: errorJson, success: false };
         }
         throw error;
+    }
+}
+
+
+export function formatInstallError(installError: string): string {
+    try {
+        const errorObj = JSON.parse(installError) as ERESOLVErrorInfo;
+
+        const lines: string[] = [];
+        lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        lines.push('📦 DEPENDENCY CONFLICT DETECTED (ERESOLVE)');
+        lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        lines.push('');
+
+        // Current (Installed) Package
+        if (errorObj.current) {
+            lines.push('📍 CURRENT VERSION (Installed):');
+            lines.push(`   Package: ${errorObj.current.name}`);
+            lines.push(`   Version: ${errorObj.current.version}`);
+            lines.push(`   Required by: ${errorObj.currentEdge?.from?.location || 'Unknown'}`);
+            lines.push(`   Spec: ${errorObj.currentEdge?.spec || 'N/A'}`);
+            lines.push('');
+        }
+
+        // Conflicting Edge
+        if (errorObj.edge) {
+            lines.push('❌ CONFLICTING REQUIREMENT:');
+            lines.push(`   Package: ${errorObj.edge.name}`);
+            lines.push(`   Required Version: ${errorObj.edge.spec}`);
+            lines.push(`   Dependency Type: ${errorObj.edge.type}`);
+            lines.push(`   Required by: ${errorObj.edge.from?.name || 'Unknown'}`);
+            if (errorObj.edge.from?.version) {
+                lines.push(`   Provider Version: ${errorObj.edge.from.version}`);
+            }
+            lines.push('');
+        }
+
+        // Installation Context
+        if (errorObj.current?.whileInstalling) {
+            lines.push('📥 WHILE INSTALLING:');
+            lines.push(`   Package: ${errorObj.current.whileInstalling.name}`);
+            lines.push(`   Version: ${errorObj.current.whileInstalling.version}`);
+            lines.push(`   Path: ${errorObj.current.whileInstalling.path}`);
+            lines.push('');
+        }
+
+        // Resolution Suggestions
+        lines.push('💡 RESOLUTION OPTIONS:');
+        lines.push(`   1. Update ${errorObj.current?.name || 'current package'} to match the required spec: ${errorObj.edge?.spec || 'N/A'}`);
+        lines.push(`   2. Downgrade ${errorObj.edge?.from?.name || 'conflicting package'} to a version that doesn't require ${errorObj.edge?.spec || 'N/A'}`);
+        lines.push(`   3. Use --force flag to ignore peer dependency conflicts (not recommended)`);
+        lines.push('');
+        lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+        return lines.join('\n');
+    } catch (parseError) {
+        // Fallback for non-JSON error messages
+        return installError.split('\n').filter(line => line.trim()).join('\n');
     }
 }

@@ -5,7 +5,7 @@ import { mkdtemp, cp, existsSync, rmSync, writeFileSync, cpSync } from 'fs';
 import { join, resolve } from 'path';
 import { promisify } from 'util';
 import { simpleGit } from 'simple-git';
-import { readPackageJson, writePackageJson, updateDependency, installDependencies } from '@U/package-json.utils';
+import { readPackageJson, writePackageJson, updateDependency, installDependencies, formatInstallError } from '@U/package-json.utils';
 import { validatePackageVersionsExist } from '@U/package-registry.utils';
 import { getOpenAIService } from '@S/openai.service';
 import { parseAndStoreDependencyMap, getLogger, rectifyStrategicResponseWithDependentInfo } from '@U/index';
@@ -361,7 +361,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
                         
                         // Add install error context (format each line with proper git commit message style)
                         const errorContext = installError 
-                            ? `\n\n[💥] Error Context:\n${installError.split('\n').filter(line => line.trim()).map(line => `${line}`).join('\n')}`
+                            ? `\n\n[💥] Error Context:\n${formatInstallError(installError)}`
                             : '';
                         
                         const commitMessage = `Applied AI strategic suggestions [attempt=${attempt}, aiRetry=${aiRetryAttempt}]\n\n${suggestionSummary}${reasoningDetails}${errorContext}`;
