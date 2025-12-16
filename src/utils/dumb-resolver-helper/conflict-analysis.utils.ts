@@ -93,23 +93,30 @@ export async function parseInstallErrorToConflictAnalysisStatically(installError
             }
 
             // If there's a current edge with additional dependency info
-            if (errorObj.currentEdge?.from) {
-                const additionalRequiredBy: RequiredBy = {
-                    dependent: errorObj.currentEdge.from.name,
-                    dependentVersion: errorObj.currentEdge.from.version,
-                    requiredRange: errorObj.currentEdge.spec,
-                    type: (errorObj.currentEdge.type || 'dependency') as 'dependency' | 'peer',
-                    isSatisfied: true, // Current edge is satisfied
-                };
-                conflictDetail.requiredBy.push(additionalRequiredBy);
+            // Current edge represents the currently satisfied dependency, often from root project
+            if (errorObj.currentEdge) {
+                const dependentName = errorObj.currentEdge.from?.name || errorObj.current.whileInstalling?.name || 'root project';
+                const dependentVersion = errorObj.currentEdge.from?.version || errorObj.current.whileInstalling?.version || undefined;
+                
+                // Only add if we have a valid dependent
+                if (dependentName) {
+                    const additionalRequiredBy: RequiredBy = {
+                        dependent: dependentName,
+                        dependentVersion: dependentVersion,
+                        requiredRange: errorObj.currentEdge.spec,
+                        type: (errorObj.currentEdge.type || 'dependency') as 'dependency' | 'peer',
+                        isSatisfied: true, // Current edge is satisfied
+                    };
+                    conflictDetail.requiredBy.push(additionalRequiredBy);
 
-                allPackagesMentioned.add({
-                    name: errorObj.currentEdge.from.name,
-                    currentVersion: errorObj.currentEdge.from.version,
-                    rank: -1,
-                    tier: 'NONE',
-                    packagesVersionData: [],
-                });
+                    allPackagesMentioned.add({
+                        name: dependentName,
+                        currentVersion: dependentVersion || 'unknown',
+                        rank: -1,
+                        tier: 'NONE',
+                        packagesVersionData: [],
+                    });
+                }
             }
 
             conflicts.push(conflictDetail);
