@@ -7,7 +7,7 @@ import { getLogger } from '@U/index';
  * @returns Clean version string or null if invalid
  */
 export function getCleanVersion(spec: string): string | null {
-    const logger = getLogger().child('Version');
+    const logger = getLogger().child('Version:getCleanVersion');
 
     logger.trace('Parsing version specification', { spec });
 
@@ -38,7 +38,7 @@ export function getCleanVersion(spec: string): string | null {
  * @returns True if version satisfies the range
  */
 export function satisfiesVersionRange(version: string, range: string): boolean {
-    const logger = getLogger().child('Version');
+    const logger = getLogger().child('Version:satisfiesVersionRange');
 
     logger.trace('Checking version compatibility', { version, range });
 
@@ -77,7 +77,7 @@ export function satisfiesVersionRange(version: string, range: string): boolean {
  * @returns Best matching version or null if none found
  */
 export function findCompatibleVersion(availableVersions: string[], requiredRange: string): string | null {
-    const logger = getLogger().child('Version');
+    const logger = getLogger().child('Version:findCompatibleVersion');
 
     logger.debug('Finding compatible version', {
         availableCount: availableVersions.length,

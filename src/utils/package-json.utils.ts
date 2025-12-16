@@ -11,7 +11,7 @@ import Arborist from '@npmcli/arborist';
  * @returns Promise that resolves to parsed package.json object
  */
 export async function readPackageJson(repoPath: string): Promise<PackageJson> {
-    const logger = getLogger().child('PackageJson');
+    const logger = getLogger().child('PackageJson:readPackageJson');
     const packageJsonPath = join(resolve(repoPath), 'package.json');
 
     logger.debug('Reading package.json', { path: packageJsonPath });
@@ -49,7 +49,7 @@ export async function readPackageJson(repoPath: string): Promise<PackageJson> {
  * @returns Promise that resolves when the write operation is complete
  */
 export async function writePackageJson(repoPath: string, packageJson: PackageJson): Promise<void> {
-    const logger = getLogger().child('PackageJson');
+    const logger = getLogger().child('PackageJson:writePackageJson');
     const packageJsonPath = join(resolve(repoPath), 'package.json');
 
     logger.debug('Writing package.json', {
@@ -76,7 +76,7 @@ export async function writePackageJson(repoPath: string, packageJson: PackageJso
  * @returns Combined dependencies object
  */
 export function getAllDependencies(packageJson: PackageJson): Record<string, string> {
-    const logger = getLogger().child('PackageJson');
+    const logger = getLogger().child('PackageJson:getAllDependencies');
     const allDeps = { ...packageJson.dependencies, ...packageJson.devDependencies };
 
     logger.trace('Retrieved all dependencies', {
@@ -96,7 +96,7 @@ export function getAllDependencies(packageJson: PackageJson): Record<string, str
  * @param isDev Whether it's a dev dependency
  */
 export async function updateDependency(packageJson: PackageJson, name: string, version: string, isDev: boolean): Promise<void> {
-    const logger = getLogger().child('PackageJson');
+    const logger = getLogger().child('PackageJson:updateDependency');
     const target = isDev ? 'devDependencies' : 'dependencies';
     const oldVersion = isDev ? packageJson.devDependencies?.[name] : packageJson.dependencies?.[name];
 
@@ -119,7 +119,7 @@ export async function updateDependency(packageJson: PackageJson, name: string, v
  * @returns True if the package is in devDependencies
  */
 export function isDevDependency(packageJson: PackageJson, packageName: string): boolean {
-    const logger = getLogger().child('PackageJson');
+    const logger = getLogger().child('PackageJson:isDevDependency');
     const isDev = !!packageJson.devDependencies?.[packageName];
 
     logger.trace('Checked dependency type', {
@@ -134,7 +134,7 @@ export function isDevDependency(packageJson: PackageJson, packageName: string): 
  * Gets all packages that depend on a given package
  */
 export async function getAllDependent(repoPath: string, packageName: string): Promise<Record<string, PackageJson[]>> {
-    const logger = getLogger().child('PackageJson');
+    const logger = getLogger().child('PackageJson:getAllDependent');
 
     logger.debug('Getting dependents for package', { packageName, repoPath });
 
@@ -265,7 +265,7 @@ export async function getAllDependent(repoPath: string, packageName: string): Pr
  * @returns Promise with stdout, stderr, and success status (only resolves on success, rejects on failure)
  */
 export async function installDependencies(repoPath: string): Promise<{ stdout: string; stderr: string; success: boolean }> {
-    const logger = getLogger().child('PackageJson');
+    const logger = getLogger().child('PackageJson:installDependencies');
     logger.debug('Installing dependencies using Arborist', { repoPath });
 
     try {

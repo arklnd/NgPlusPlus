@@ -10,7 +10,7 @@ import { getCachedPackageData, setCachedPackageData } from '@U/cache.utils';
  * @returns Registry data with version information
  */
 export async function getPackageData(name: string, fields: string[] = []): Promise<RegistryData> {
-    const logger = getLogger().child('PackageRegistry');
+    const logger = getLogger().child('PackageRegistry:getPackageData');
 
     logger.debug('Fetching package data via npm', { package: name });
 
@@ -80,7 +80,7 @@ export async function getPackageData(name: string, fields: string[] = []): Promi
  * @returns Package version data with dependencies
  */
 export async function getPackageVersionData(name: string, version: string): Promise<PackageVersionData> {
-    const logger = getLogger().child('PackageRegistry');
+    const logger = getLogger().child('PackageRegistry:getPackageVersionData');
     const cacheKey = `ver-${name}@${version}`;
 
     logger.debug('Fetching specific version data via npm', { package: name, version });
@@ -158,7 +158,7 @@ export async function getPackageVersionData(name: string, version: string): Prom
  * @returns Array of version strings
  */
 export async function getPackageVersions(name: string): Promise<string[]> {
-    const logger = getLogger().child('PackageRegistry');
+    const logger = getLogger().child('PackageRegistry:getPackageVersions');
 
     logger.debug('Fetching versions list via npm', { package: name });
 
