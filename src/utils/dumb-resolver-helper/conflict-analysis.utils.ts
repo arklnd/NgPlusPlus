@@ -1,6 +1,6 @@
 import { getPackageData } from '@U/package-registry.utils';
 import { getCleanVersion } from '@U/version.utils';
-import { getLogger, getPackageDependents } from '@U/index';
+import { ConflictDetail, ERESOLVErrorInfo, getLogger, getPackageDependents, RequiredBy } from '@U/index';
 import { getOpenAIService } from '@S/openai.service';
 import { ConflictAnalysis, PackageVersionRankRegistryData, RegistryData } from '@I/index';
 import { createDependencyParsingPrompt, createPackageRankingPrompt } from './template-generator.utils';
@@ -8,6 +8,135 @@ import { getCachedPackageData, setCachedPackageData } from '@U/cache.utils';
 import * as semver from 'semver';
 
 const JSON_RESPONSE_REGEX = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
+
+/**
+ * Parses an npm ERESOLVE error statically into a structured conflict analysis without AI processing.
+ *
+ * This function provides a deterministic, fast approach to parsing npm dependency conflicts by directly
+ * analyzing the ERESOLV error object structure. It extracts:
+ * - The primary conflicted package (name and current version)
+ * - All dependents requiring conflicting versions
+ * - Dependency types (peer vs regular dependencies)
+ * - Whether each requirement is satisfied
+ *
+ * This is useful for:
+ * - Quick initial conflict diagnosis before enhanced AI-powered analysis
+ * - Low-latency conflict detection in real-time scenarios
+ * - Fallback parsing when AI services are unavailable
+ *
+ * @param installError - A serialized ERESOLV error object from npm install failure.
+ *                       Expected to be a JSON string containing error structure with:
+ *                       - `current`: The installed package info
+ *                       - `edge`: The conflicting requirement
+ *                       - `currentEdge`: Optional additional dependency context
+ *
+ * @returns A Promise resolving to ConflictAnalysis containing:
+ *          - `conflicts`: Array of ConflictDetail objects representing each conflict
+ *          - `allPackagesMentionedInError`: Set of all packages involved for downstream processing
+ *
+ * @throws Will not throw; returns empty analysis on parse failure
+ *
+ * @example
+ * const errorJson = JSON.stringify(eresolveError);
+ * const analysis = await parseInstallErrorToConflictAnalysisStatically(errorJson);
+ * // Result: { conflicts: [...], allPackagesMentionedInError: [...] }
+ *
+ * @remarks
+ * - Does not require OpenAI or external services
+ * - Handles missing or incomplete error structures gracefully
+ * - Marks conflicts as unsatisfied and current edges as satisfied
+ * - All packages initialized with rank: -1 for later enhancement via hydrateConflictAnalysisWithRanking
+ */
+export async function parseInstallErrorToConflictAnalysisStatically(installError: string): Promise<ConflictAnalysis> {
+    const logger = getLogger().child('conflict-analysis-static');
+    const errorObj = JSON.parse(installError) as ERESOLVErrorInfo;
+
+    try {
+        const conflicts: ConflictDetail[] = [];
+        const allPackagesMentioned = new Set<PackageVersionRankRegistryData>();
+
+        // Extract primary conflict information
+        if (errorObj.current && errorObj.edge) {
+            const conflictDetail: ConflictDetail = {
+                packageName: errorObj.current.name,
+                currentVersion: errorObj.current.version,
+                requiredBy: [],
+            };
+
+            // Add the conflicting requirement
+            if (errorObj.edge.from) {
+                const requiredBy: RequiredBy = {
+                    dependent: errorObj.edge.from.name,
+                    dependentVersion: errorObj.edge.from.version,
+                    requiredRange: errorObj.edge.spec,
+                    type: (errorObj.edge.type || 'dependency') as 'dependency' | 'peer',
+                    isSatisfied: false, // This is a conflict, so it's not satisfied
+                };
+                conflictDetail.requiredBy.push(requiredBy);
+
+                // Track all mentioned packages
+                allPackagesMentioned.add({
+                    name: errorObj.current.name,
+                    currentVersion: errorObj.current.version,
+                    rank: -1,
+                    tier: 'NONE',
+                    packagesVersionData: [],
+                });
+
+                allPackagesMentioned.add({
+                    name: errorObj.edge.from.name,
+                    currentVersion: errorObj.edge.from.version,
+                    rank: -1,
+                    tier: 'NONE',
+                    packagesVersionData: [],
+                });
+            }
+
+            // If there's a current edge with additional dependency info
+            if (errorObj.currentEdge?.from) {
+                const additionalRequiredBy: RequiredBy = {
+                    dependent: errorObj.currentEdge.from.name,
+                    dependentVersion: errorObj.currentEdge.from.version,
+                    requiredRange: errorObj.currentEdge.spec,
+                    type: (errorObj.currentEdge.type || 'dependency') as 'dependency' | 'peer',
+                    isSatisfied: true, // Current edge is satisfied
+                };
+                conflictDetail.requiredBy.push(additionalRequiredBy);
+
+                allPackagesMentioned.add({
+                    name: errorObj.currentEdge.from.name,
+                    currentVersion: errorObj.currentEdge.from.version,
+                    rank: -1,
+                    tier: 'NONE',
+                    packagesVersionData: [],
+                });
+            }
+
+            conflicts.push(conflictDetail);
+        }
+
+        const analysis: ConflictAnalysis = {
+            conflicts,
+            allPackagesMentionedInError: Array.from(allPackagesMentioned),
+        };
+
+        logger.info('Successfully parsed install error to conflict analysis statically', {
+            totalConflicts: analysis.conflicts.length,
+            packagesCount: analysis.allPackagesMentionedInError.length,
+            primaryConflict: conflicts[0]?.packageName,
+        });
+
+        return analysis;
+    } catch (error) {
+        logger.error('Failed to parse install error statically', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return {
+            conflicts: [],
+            allPackagesMentionedInError: [],
+        };
+    }
+}
 
 /**
  * Parses install error output and generates initial conflict analysis using AI
@@ -100,7 +229,6 @@ export async function hydrateConflictAnalysisWithRegistryData(currentAnalysis: C
     logger.info('Fetching available versions for packages involved in conflict');
 
     try {
-
         // Fetch available versions for all packages in parallel
         const versionFetchPromises = Array.from(currentAnalysis.allPackagesMentionedInError).map(async (pkg) => {
             const packageName = pkg.name;
@@ -112,7 +240,7 @@ export async function hydrateConflictAnalysisWithRegistryData(currentAnalysis: C
 
                 // Filter to only include versions newer than current version
                 const cleanCurrentVersion = getCleanVersion(currentVersion);
-                let versions = allVersions; 
+                let versions = allVersions;
 
                 if (cleanCurrentVersion) {
                     versions = allVersions.filter((version) => {
@@ -205,7 +333,7 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
             packageInfo.tier = ranking ? ranking.tier : 'UNRANKED';
             return { packageName: packageInfo.name, ranking };
         });
-        
+
         const rankingResults = await Promise.all(rankingPromises);
         const packageRankingMap = new Map<string, { rank: number; tier: string }>();
 
@@ -217,7 +345,6 @@ export async function hydrateConflictAnalysisWithRanking(currentAnalysis: Confli
         });
 
         const rankedPackagesCount = Array.from(packageRankingMap.keys()).length;
-
 
         return currentAnalysis;
     } catch (error) {

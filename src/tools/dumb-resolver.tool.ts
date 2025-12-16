@@ -10,7 +10,7 @@ import { validatePackageVersionsExist } from '@U/package-registry.utils';
 import { getOpenAIService } from '@S/openai.service';
 import { parseAndStoreDependencyMap, getLogger, rectifyStrategicResponseWithDependentInfo } from '@U/index';
 import OpenAI from 'openai';
-import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility, hydrateConflictAnalysisWithRegistryData, parseInstallErrorToConflictAnalysis, hydrateConflictAnalysisWithRanking } from '@U/dumb-resolver-helper';
+import { analyzeDependencyConstraints, identifyBlockingPackages, ResolverAnalysis, generateUpgradeStrategies, createEnhancedSystemPrompt, createStrategicPrompt, categorizeError, logStrategicAnalysis, checkCompatibility, hydrateConflictAnalysisWithRegistryData, parseInstallErrorToConflictAnalysis, hydrateConflictAnalysisWithRanking, parseInstallErrorToConflictAnalysisStatically } from '@U/dumb-resolver-helper';
 import { AIResponseFormatError, NoSuitableVersionFoundError, PackageVersionValidationError, NoNewSuggestionError } from '@E/index';
 import { ConflictAnalysis, ReasoningRecording, updateMade } from '@I/index';
 import deepEqual from 'fast-deep-equal';
@@ -197,7 +197,7 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
                 logger.info('Performing strategic dependency analysis');
 
                 // Parse install error to generate initial conflict analysis
-                currentAnalysis = await parseInstallErrorToConflictAnalysis(installError);
+                currentAnalysis = await parseInstallErrorToConflictAnalysisStatically(installError);
 
                 // Enhance analysis with ranking
                 currentAnalysis = await hydrateConflictAnalysisWithRanking(currentAnalysis);
