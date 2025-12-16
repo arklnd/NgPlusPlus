@@ -104,6 +104,7 @@ export class DependencyMapParser {
             const name = node.isRoot ? rootName : node.name;
             const version = node.version || '';
 
+            // TODO: we can skip root node, as root never going to be a dependent of any package
             if (name) {
                 if (!packageMap.has(name)) {
                     packageMap.set(name, {
@@ -119,7 +120,7 @@ export class DependencyMapParser {
                     if (from && from.name) {
                         const depPkg = packageMap.get(name)!;
                         const existing = depPkg.dependents.find(d => d.name === from.name && d.version === (from.version || ''));
-                        if (!existing) {
+                        if (!existing && !from.isRoot) {// skip root as dependent, as it's not a real dependent package
                             depPkg.dependents.push({
                                 name: from.isRoot ? rootName : from.name,
                                 version: from.version || '',
