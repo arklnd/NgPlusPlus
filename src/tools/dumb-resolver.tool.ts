@@ -265,10 +265,10 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
                             throw new AIResponseFormatError(`Invalid suggestions found: ${invalidSuggestions.length} items missing name, version, or isDev`);
                         }
 
-                        logger.debug('Parsed OpenAI suggestions : before rectification', { suggestions: suggestions });
+                        /* logger.debug('Parsed OpenAI suggestions : before rectification', { suggestions: suggestions });
                         // Rectify version suggestion using dependent package list
                         suggestions = await rectifyStrategicResponseWithDependentInfo(suggestions, currentAnalysis);
-                        logger.debug('Parsed OpenAI suggestions : after rectification', { suggestions: suggestions });
+                        logger.debug('Parsed OpenAI suggestions : after rectification', { suggestions: suggestions }); */
 
                         // Validate version existence before applying suggestions
                         const validationResults = await validatePackageVersionsExist(suggestions);
