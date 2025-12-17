@@ -314,29 +314,6 @@ export function formatInstallError(installError: string): string {
         lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         lines.push('');
 
-        // Current (Installed) Package
-        if (errorObj.current) {
-            lines.push('📍 CURRENT VERSION (Installed):');
-            lines.push(`   Package: ${errorObj.current.name}`);
-            lines.push(`   Version: ${errorObj.current.version}`);
-            lines.push(`   Required by: ${errorObj.currentEdge?.from?.location || 'Unknown'}`);
-            lines.push(`   Spec: ${errorObj.currentEdge?.spec || 'N/A'}`);
-            lines.push('');
-        }
-
-        // Conflicting Edge
-        if (errorObj.edge) {
-            lines.push('❌ CONFLICTING REQUIREMENT:');
-            lines.push(`   Package: ${errorObj.edge.name}`);
-            lines.push(`   Required Version: ${errorObj.edge.spec}`);
-            lines.push(`   Dependency Type: ${errorObj.edge.type}`);
-            lines.push(`   Required by: ${errorObj.edge.from?.name || 'Unknown'}`);
-            if (errorObj.edge.from?.version) {
-                lines.push(`   Provider Version: ${errorObj.edge.from.version}`);
-            }
-            lines.push('');
-        }
-
         // Installation Context
         if (errorObj.current?.whileInstalling) {
             lines.push('📥 WHILE INSTALLING:');
@@ -344,6 +321,32 @@ export function formatInstallError(installError: string): string {
             lines.push(`   Version: ${errorObj.current.whileInstalling.version}`);
             lines.push(`   Path: ${errorObj.current.whileInstalling.path}`);
             lines.push('');
+        }
+
+        // Conflict Details
+        if (errorObj.current || errorObj.edge) {
+            lines.push('⚠️  THE CONFLICT:');
+            lines.push('');
+
+            if (errorObj.current) {
+                lines.push('   📍 Currently Installed:');
+                lines.push(`      Package: ${errorObj.current.name}`);
+                lines.push(`      Version: ${errorObj.current.version}`);
+                lines.push(`      Spec: ${errorObj.currentEdge?.spec || 'N/A'}`);
+                lines.push('');
+            }
+
+            if (errorObj.edge) {
+                lines.push('   ❌ But Another Package Requires:');
+                lines.push(`      Package: ${errorObj.edge.name}`);
+                lines.push(`      Required Version: ${errorObj.edge.spec}`);
+                lines.push(`      Dependency Type: ${errorObj.edge.type}`);
+                lines.push(`      Required by: ${errorObj.edge.from?.name || 'Unknown'}`);
+                if (errorObj.edge.from?.version) {
+                    lines.push(`      Provider Version: ${errorObj.edge.from.version}`);
+                }
+                lines.push('');
+            }
         }
 
         // Resolution Suggestions
