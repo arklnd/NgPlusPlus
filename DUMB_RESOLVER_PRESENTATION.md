@@ -85,74 +85,82 @@ The **Dumb Resolver** is a tool designed to resolve complex npm dependency confl
 
 ```
 START: Dumb Resolver Input
-│
-├─ Input Validation
-│  ├─ repo_path: Path to package.json
-│  ├─ update_dependencies: Array of {name, version, isDev}
-│  └─ maxAttempts: Max retries (default: 200)
-│
-├─ Target Version Validation
-│  │
-│  ├─► FOR EACH target dependency:
-│  │   └─► Check if version exists in npm registry
-│  │
-│  └─► IF any version doesn't exist:
-│      └─► THROW Error (Stop early, fail fast)
-│
-└─► All versions validated ✓
-    Proceed to Setup Phase
+  ║
+  ╠═══ Input Validation
+  ║    ├──► repo_path: Path to package.json
+  ║    ├──► update_dependencies: Array of {name, version, isDev}
+  ║    └──► maxAttempts: Max retries (default: 200)
+  ║
+  ╠═══ Target Version Validation
+  ║    ║
+  ║    ├──► FOR EACH target dependency:
+  ║    │   └──► Check if version exists in npm registry
+  ║    │
+  ║    └──► IF any version doesn't exist:
+  ║        └──► THROW Error (Stop early, fail fast)
+  ║
+  ╚═══ All versions validated ✓
+       └──► Proceed to Setup Phase
 ```
 
 ### 🛠️ Phase 2: Environment Setup
 
 ```
 CREATE ISOLATED TEMPORARY ENVIRONMENT
-│
-├─ mkdtemp() ──────────────────► Create: /tmp/dumb-resolver-XXXXX/
-│
-├─ Copy Files
-│  ├─ package.json ────────────► temp/package.json
-│  └─ package-lock.json ──────► temp/package-lock.json (if exists)
-│
-├─ Initialize Git Repository
-│  ├─ git init ────────────────► Initialize git in temp/
-│  ├─ Create .gitignore ───────┐ node_modules/
-│  │                           ├─ *.log
-│  │                           └─ (ignore build artifacts)
-│  └─ Commit: "Initial state" ─► Baseline for tracking changes
-│
-├─ Initial npm install
-│  ├─ npm install ─────────────► Ensure node_modules integrity
-│  └─ Commit: "Initial install"─► Git checkpoint
-│
-└─► Environment Ready ✓
-    Isolated, reproducible, trackable
+  ║
+  ╠═══ mkdtemp()
+  ║    └──► Create: /tmp/dumb-resolver-XXXXX/
+  ║
+  ╠═══ Copy Files
+  ║    ├──► package.json
+  ║    │   └──► temp/package.json
+  ║    └──► package-lock.json (if exists)
+  ║        └──► temp/package-lock.json
+  ║
+  ╠═══ Initialize Git Repository
+  ║    ├──► git init in temp/
+  ║    ├──► Create .gitignore
+  ║    │   ├──► node_modules/
+  ║    │   └──► *.log
+  ║    └──► Commit: "Initial state"
+  ║        └──► Baseline for tracking changes
+  ║
+  ╠═══ Initial npm install
+  ║    ├──► npm install
+  ║    │   └──► Ensure node_modules integrity
+  ║    └──► Commit: "Initial install"
+  ║        └──► Git checkpoint
+  ║
+  ╚═══ Environment Ready ✓
+       ├──► Isolated
+       ├──► Reproducible
+       └──► Trackable
 ```
 
 ### 📦 Phase 3: Dependency Update
 
 ```
 UPDATE PACKAGE.JSON WITH TARGET VERSIONS
-│
-├─ Read: temp/package.json
-│
-├─► FOR EACH update_dependencies item:
-│   │
-│   ├─ Package: {name, version, isDev}
-│   │
-│   ├─ IF isDev === true:
-│   │  └─ Update devDependencies[name] = version
-│   │
-│   └─ IF isDev === false:
-│      └─ Update dependencies[name] = version
-│
-├─ Write: Updated temp/package.json
-│
-├─ Commit: "Updated target dependencies"
-│  └─ Git checkpoint for initial changes
-│
-└─► Target Versions Set ✓
-    Ready for installation attempts
+  ║
+  ╠═══ Read: temp/package.json
+  ║
+  ╠═══ FOR EACH update_dependencies item:
+  ║    ║
+  ║    ├──► Package: {name, version, isDev}
+  ║    │
+  ║    ├──► IF isDev === true:
+  ║    │   └──► Update devDependencies[name] = version
+  ║    │
+  ║    └──► IF isDev === false:
+  ║        └──► Update dependencies[name] = version
+  ║
+  ╠═══ Write: Updated temp/package.json
+  ║
+  ╠═══ Commit: "Updated target dependencies"
+  ║    └──► Git checkpoint for initial changes
+  ║
+  ╚═══ Target Versions Set ✓
+       └──► Ready for installation attempts
 ```
 
 ### ⚙️ Phase 4: Installation Loop with AI Analysis
@@ -324,72 +332,72 @@ Purpose:
 
 ```
 INSTALLATION FAILURE DETECTED
-│
-├─► Parse Error Message
-│   ├─ Extract package names mentioned
-│   ├─ Extract version constraints
-│   └─ Identify conflict patterns
-│
-├─► Build Conflict Analysis
-│   ├─ Static Analysis
-│   │  └─ Extract from npm error output
-│   │
-│   ├─ Hydrate with Package Rankings
-│   │  ├─ Query package registry metadata
-│   │  ├─ Determine importance/popularity
-│   │  └─ Build ranking score (0-100)
-│   │
-│   └─ Hydrate with Registry Data
-│      ├─ Available versions for each package
-│      ├─ Version compatibility info
-│      └─ Semver range analysis
-│
-├─► Create Strategic Prompt for AI
-│   ├─ Current install error
-│   ├─ Full conflict analysis with rankings
-│   ├─ Available version options
-│   ├─ Current progress (attempt N/maxAttempts)
-│   └─ Target upgrade goals
-│
-├─► Call OpenAI API
-│   ├─ System Prompt:
-│   │  ├─ Role: Dependency Conflict Expert
-│   │  ├─ Task: Suggest strategic upgrades
-│   │  ├─ Constraint: Minimize breaking changes
-│   │  └─ Goal: Achieve target versions
-│   │
-│   ├─ User Message: Strategic Prompt
-│   │
-│   └─ Response: JSON with suggestions
-│      ├─ packages: []
-│      │  ├─ name
-│      │  ├─ version
-│      │  ├─ isDev
-│      │  ├─ reason
-│      │  └─ priority
-│      │
-│      └─ reasoning: []
-│         ├─ updateMade array
-│         └─ Explanation of choices
-│
-├─► Validate AI Response
-│   ├─ Parse JSON from response
-│   ├─ Check structure validity
-│   ├─ Verify each package has required fields
-│   └─ Re-query if validation fails (up to 5 retries)
-│
-├─► Validate Version Existence
-│   ├─ For each suggested version:
-│   │  └─ Query npm registry
-│   │
-│   └─ If any version doesn't exist:
-│      └─ Ask AI for alternative versions
-│
-└─► Apply Suggestions & Retry
-    ├─ Update package.json
-    ├─ Commit to git
-    ├─ Record reasoning
-    └─ Loop back to installation attempt
+  ║
+  ╠═══ Parse Error Message
+  ║    ├──► Extract package names mentioned
+  ║    ├──► Extract version constraints
+  ║    └──► Identify conflict patterns
+  ║
+  ╠═══ Build Conflict Analysis
+  ║    ├──► Static Analysis
+  ║    │   └──► Extract from npm error output
+  ║    │
+  ║    ├──► Hydrate with Package Rankings
+  ║    │   ├──► Query package registry metadata
+  ║    │   ├──► Determine importance/popularity
+  ║    │   └──► Build ranking score (0-100)
+  ║    │
+  ║    └──► Hydrate with Registry Data
+  ║        ├──► Available versions for each package
+  ║        ├──► Version compatibility info
+  ║        └──► Semver range analysis
+  ║
+  ╠═══ Create Strategic Prompt for AI
+  ║    ├──► Current install error
+  ║    ├──► Full conflict analysis with rankings
+  ║    ├──► Available version options
+  ║    ├──► Current progress (attempt N/maxAttempts)
+  ║    └──► Target upgrade goals
+  ║
+  ╠═══ Call OpenAI API
+  ║    ├──► System Prompt:
+  ║    │   ├──► Role: Dependency Conflict Expert
+  ║    │   ├──► Task: Suggest strategic upgrades
+  ║    │   ├──► Constraint: Minimize breaking changes
+  ║    │   └──► Goal: Achieve target versions
+  ║    │
+  ║    ├──► User Message: Strategic Prompt
+  ║    │
+  ║    └──► Response: JSON with suggestions
+  ║        ├──► packages: []
+  ║        │   ├──► name
+  ║        │   ├──► version
+  ║        │   ├──► isDev
+  ║        │   ├──► reason
+  ║        │   └──► priority
+  ║        │
+  ║        └──► reasoning: []
+  ║            ├──► updateMade array
+  ║            └──► Explanation of choices
+  ║
+  ╠═══ Validate AI Response
+  ║    ├──► Parse JSON from response
+  ║    ├──► Check structure validity
+  ║    ├──► Verify each package has required fields
+  ║    └──► Re-query if validation fails (up to 5 retries)
+  ║
+  ╠═══ Validate Version Existence
+  ║    ├──► For each suggested version:
+  ║    │   └──► Query npm registry
+  ║    │
+  ║    └──► If any version doesn't exist:
+  ║        └──► Ask AI for alternative versions
+  ║
+  ╚═══ Apply Suggestions & Retry
+       ├──► Update package.json
+       ├──► Commit to git
+       ├──► Record reasoning
+       └──► Loop back to installation attempt
 ```
 
 ### 💬 Chat History Context
@@ -449,58 +457,58 @@ Benefits:
 └────────────────────────────────────────────────────────┘
 
 LEVEL 1: Installation Attempts
-┌─────────────────────────────────────┐
-│ Outer Loop: maxAttempts (default 200) │
-├─────────────────────────────────────┤
-│ Each iteration:                     │
-│  1. Try npm install                 │
-│  2. If fail → AI Analysis           │
-│  3. Apply suggestions               │
-│  4. Continue to next attempt        │
-│                                     │
-│ Exit conditions:                    │
-│  • Success ──────────────────► Done │
-│  • Reach maxAttempts ────────► Fail │
-└─────────────────────────────────────┘
+  ┌──────────────────────────────────────┐
+  │ Outer Loop: maxAttempts (default 200)│
+  ├──────────────────────────────────────┤
+  │ Each iteration:                      │
+  │   1. Try npm install                 │
+  │   2. If fail → AI Analysis           │
+  │   3. Apply suggestions               │
+  │   4. Continue to next attempt        │
+  │                                      │
+  │ Exit conditions:                     │
+  │   • Success ──────────► Done ✓       │
+  │   • Reach maxAttempts ─► Fail ❌     │
+  └──────────────────────────────────────┘
 
 LEVEL 2: AI Response Validation (Retry on Invalid)
-┌─────────────────────────────────────┐
-│ Inner Loop: maxAiRetries (5)         │
-├─────────────────────────────────────┤
-│ Each AI call retry:                 │
-│                                     │
-│ Error Type        → Recovery        │
-│ ─────────────────────────────────── │
-│ AIResponseFormat  → Ask AI to fix   │
-│ PackageValidation → Suggest alt ver │
-│ NoNewSuggestion   → Request change  │
-│ NoSuitableVersion → Fatal (throw)   │
-│                                     │
-│ Exit conditions:                    │
-│  • Valid response ────────────► Use │
-│  • 5 retries exhausted ──────► Fail │
-└─────────────────────────────────────┘
+  ┌──────────────────────────────────────┐
+  │ Inner Loop: maxAiRetries (5)          │
+  ├──────────────────────────────────────┤
+  │ Each AI call retry:                  │
+  │                                      │
+  │ Error Type         → Recovery        │
+  │ ──────────────────────────────────── │
+  │ AIResponseFormat   → Ask AI to fix   │
+  │ PackageValidation  → Suggest alt ver │
+  │ NoNewSuggestion    → Request change  │
+  │ NoSuitableVersion  → Fatal (throw)   │
+  │                                      │
+  │ Exit conditions:                     │
+  │   • Valid response ──────► Use ✓     │
+  │   • 5 retries exhausted ─► Fail ❌   │
+  └──────────────────────────────────────┘
 
 Exception Handling
-┌────────────────────────────────────────────────┐
-│ Custom Error Classes                           │
-├────────────────────────────────────────────────┤
-│ • AIResponseFormatError                        │
-│   └─ Response structure invalid                │
-│      └─ getRetryMessage(): Ask AI to reformat  │
-│                                                │
-│ • PackageVersionValidationError                │
-│   └─ Suggested version doesn't exist           │
-│      └─ getRetryMessage(): Request alternatives│
-│                                                │
-│ • NoNewSuggestionError                         │
-│   └─ AI suggestions had no effect              │
-│      └─ getRetryMessage(): Request new ideas   │
-│                                                │
-│ • NoSuitableVersionFoundError                  │
-│   └─ Cannot find compatible version            │
-│      └─ Throws immediately (fatal)             │
-└────────────────────────────────────────────────┘
+  ┌──────────────────────────────────────────────┐
+  │ Custom Error Classes                         │
+  ├──────────────────────────────────────────────┤
+  │ • AIResponseFormatError                      │
+  │   └──► Response structure invalid            │
+  │        └──► getRetryMessage(): Ask AI to fix │
+  │                                              │
+  │ • PackageVersionValidationError              │
+  │   └──► Suggested version doesn't exist       │
+  │        └──► getRetryMessage(): Request alt   │
+  │                                              │
+  │ • NoNewSuggestionError                       │
+  │   └──► AI suggestions had no effect          │
+  │        └──► getRetryMessage(): Request new   │
+  │                                              │
+  │ • NoSuitableVersionFoundError                │
+  │   └──► Cannot find compatible version        │
+  │        └──► Throws immediately (fatal)       │
+  └──────────────────────────────────────────────┘
 ```
 
 ### 📊 Error Analysis Hydration
@@ -509,28 +517,28 @@ Exception Handling
 Conflict Analysis Enrichment Pipeline:
 
 Raw Install Error
-  ↓
-[1] Parse Statically
-  ├─ Extract package names
-  ├─ Extract version constraints
-  └─ → ConflictAnalysis {conflicts, allPackages}
-  ↓
-[2] Hydrate with Ranking
-  ├─ Query npm registry metadata for each package
-  ├─ Calculate popularity/importance score
-  └─ → Add rank field to each package
-  ↓
-[3] Hydrate with Registry Data
-  ├─ Fetch available versions from npm
-  ├─ Get semver compatibility info
-  └─ → Add availableVersions & constraints
-  ↓
-Result: Rich, AI-ready analysis
-  ├─ Which packages are most critical (by rank)
-  ├─ What versions are available
-  └─ What constraints must be satisfied
-  
-This enables AI to make intelligent decisions!
+    ↓
+    ╠═══ [1] Parse Statically
+    ║    ├──► Extract package names
+    ║    ├──► Extract version constraints
+    ║    └──► ConflictAnalysis {conflicts, allPackages}
+    ║
+    ╠═══ [2] Hydrate with Ranking
+    ║    ├──► Query npm registry metadata for each package
+    ║    ├──► Calculate popularity/importance score
+    ║    └──► Add rank field to each package
+    ║
+    ╠═══ [3] Hydrate with Registry Data
+    ║    ├──► Fetch available versions from npm
+    ║    ├──► Get semver compatibility info
+    ║    └──► Add availableVersions & constraints
+    ║
+    ╚═══ Result: Rich, AI-ready analysis
+         ├──► Which packages are most critical (by rank)
+         ├──► What versions are available
+         └──► What constraints must be satisfied
+
+This enables AI to make intelligent decisions! 🧠
 ```
 
 ---
@@ -545,44 +553,44 @@ This enables AI to make intelligent decisions!
 └────────────────────────────────────────────────────────┘
 
 START
-  │
-  ├─► CREATE: /tmp/dumb-resolver-XXXXX/
-  │   ├─ Empty directory
-  │   └─ Used as working sandbox
-  │
-  ├─► POPULATE: Copy files from original
-  │   ├─ package.json
-  │   ├─ package-lock.json (if exists)
-  │   └─ File system is now duplicated
-  │
-  ├─► INIT: Initialize git repository
-  │   ├─ git init
-  │   ├─ Create .gitignore
-  │   ├─ Add all files
-  │   └─ First commit: baseline
-  │
-  ├─► WORK: Run all npm install attempts
-  │   ├─ Modify package.json (iterate)
-  │   ├─ npm install attempts
-  │   ├─ Modify node_modules
-  │   └─ Commit each step to git
-  │
-  ├─► COPY-BACK: Successful or final state
-  │   ├─ Copy package.json → original location
-  │   ├─ Copy package-lock.json → original location
-  │   ├─ Copy .git directory → original location
-  │   │  (preserves complete history)
-  │   └─ Files now in their original location
-  │
-  └─► CLEANUP: Remove temporary directory
-      ├─ rm -rf /tmp/dumb-resolver-XXXXX/
-      └─ Reclaim disk space
+  ║
+  ╠═══► CREATE: /tmp/dumb-resolver-XXXXX/
+  ║     ├──► Empty directory
+  ║     └──► Used as working sandbox
+  ║
+  ╠═══► POPULATE: Copy files from original
+  ║     ├──► package.json
+  ║     ├──► package-lock.json (if exists)
+  ║     └──► File system is now duplicated
+  ║
+  ╠═══► INIT: Initialize git repository
+  ║     ├──► git init
+  ║     ├──► Create .gitignore
+  ║     ├──► Add all files
+  ║     └──► First commit: baseline
+  ║
+  ╠═══► WORK: Run all npm install attempts
+  ║     ├──► Modify package.json (iterate)
+  ║     ├──► npm install attempts
+  ║     ├──► Modify node_modules
+  ║     └──► Commit each step to git
+  ║
+  ╠═══► COPY-BACK: Successful or final state
+  ║     ├──► Copy package.json → original location
+  ║     ├──► Copy package-lock.json → original location
+  ║     ├──► Copy .git directory → original location
+  ║     │   (preserves complete history)
+  ║     └──► Files now in their original location
+  ║
+  ╚═══► CLEANUP: Remove temporary directory
+        ├──► rm -rf /tmp/dumb-resolver-XXXXX/
+        └──► Reclaim disk space
 
 Benefits:
-✓ Original files never corrupted
-✓ Reproducible isolated environment
-✓ Complete change history preserved
-✓ Easy rollback if needed
+  ✓ Original files never corrupted
+  ✓ Reproducible isolated environment
+  ✓ Complete change history preserved
+  ✓ Easy rollback if needed
 ```
 
 ### 🔁 Copy-Back Strategy
@@ -661,30 +669,30 @@ try {
   └────────────────────────────┘
 }
 CATCH {
-  └─ Log error, set failure flag
+  └──► Log error, set failure flag
 }
 FINALLY {
-  ├─► ALWAYS execute cleanup
+  ├──► ALWAYS execute cleanup
   │
-  ├─ Attempt copy-back
-  │  ├─ Copy package.json
-  │  ├─ Copy package-lock.json
-  │  └─ Copy .git directory
-  │  └─ Track any copy errors
+  ├──► Attempt copy-back
+  │    ├──► Copy package.json
+  │    ├──► Copy package-lock.json
+  │    └──► Copy .git directory
+  │        └──► Track any copy errors
   │
-  ├─ Remove temp directory
-  │  ├─ rm -rf tempDir
-  │  └─ Handle cleanup errors gracefully
+  ├──► Remove temp directory
+  │    ├──► rm -rf tempDir
+  │    └──► Handle cleanup errors gracefully
   │
-  └─ Return appropriate response
-     based on: (success, copyBackSuccess, errors)
+  └──► Return appropriate response
+       based on: (success, copyBackSuccess, errors)
 }
 
 Guarantees:
-✓ Temp directory always cleaned up
-✓ Files always copied back (if possible)
-✓ No resource leaks
-✓ Resources reclaimed even on fatal errors
+  ✓ Temp directory always cleaned up
+  ✓ Files always copied back (if possible)
+  ✓ No resource leaks
+  ✓ Resources reclaimed even on fatal errors
 ```
 
 ---
