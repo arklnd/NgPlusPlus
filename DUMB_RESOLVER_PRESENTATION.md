@@ -388,62 +388,303 @@ INSTALLATION FAILURE DETECTED
   ║    ├──► Static Analysis
   ║    │   └──► Extract from npm error output
   ║    │
-  ║    ├──► Hydrate with Package Rankings
-  ║    │   ├──► Query package registry metadata
-  ║    │   ├──► Determine importance/popularity
-  ║    │   └──► Build ranking score (0-100)
+  ║    ├──► Hydrate with Package Rankings (SEE DETAILED SECTION BELOW)
+  ║    │   ├──► Query each package with AI ranking analyzer
+  ║    │   ├──► Assign strategic tier (50-1200 scale)
+  ║    │   ├──► Apply strategic modifiers based on ecosystem/impact
+  ║    │   └──► Cache results for 24 hours
   ║    │
   ║    └──► Hydrate with Registry Data
   ║        ├──► Available versions for each package
+  ║        ├──► Filter to newer versions than current
   ║        ├──► Version compatibility info
   ║        └──► Semver range analysis
   ║
   ╠═══ Create Strategic Prompt for AI
   ║    ├──► Current install error
-  ║    ├──► Full conflict analysis with rankings
-  ║    ├──► Available version options
+  ║    ├──► Full conflict analysis with RANKED packages
+  ║    ├──► Available version options for each package
   ║    ├──► Current progress (attempt N/maxAttempts)
-  ║    └──► Target upgrade goals
+  ║    └──► Target upgrade goals (user's original intent)
   ║
-  ╠═══ Call OpenAI API
+  ╠═══ Call OpenAI API with Context
   ║    ├──► System Prompt:
-  ║    │   ├──► Role: Dependency Conflict Expert
-  ║    │   ├──► Task: Suggest strategic upgrades
-  ║    │   ├──► Constraint: Minimize breaking changes
-  ║    │   └──► Goal: Achieve target versions
+  ║    │   ├──► Role: Dependency Conflict Expert with ranking awareness
+  ║    │   ├──► Task: Suggest strategic upgrades using RANKING GUIDANCE
+  ║    │   ├──► Strategy: Upgrade LOW-RANKED packages first
+  ║    │   ├──► Stability: Keep HIGH-RANKED packages stable
+  ║    │   ├──► Constraint: Stay within target version bounds
+  ║    │   └──► Goal: Achieve target versions with minimal disruption
   ║    │
-  ║    ├──► User Message: Strategic Prompt
+  ║    ├──► User Message: Strategic Prompt (includes all ranked conflicts)
   ║    │
-  ║    └──► Response: JSON with suggestions
-  ║        ├──► packages: []
-  ║        │   ├──► name
-  ║        │   ├──► version
-  ║        │   ├──► isDev
-  ║        │   ├──► reason
-  ║        │   └──► priority
+  ║    └──► Response: JSON with AI-generated suggestions
+  ║        ├──► suggestions: Array of strategic upgrades
+  ║        │   ├──► name: Package name
+  ║        │   ├──► version: Suggested version
+  ║        │   ├──► isDev: Dev dependency flag
+  ║        │   ├──► reason: Why this upgrade helps
+  ║        │   └──► fromVersion: Current version (for context)
   ║        │
-  ║        └──► reasoning: []
-  ║            ├──► updateMade array
-  ║            └──► Explanation of choices
+  ║        └──► reasoning: Upgrade rationale with EXACT ranks
+  ║            ├──► updateMade: Array of decisions made
+  ║            │   ├──► package: {name, rank} (EXACT from analysis)
+  ║            │   ├──► fromVersion → toVersion
+  ║            │   └──► reason: {conflictingPkg, rank} (EXACT)
+  ║            └──► Explanation chain of upgrades
   ║
   ╠═══ Validate AI Response
-  ║    ├──► Parse JSON from response
+  ║    ├──► Parse JSON from response (extract from markdown blocks)
   ║    ├──► Check structure validity
-  ║    ├──► Verify each package has required fields
+  ║    ├──► Verify each suggestion has: name, version, isDev
+  ║    ├──► Validate rank values are EXACT from conflict analysis
   ║    └──► Re-query if validation fails (up to 5 retries)
   ║
   ╠═══ Validate Version Existence
   ║    ├──► For each suggested version:
-  ║    │   └──► Query npm registry
+  ║    │   └──► Query npm registry (cache-aware)
   ║    │
   ║    └──► If any version doesn't exist:
-  ║        └──► Ask AI for alternative versions
+  ║        └──► Fail with clear error (don't accept alternatives)
   ║
   ╚═══ Apply Suggestions & Retry
-       ├──► Update package.json
-       ├──► Commit to git
-       ├──► Record reasoning
+       ├──► Update package.json in temp directory
+       ├──► Commit to git with enriched message
+       │   └──► Include AI reasoning and error context
+       ├──► Record reasoning with exact ranks
        └──► Loop back to installation attempt
+```
+
+---
+
+### 📊 Package Ranking System (Tier-Based Importance Scoring)
+
+The **ranking system** is the core intelligence that guides strategic decisions. Higher ranks = higher stability priority = keep stable. Lower ranks = upgrade first to resolve conflicts.
+
+#### **Ranking Tier Scale: 50-1200**
+
+```
+┌─────────────────────────────────────────────────────┐
+│    TIER                    RANK RANGE  KEY PURPOSE   │
+├─────────────────────────────────────────────────────┤
+│ CRITICAL INFRASTRUCTURE   1000-1200  Must stay       │
+│                                      stable, drives  │
+│                                      decisions       │
+│                                                     │
+│ OFFICIAL ECOSYSTEM         700-900   Ecosystem      │
+│                                      stability      │
+│                                                     │
+│ POPULAR UTILITIES         500-650   Balance        │
+│                                      stability      │
+│                                                     │
+│ SPECIALIZED PACKAGES      300-450   Can upgrade    │
+│                                      earlier         │
+│                                                     │
+│ LIGHTWEIGHT & NICHE       150-250   Upgrade first  │
+│                                      to resolve     │
+│                                                     │
+│ PROBLEMATIC PACKAGES       50-100   Avoid/upgrade  │
+│                                      when possible  │
+└─────────────────────────────────────────────────────┘
+```
+
+#### **Ranking Categories Within Each Tier**
+
+**CRITICAL INFRASTRUCTURE (1000-1200):**
+```
+┌──────────────────────────────────────────┐
+│ CORE_FRAMEWORK (1200)                    │
+│   Examples: @angular/core, react, vue    │
+│   Rationale: Frameworks define entire    │
+│   ecosystem compatibility                │
+│                                          │
+│ BUILD_ESSENTIALS (1100)                  │
+│   Examples: typescript, webpack, vite    │
+│   Rationale: Build systems control how  │
+│   all packages compile & run             │
+│                                          │
+│ RUNTIME_CORE (1000)                      │
+│   Examples: @types/node, core-js, tslib │
+│   Rationale: Runtime essentials every    │
+│   package depends on transitively        │
+└──────────────────────────────────────────┘
+```
+
+**OFFICIAL ECOSYSTEM (700-900):**
+```
+┌──────────────────────────────────────────┐
+│ OFFICIAL_LIBRARIES (900)                 │
+│   @angular/*, react-*, @nestjs/*         │
+│   @hylandsoftware/hy-ui-* (ORG PRIORITY) │
+│   Rationale: First-party libraries       │
+│   guaranteed to work with framework      │
+│                                          │
+│ FRAMEWORK_TOOLS (800)                    │
+│   @angular/cli, create-react-app, etc.   │
+│   Rationale: Official development tools  │
+│   for framework ecosystem                │
+│                                          │
+│ ECOSYSTEM_STANDARDS (700)                │
+│   eslint, prettier, jest (in ecosystem)  │
+│   Rationale: Standardized community      │
+│   tools, widely adopted                  │
+└──────────────────────────────────────────┘
+```
+
+**POPULAR UTILITIES (500-650):**
+```
+┌──────────────────────────────────────────┐
+│ UTILITY_HEAVYWEIGHT (650)                │
+│   lodash, rxjs, axios, date-fns          │
+│   Rationale: Major utilities many        │
+│   packages depend on                     │
+│                                          │
+│ UTILITY_STANDARD (600)                   │
+│   moment, uuid, classnames               │
+│   Rationale: Commonly used helper libs   │
+│                                          │
+│ TESTING_FRAMEWORKS (550)                 │
+│   jest, mocha, cypress, playwright       │
+│   Rationale: Testing ecosystem choice    │
+│                                          │
+│ DEV_TOOLS (500)                          │
+│   nodemon, concurrently, cross-env       │
+│   Rationale: Development utilities       │
+└──────────────────────────────────────────┘
+```
+
+#### **How Rankings Are Calculated**
+
+Each package is ranked by AI using this framework:
+
+```
+BASE RANKING (from tier system):
+  ↓
+APPLY STRATEGIC MODIFIERS:
+  
+  **Ecosystem Coherence**:        +100 points
+  - Package in same ecosystem as conflicting packages
+  
+  **Organizational Priority**:    +150 points
+  - @hylandsoftware/hy-ui-* packages get highest priority
+  
+  **Framework Lock-in**:           +100 points
+  - Core frameworks in their ecosystem
+  
+  **Popularity**:                  ±50, ±25, -25 points
+  - >10M weekly downloads:  +50
+  - >1M weekly downloads:   +25
+  - <100k weekly downloads: -25
+  
+  **Maintenance Status**:          ±50 points
+  - Released <6 months ago:  +50
+  - No update >2 years:      -50
+  
+  **Security**:                    -100, -200 points
+  - Known vulnerabilities:   -100
+  - Deprecated:              -200
+  
+  **TypeScript Support**:          +25 points
+  - Native TS or @types/* packages
+  
+  **Official Backing**:            +50 points (from README)
+  - Organization/company backing
+  
+  **Documentation**:               ±25 points
+  - Comprehensive docs:      +25
+  - Minimal documentation:   -25
+  
+  **Deprecation Status**:          -100 points
+  - README deprecation warnings
+  
+  **Dependency Impact**:           ±0 to +200 points
+  - 0-1 dependents:          +0   (leaf package)
+  - 2-4 dependents:          +50  (moderate integration)
+  - 5-9 dependents:          +100 (important shared)
+  - 10-20 dependents:        +150 (major hub)
+  - >20 dependents:          +200 (critical hub - core package)
+  
+  ↓
+FINAL RANK (Base + Modifiers)
+```
+
+#### **Real-World Ranking Examples**
+
+```
+Package Rankings in a Real Conflict:
+
+typescript@5.1.0 (rank: 1150)
+  Tier: CRITICAL_INFRASTRUCTURE > BUILD_ESSENTIALS
+  Base: 1100 (BUILD_ESSENTIALS)
+  Modifiers: +50 (TypeScript support is explicit)
+  Status: STABLE - Don't upgrade unless required
+  Decision Rule: TypeScript updates should be selective
+
+webpack@5.88.0 (rank: 1100)
+  Tier: CRITICAL_INFRASTRUCTURE > BUILD_ESSENTIALS
+  Base: 1100
+  Modifiers: 0
+  Status: STABLE - Core build tool
+  Decision Rule: Minor version bumps acceptable
+
+rxjs@7.8.0 (rank: 650)
+  Tier: POPULAR_UTILITIES > UTILITY_HEAVYWEIGHT
+  Base: 650
+  Modifiers: +50 (ecosystem coherence with Angular)
+  Status: UPGRADEABLE - Can bump patch/minor
+  Decision Rule: Upgrade if needed to resolve conflicts
+
+lodash@4.17.21 (rank: 650)
+  Tier: POPULAR_UTILITIES > UTILITY_HEAVYWEIGHT
+  Base: 650
+  Modifiers: -25 (very old, no updates in 2+ years)
+  Final Rank: 625
+  Status: LEGACY but stable
+  Decision Rule: Don't upgrade unless critical
+
+@storybook/angular@7.0.0 (rank: 800)
+  Tier: OFFICIAL_ECOSYSTEM > FRAMEWORK_TOOLS
+  Base: 800
+  Modifiers: 0
+  Status: OFFICIAL - Framework compatible
+  Decision Rule: Can upgrade within major version
+
+some-utility@1.2.3 (rank: 180)
+  Tier: LIGHTWEIGHT_NICHE > MICRO_UTILITIES
+  Base: 200
+  Modifiers: -20 (unmaintained)
+  Final Rank: 180
+  Status: LEAF PACKAGE - Upgrade first!
+  Decision Rule: Upgrade before higher-ranked packages
+```
+
+#### **Why Ranking Matters: Strategic Conflict Resolution**
+
+```
+SCENARIO: typescript@5.1.0 conflicts with webpack@5.88.0
+
+WITHOUT RANKING:
+  Could upgrade either arbitrarily
+  → Might break entire build system by downgrading webpack
+  → Unnecessary instability
+
+WITH RANKING:
+  typescript (rank: 1150) vs webpack (rank: 1100)
+  
+  Both high-ranked, but here's the strategy:
+  
+  1. Check if they BOTH can be satisfied
+     └─ Yes? Keep both stable ✓
+  
+  2. If not, check which OTHER package causes conflict
+     └─ Example: angular-cli@15.0.0 (rank: 850) needs webpack@5.87.0
+  
+  3. Upgrade angular-cli (lower rank) not webpack/typescript
+     └─ Maintains framework core integrity ✓
+
+RESULT: Strategic upgrade of lower-ranked packages 
+        preserves higher-ranked package stability
+        = Minimal breaking changes + Resolution achieved
 ```
 
 ### 💬 Chat History Context
