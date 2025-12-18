@@ -166,53 +166,99 @@ UPDATE PACKAGE.JSON WITH TARGET VERSIONS
 ### ⚙️ Phase 4: Installation Loop with AI Analysis
 
 ```
-INSTALLATION ATTEMPT LOOP (maxAttempts = default 200)
-│
-│  ┌─────────────────────────────────────────────────────┐
-│  │ WHILE attempt < maxAttempts AND !installSuccess     │
-│  │                                                     │
-│  │  ┌──────────────────────────────────────────────┐   │
-│  │  │ ATTEMPT N: Try npm install                   │   │
-│  │  │                                              │   │
-│  │  │ 1. Remove package-lock.json                  │   │
-│  │  │    └─ Force fresh resolution                 │   │
-│  │  │                                              │   │
-│  │  │ 2. npm install                               │   │
-│  │  │    ├─ Output: stdout                         │   │
-│  │  │    ├─ Error:  stderr                         │   │
-│  │  │    └─ Status: success/failure                │   │
-│  │  │                                              │   │
-│  │  │ 3. Check Result                              │   │
-│  │  │    ├─ IF success ──────────────┐             │   │
-│  │  │    │  └─ Break loop ✓           │             │   │
-│  │  │    │                            │             │   │
-│  │  │    └─ IF failure ──────────────┐│             │   │
-│  │  │       └─ Continue to AI Phase ││             │   │
-│  │  │                                ││             │   │
-│  │  └──────────────────────────────────┘│             │   │
-│  │                                      │             │   │
-│  │  IF Installation Failed:             │             │   │
-│  │  ┌──────────────────────────────────┘             │   │
-│  │  │                                                │   │
-│  │  ├─► AI ANALYSIS PHASE ◄─────────────────────┐   │   │
-│  │  │   (Detailed in next section)              │   │   │
-│  │  │                                           │   │   │
-│  │  │   Output: Strategic suggestions           │   │   │
-│  │  │   ├─ Packages to upgrade                  │   │   │
-│  │  │   ├─ Target versions                      │   │   │
-│  │  │   └─ Reasoning chain                      │   │   │
-│  │  │                                           │   │   │
-│  │  └─ Apply Suggestions ◄──────────────────────┘   │   │
-│  │     ├─ Update package.json                       │   │
-│  │     ├─ Validate all versions exist               │   │
-│  │     ├─ Commit to git                             │   │
-│  │     └─ Update reasoning recording                │   │
-│  │                                                 │   │
-│  │  Loop continues with updated dependencies...     │   │
-│  │                                                 │   │
-│  └─────────────────────────────────────────────────┘   │
-│                                                         │
-└─► Installation Complete (success) OR Max Attempts Reached (failure)
+                   INSTALLATION ATTEMPT LOOP
+                   (maxAttempts = default 200)
+                            ║
+                            ▼
+            ╔═══════════════════════════════════════╗
+            ║ WHILE attempt < maxAttempts           ║
+            ║   AND !installSuccess                 ║
+            ║                                       ║
+            ║    increment attempt counter          ║
+            ╚════════════┬══════════════════════════╝
+                         │
+                         ▼
+        ┌────────────────────────────────────────────┐
+        │  ATTEMPT N: Try npm install                │
+        │                                            │
+        │  1. Remove package-lock.json               │
+        │     └─► Force fresh resolution             │
+        │                                            │
+        │  2. Run: npm install                       │
+        │     ├─► Capture: stdout                    │
+        │     ├─► Capture: stderr                    │
+        │     └─► Status: success/failure            │
+        │                                            │
+        │  3. Check Result                           │
+        └────────────┬───────────────────────────────┘
+                     │
+          ┌──────────┴──────────┐
+          │                     │
+          ▼ SUCCESS             ▼ FAILURE
+    ┌──────────────────┐    ┌────────────────────┐
+    │ installSuccess=  │    │ Analyze Error      │
+    │ true             │    │ (See details →)    │
+    │                  │    │                    │
+    │ Break loop ✓     │    └──────┬─────────────┘
+    └────────┬─────────┘           │
+             │                     ▼
+             │         ╔═════════════════════════════════╗
+             │         ║  AI ANALYSIS PHASE              ║
+             │         ║  (up to 5 AI retries)           ║
+             │         ║                                 ║
+             │         ║  1. Parse error message         ║
+             │         ║  2. Build conflict analysis     ║
+             │         ║  3. Query AI for suggestions    ║
+             │         ║  4. Validate response format    ║
+             │         ║  5. Validate versions exist     ║
+             │         ║                                 ║
+             │         ║  Output: Strategic suggestions  ║
+             │         ║  - Packages to upgrade          ║
+             │         ║  - Target versions              ║
+             │         ║  - Reason for each change       ║
+             │         ╚═════════════┬═══════════════════╝
+             │                       │
+             │                       ▼
+             │         ┌──────────────────────────────┐
+             │         │  Apply Suggestions           │
+             │         │                              │
+             │         │  1. Update package.json      │
+             │         │  2. Validate versions exist  │
+             │         │  3. Commit changes to git    │
+             │         │  4. Record reasoning         │
+             │         └──────────────┬───────────────┘
+             │                        │
+             │                        │
+             │                        ▼
+             │         ┌──────────────────────────────┐
+             │         │ Loop continues with          │
+             │         │ updated dependencies...      │
+             │         │                              │
+             │         │ (Back to ATTEMPT N+1)        │
+             │         └──────────────┬───────────────┘
+             │                        │
+             │                        └─────────┐
+             │                                  │
+             │                                  ▼
+             │                        attempt < maxAttempts
+             │                                  │
+             │                    Yes ┌─────────┴──────────┐
+             │                        │                    │ No
+             │                        └────────────────────┘
+             │                                  │
+             └──────────────────────────────────┴───────────┐
+                                                            │
+                                                            ▼
+                                            ╔════════════════════════════════╗
+                                            ║  LOOP EXIT - DECIDE OUTCOME    ║
+                                            ║                                ║
+                                            ║  IF installSuccess = true      ║
+                                            ║    └─► Copy back files (✓)     ║
+                                            ║                                ║
+                                            ║  ELSE                          ║
+                                            ║    └─► Max attempts reached    ║
+                                            ║        └─► Return error (✗)    ║
+                                            ╚════════════════════════════════╝
 ```
 
 ---
