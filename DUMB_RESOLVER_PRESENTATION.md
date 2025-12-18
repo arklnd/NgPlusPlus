@@ -49,7 +49,7 @@ The **Dumb Resolver** is a tool designed to resolve complex npm dependency confl
 
 ```
                               ┌────────────────────────────────┐
-                              │   DUMB RESOLVER ENTRY POINT     │
+                              │   DUMB RESOLVER ENTRY POINT    │
                               └────────────┬───────────────────┘
                                            │
                       ┌────────────────────┼────────────────────┐
@@ -59,20 +59,20 @@ The **Dumb Resolver** is a tool designed to resolve complex npm dependency confl
             │ VALIDATION PHASE │  │  SETUP PHASE     │  │ RESOLUTION PHASE │
             │                  │  │                  │  │                  │
             │ • Verify target  │  │ • Create temp    │  │ • Install loop   │
-            │   versions exist  │  │   directory      │  │ • AI analysis    │
-            │ • Check registry  │  │ • Copy files     │  │ • Strategy apply │
+            │   versions exist │  │   directory      │  │ • AI analysis    │
+            │ • Check registry │  │ • Copy files     │  │ • Strategy apply │
             │                  │  │ • Init git repo  │  │ • Retry logic    │
             └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘
-                     │                    │                    │
-                     └────────────────────┼────────────────────┘
-                                          │
-                                          ▼
+                     │                     │                     │
+                     └─────────────────────┼─────────────────────┘
+                                           │
+                                           ▼
                               ┌────────────────────────────────┐
-                              │    CLEANUP & COPY-BACK PHASE    │
+                              │    CLEANUP & COPY-BACK PHASE   │
                               │                                │
-                              │ • Copy resolved files back      │
-                              │ • Preserve git history          │
-                              │ • Clean temporary directory     │
+                              │ • Copy resolved files back     │
+                              │ • Preserve git history         │
+                              │ • Clean temporary directory    │
                               │ • Return final status          │
                               └────────────────────────────────┘
 ```
@@ -453,34 +453,34 @@ INSTALLATION FAILURE DETECTED
 │ MAINTAINING CONTEXT ACROSS ATTEMPTS                  │
 ├──────────────────────────────────────────────────────┤
 │                                                      │
-│ Message 1: System Prompt                            │
-│   └─ Role & context for AI                          │
+│ Message 1: System Prompt                             │
+│   └─ Role & context for AI                           │
 │                                                      │
-│ Message 2: User - Initial Context                   │
-│   ├─ Original package.json                          │
-│   └─ Target upgrade goals                           │
+│ Message 2: User - Initial Context                    │
+│   ├─ Original package.json                           │
+│   └─ Target upgrade goals                            │
 │                                                      │
-│ Message 3: User - First Install Error               │
-│   ├─ Full strategic prompt                          │
-│   └─ Conflict analysis with rankings                │
+│ Message 3: User - First Install Error                │
+│   ├─ Full strategic prompt                           │
+│   └─ Conflict analysis with rankings                 │
 │                                                      │
-│ Message 4: Assistant - Suggestions                  │
-│   └─ Recommended version upgrades                   │
+│ Message 4: Assistant - Suggestions                   │
+│   └─ Recommended version upgrades                    │
 │                                                      │
-│ Message 5: User - Applied Feedback                  │
-│   ├─ Which suggestions were applied                 │
-│   └─ Will attempt install with these changes        │
+│ Message 5: User - Applied Feedback                   │
+│   ├─ Which suggestions were applied                  │
+│   └─ Will attempt install with these changes         │
 │                                                      │
-│ Message 6: User - Second Install Error              │
-│   ├─ Updated conflict analysis                      │
-│   └─ New blocking packages                          │
+│ Message 6: User - Second Install Error               │
+│   ├─ Updated conflict analysis                       │
+│   └─ New blocking packages                           │
 │                                                      │
-│ Message 7: Assistant - Refined Suggestions          │
-│   └─ Better suggestions based on previous context   │
+│ Message 7: Assistant - Refined Suggestions           │
+│   └─ Better suggestions based on previous context    │
 │                                                      │
-│ ... (loop continues until success)
+│ ... (loop continues until success)                   │
 │                                                      │
-│ Final Result: Converges to installable state ✓      │
+│ Final Result: Converges to installable state ✓       │
 │                                                      │
 └──────────────────────────────────────────────────────┘
 
@@ -519,7 +519,7 @@ LEVEL 1: Installation Attempts
 
 LEVEL 2: AI Response Validation (Retry on Invalid)
   ┌──────────────────────────────────────┐
-  │ Inner Loop: maxAiRetries (5)          │
+  │ Inner Loop: maxAiRetries (5)         │
   ├──────────────────────────────────────┤
   │ Each AI call retry:                  │
   │                                      │
@@ -747,7 +747,7 @@ Guarantees:
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
-║                    DUMB RESOLVER: COMPLETE FLOW                 ║
+║                    DUMB RESOLVER: COMPLETE FLOW                  ║
 ╚══════════════════════════════════════════════════════════════════╝
 
 INPUT:
@@ -781,14 +781,14 @@ INPUT:
 
   ↓
 
-[PHASE 4] INSTALLATION LOOP ◄─────┐
+[PHASE 4] INSTALLATION LOOP ◄──────┐
   │                                │
   ├─ Attempt N: npm install        │
   │                                │
-  ├─ ✓ Success? ──────────────┐   │
-  │                           │   │
-  ├─ ✗ Failure? ──┐           │   │
-  │               │           │   │
+  ├─ ✓ Success? ──────────────┐    │
+  │                           │    │
+  ├─ ✗ Failure? ──┐           │    │
+  │               │           │    │
   │               ├─► AI Analysis Phase:
   │               │   ├─ Parse install error
   │               │   ├─ Build conflict analysis
@@ -842,26 +842,26 @@ The name is somewhat ironic:
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│ "DUMB" DOESN'T MEAN STUPID - IT MEANS:              │
+│ "DUMB" DOESN'T MEAN STUPID - IT MEANS:               │
 ├──────────────────────────────────────────────────────┤
 │                                                      │
-│ 1. BRUTE FORCE APPROACH                            │
-│    ├─ Try, fail, learn, adjust, retry              │
-│    ├─ Not a sophisticated algorithm                │
-│    └─ Just iterative attempts                      │
+│ 1. BRUTE FORCE APPROACH                              │
+│    ├─ Try, fail, learn, adjust, retry                │
+│    ├─ Not a sophisticated algorithm                  │
+│    └─ Just iterative attempts                        │
 │                                                      │
-│ 2. NO DEPENDENCY TREE PARSING (Initially)           │
-│    ├─ Doesn't deeply analyze semver ranges         │
-│    ├─ Relies on npm's own resolution               │
-│    └─ Lets npm tell us what's wrong                │
+│ 2. NO DEPENDENCY TREE PARSING (Initially)            │
+│    ├─ Doesn't deeply analyze semver ranges           │
+│    ├─ Relies on npm's own resolution                 │
+│    └─ Lets npm tell us what's wrong                  │
 │                                                      │
-│ 3. BUT: SMART AI LAYER ADDED                        │
-│    ├─ Uses OpenAI to guide suggestions             │
-│    ├─ Learns from error patterns                   │
-│    ├─ Maintains context across attempts            │
-│    └─ Makes strategic decisions                    │
+│ 3. BUT: SMART AI LAYER ADDED                         │
+│    ├─ Uses OpenAI to guide suggestions               │
+│    ├─ Learns from error patterns                     │
+│    ├─ Maintains context across attempts              │
+│    └─ Makes strategic decisions                      │
 │                                                      │
-│ → DUMB + AI = Surprisingly Effective! 🧠 + 💪      │
+│ → DUMB + AI = Surprisingly Effective! 🧠 + 💪       │
 │                                                      │
 └──────────────────────────────────────────────────────┘
 ```
@@ -873,24 +873,24 @@ The name is somewhat ironic:
 │ FACTORS AFFECTING SUCCESS RATE                       │
 ├──────────────────────────────────────────────────────┤
 │                                                      │
-│ ✓ High Success Scenarios:                           │
-│   ├─ Minor version upgrades                         │
-│   ├─ Isolated dependency chains                     │
-│   ├─ Target versions are recent/popular            │
-│   └─ Dependencies have good semver management      │
+│ ✓ High Success Scenarios:                            │
+│   ├─ Minor version upgrades                          │
+│   ├─ Isolated dependency chains                      │
+│   ├─ Target versions are recent/popular              │
+│   └─ Dependencies have good semver management        │
 │                                                      │
-│ ✗ Difficult Scenarios:                              │
-│   ├─ Major version jumps                            │
-│   ├─ Complex interdependencies                      │
-│   ├─ Breaking changes in target versions            │
-│   ├─ Dead or unmaintained packages                 │
-│   └─ Too many conflicting requirements             │
+│ ✗ Difficult Scenarios:                               │
+│   ├─ Major version jumps                             │
+│   ├─ Complex interdependencies                       │
+│   ├─ Breaking changes in target versions             │
+│   ├─ Dead or unmaintained packages                   │
+│   └─ Too many conflicting requirements               │
 │                                                      │
-│ Mitigation:                                         │
-│   ├─ AI learns from past failures                  │
-│   ├─ Ranking helps prioritize important packages  │
-│   ├─ Registry data guides version selection        │
-│   └─ Retry logic gives multiple chances            │
+│ Mitigation:                                          │
+│   ├─ AI learns from past failures                    │
+│   ├─ Ranking helps prioritize important packages     │
+│   ├─ Registry data guides version selection          │
+│   └─ Retry logic gives multiple chances              │
 │                                                      │
 └──────────────────────────────────────────────────────┘
 ```
