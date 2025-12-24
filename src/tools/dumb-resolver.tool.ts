@@ -183,6 +183,9 @@ export const dumbResolverHandler = async (input: DumbResolverInput) => {
 
                 if (installSuccess) {
                     logger.info('Installation successful', { attempt });
+                    // Commit successful installation
+                    await git.add('.');
+                    await git.commit(`Successful installation after ${attempt} attempts`);
                     break;
                 }
             } catch (error) {
