@@ -43,7 +43,7 @@
         "typescript": "^5.9.2"
     },
     "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.17.2",
+        "@modelcontextprotocol/sdk": "^1.25.1",
         "@npmcli/arborist": "9.1.9",
         "@types/semver": "7.7.0",
         "adm-zip": "0.5.16",
