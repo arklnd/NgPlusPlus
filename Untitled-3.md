@@ -10,11 +10,11 @@ Solution:
 
 After getting the set of package updates user want to apply,
 
-    Approach 1: We tried to analyze the whole dependency tree by ourselves purely on a mechanical basis. The plan was that at any point in our implementation journey, if a step was not feasible to implement mechanically by any means, we would hand over the processing to the LLM. 
+    Approach 1 (till September 2025): We tried to analyze the whole dependency tree by ourselves purely on a mechanical basis. The plan was that at any point in our implementation journey, if a step was not feasible to implement mechanically by any means, we would hand over the processing to the LLM. 
 
         Difficulty: The core difficulty we faced with this approach is that traversing the dependency tree algorithmically is definitely possible but extremely complex to implement. Finding the suitable point to involve the LLM in place of a deterministic step is hard, which was essentially prolonging our implementation. Considering the remaining time in 2025, we ditched this approach.
 
-    Approach 2: This time we started with a simple dumb loop which will indefinitely (with a hardcoded max cap) try to apply requested updates until a successful 'npm install' can be made with all updates. In each iteration, the LLM will analyze the preceding output from the 'npm install' step and make suitable changes to the user-provided updates to achieve a newer Angular version.
+    Approach 2 (from October 2025): This time we started with a simple dumb loop which will indefinitely (with a hardcoded max cap) try to apply requested updates until a successful 'npm install' can be made with all updates. In each iteration, the LLM will analyze the preceding output from the 'npm install' step and make suitable changes to the user-provided updates to achieve a newer Angular version.
 
         Difficulty: During initial implementation, the process gradually traversed back to the original Angular version from which the original project belonged. The issue was that we were feeding wrong error messages from the 'npm install' step to the LLM. LLMs are trained on user data from the internet where people usually try to make their package versions stable by any means. The LLM was doing exactly the same here. The best solution to make the situation stable was simply predicting old versions which definitely had successful npm installs.
 
@@ -109,19 +109,3 @@ Now that errors come as structured data, we wrote simple logic to read them dire
 - 📊 **Scalability**: The more iterations needed, the more time/token we save
 
 ---
-
-
-========================================================================
-========================================================================
-========================================================================
-========================================================================
-========================================================================
-========================================================================
-========================================================================
-========================================================================
-========================================================================
-========================================================================
-========================================================================
-========================================================================
-Current Status, Dec 2025
-[ADD HOW FALACY OF RANDOMNESS IN LLM IS AFFCTING US]
