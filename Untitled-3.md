@@ -37,15 +37,6 @@ Apart from this, we have feed readme metadata of npm packages involved in each i
 
 ---
 
-## 📊 Current Status
-
-NgPlusPlus currently resolves installation errors and suggests suitable package versions to achieve the requested Angular upgrade in user-facing Angular applications. With the Arborist integration, the process is now a bit faster than before and more reliable due to structured error handling and elimination of fragile text parsing. However, in its current implementation the tool sometimes-
-
-- Fails to suggest suitable packages and suitable versions to break certain complex conflicting error scenarios, mostly because the LLM encounters situations where prompts provided by NgPlusPlus become conflicting to follow in such complex scenarios. Further evaluation and testing is needed to overcome such cases in enterprise `Library` projects like Hyland UI
-- Attempts to upgrade beyond the requested Angular version, which can lead to a back-and-forth version loop for certain packages toward the end of the process.
-
----
-
 ## 😓 Major Pain Points
 
 ### ⏰ Trial runs are very time consuming
@@ -121,3 +112,12 @@ Now that errors come as structured data, we wrote simple logic to read them dire
 - 💰 **Cost Savings**: 500-1000 tokens saved per iteration. Resulting cleaner contexrt window
 - ✅ **Reliability**: Eliminated LLM hallucination risk in error interpretation (now 100% accurate)
 - 📊 **Scalability**: The more iterations needed, the more time/token we save
+
+---
+
+## 📊 Latest Status
+
+NgPlusPlus currently resolves installation errors and suggests suitable package versions to achieve the requested Angular upgrade in user-facing Angular applications. With the Arborist integration, the process is now a bit faster than before and more reliable due to structured error handling and elimination of fragile text parsing. However, in its current implementation the tool sometimes-
+
+- Fails to suggest suitable packages and suitable versions to break certain complex conflicting error scenarios, mostly because the LLM encounters situations where prompts provided by NgPlusPlus become conflicting to follow in such complex scenarios. Further evaluation and testing is needed to overcome such cases in enterprise `Library` projects like Hyland UI
+- Attempts to upgrade beyond the requested Angular version, which can lead to a back-and-forth version loop for certain packages toward the end of the process.
