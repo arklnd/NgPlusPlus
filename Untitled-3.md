@@ -39,7 +39,10 @@ Apart from this, we have feed readme metadata of npm packages involved in each i
 
 ## 📊 Current Status
 
-The MCP server currently resolves installation errors and suggests suitable package versions to achieve the requested Angular upgrade. With the Arborist integration, the process is now significantly faster (30-40% speed improvement) and more reliable due to structured error handling and elimination of fragile text parsing. However, in its current implementation, the tool sometimes attempts to upgrade beyond the requested Angular version, which can lead to a back-and-forth version loop for certain packages toward the end of the process.
+NgPlusPlus currently resolves installation errors and suggests suitable package versions to achieve the requested Angular upgrade. With the Arborist integration, the process is now a bit faster then before and more reliable due to structured error handling and elimination of fragile text parsing. However, in its current implementation the tool sometimes-
+
+- 
+- Attempts to upgrade beyond the requested Angular version, which can lead to a back-and-forth version loop for certain packages toward the end of the process.
 
 ---
 
