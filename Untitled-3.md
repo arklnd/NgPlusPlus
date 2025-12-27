@@ -1,46 +1,62 @@
-Tech Stack: MCP Project is being created with TypeScript/Node.js. The reason behind this choice is that ecosystem-related benefits can be leveraged.
+# NgPlusPlus MCP Project Documentation
 
-Codebase Setup: Since Node.js comes as a bare programming language without any framework, we have created a complete setup for transpiling TypeScript to JavaScript, unit testing, debugging test cases with VS Code, and a GitHub pipeline to run test cases autonomously on different machines while keeping the development machine free to work on other features and bugs.
+## Project Overview
 
-Repo URL: arklnd/NgPlusPlus (https://github.com/arklnd/NgPlusPlus)
+### Tech Stack
+MCP Project is being created with TypeScript/Node.js. The reason behind this choice is that ecosystem-related benefits can be leveraged.
 
+### Codebase Setup
+Since Node.js comes as a bare programming language without any framework, we have created a complete setup for transpiling TypeScript to JavaScript, unit testing, debugging test cases with VS Code, and a GitHub pipeline to run test cases autonomously on different machines while keeping the development machine free to work on other features and bugs.
 
-
-Solution:
-
-After getting the set of package updates user want to apply,
-
-    Approach 1 (till September 2025): We tried to analyze the whole dependency tree by ourselves purely on a mechanical basis. The plan was that at any point in our implementation journey, if a step was not feasible to implement mechanically by any means, we would hand over the processing to the LLM. 
-
-        Difficulty: The core difficulty we faced with this approach is that traversing the dependency tree algorithmically is definitely possible but extremely complex to implement. Finding the suitable point to involve the LLM in place of a deterministic step is hard, which was essentially prolonging our implementation. Considering the remaining time in 2025, we ditched this approach.
-
-    Approach 2 (from October 2025): This time we started with a simple dumb loop which will indefinitely (with a hardcoded max cap) try to apply requested updates until a successful 'npm install' can be made with all updates. In each iteration, the LLM will analyze the preceding output from the 'npm install' step and make suitable changes to the user-provided updates to achieve a newer Angular version.
-
-        Difficulty: During initial implementation, the process gradually traversed back to the original Angular version from which the original project belonged. The issue was that we were feeding wrong error messages from the 'npm install' step to the LLM. LLMs are trained on user data from the internet where people usually try to make their package versions stable by any means. The LLM was doing exactly the same here. The best solution to make the situation stable was simply predicting old versions which definitely had successful npm installs.
-
-        Solution: To overcome this issue, we broke the prediction step into two parts. The 1st part analyzes the error message and generates a JSON describing different packages involved in the installation error with a ranking of them that denotes which dependency package has higher weightage to resolve the situation. We added a hard constraint in the prompt for the 2nd step that the LLM should only provide versions greater than or equal to the original version currently installed. This way, the LLM was forced to only think in the forward direction.
-
-        Further Enhancement: Apart from this, we have feed readme metadata of npm packages involved in each iteration of conflict resolution, to a third LLM step (upgrade suggestions provided by the 2nd step of earlier discussed solution) to rectify rank and upgrade suggestion towards a more accurate data driven decision. Obviously, there is more room to integrate other package meta data to the processes.
- 
-
-Current status: The MCP server currently resolves installation errors and suggests suitable package versions to achieve the requested Angular upgrade. With the Arborist integration, the process is now significantly faster (30-40% speed improvement) and more reliable due to structured error handling and elimination of fragile text parsing. However, in its current implementation, the tool sometimes attempts to upgrade beyond the requested Angular version, which can lead to a back-and-forth version loop for certain packages toward the end of the process.
-
-
-
-Major pain points: 
-
-    Trial runs are very time consuming: To have a meaningful outcome, we must run the test for at least 50+ iterations. We have 2-3 LLM invocations in each iteration, and each LLM invocation adds delay in each iteration when we already have a significant delay to run 'npm install' in the first step. Thus, a 50+ iteration trial easily takes 1h+. Debugging such a process with prolonged sessions is difficult, so analyzing logs is the only way, which is also a cumbersome process to analyze a log file of 5000+ lines.
-
-    LLM gives lots of surprises: As LLMs are non-deterministic, they usually come with new predictions which trigger different edge cases in our codebase, forcing developers to work on them first instead of on core logic.
-
-    Inconsistent Metadata: npm packages often doesn't follow standard way to orchestrate metadata about it. For example in npm package's has a readme field present in package.json, instead of here, owners often put their readme data in hosting platform provided placeholder/homepage, (as github redame, or npmjs.com provided readme placeholder)
-
-
-
+### Repository
+**Repo URL:** arklnd/NgPlusPlus (https://github.com/arklnd/NgPlusPlus)
 
 ---
 
-## 🚀 Major Breakthrough: December 2025 System Upgrade
+## Solution
+
+After getting the set of package updates user want to apply,
+
+### Approach 1 (till September 2025)
+We tried to analyze the whole dependency tree by ourselves purely on a mechanical basis. The plan was that at any point in our implementation journey, if a step was not feasible to implement mechanically by any means, we would hand over the processing to the LLM.
+
+#### Difficulty
+The core difficulty we faced with this approach is that traversing the dependency tree algorithmically is definitely possible but extremely complex to implement. Finding the suitable point to involve the LLM in place of a deterministic step is hard, which was essentially prolonging our implementation. Considering the remaining time in 2025, we ditched this approach.
+
+### Approach 2 (from October 2025)
+This time we started with a simple dumb loop which will indefinitely (with a hardcoded max cap) try to apply requested updates until a successful 'npm install' can be made with all updates. In each iteration, the LLM will analyze the preceding output from the 'npm install' step and make suitable changes to the user-provided updates to achieve a newer Angular version.
+
+#### Difficulty
+During initial implementation, the process gradually traversed back to the original Angular version from which the original project belonged. The issue was that we were feeding wrong error messages from the 'npm install' step to the LLM. LLMs are trained on user data from the internet where people usually try to make their package versions stable by any means. The LLM was doing exactly the same here. The best solution to make the situation stable was simply predicting old versions which definitely had successful npm installs.
+
+#### Solution
+To overcome this issue, we broke the prediction step into two parts. The 1st part analyzes the error message and generates a JSON describing different packages involved in the installation error with a ranking of them that denotes which dependency package has higher weightage to resolve the situation. We added a hard constraint in the prompt for the 2nd step that the LLM should only provide versions greater than or equal to the original version currently installed. This way, the LLM was forced to only think in the forward direction.
+
+#### Further Enhancement
+Apart from this, we have feed readme metadata of npm packages involved in each iteration of conflict resolution, to a third LLM step (upgrade suggestions provided by the 2nd step of earlier discussed solution) to rectify rank and upgrade suggestion towards a more accurate data driven decision. Obviously, there is more room to integrate other package meta data to the processes.
+
+---
+
+## Current Status
+
+The MCP server currently resolves installation errors and suggests suitable package versions to achieve the requested Angular upgrade. With the Arborist integration, the process is now significantly faster (30-40% speed improvement) and more reliable due to structured error handling and elimination of fragile text parsing. However, in its current implementation, the tool sometimes attempts to upgrade beyond the requested Angular version, which can lead to a back-and-forth version loop for certain packages toward the end of the process.
+
+---
+
+## Major Pain Points
+
+### Trial runs are very time consuming
+To have a meaningful outcome, we must run the test for at least 50+ iterations. We have 2-3 LLM invocations in each iteration, and each LLM invocation adds delay in each iteration when we already have a significant delay to run 'npm install' in the first step. Thus, a 50+ iteration trial easily takes 1h+. Debugging such a process with prolonged sessions is difficult, so analyzing logs is the only way, which is also a cumbersome process to analyze a log file of 5000+ lines.
+
+### LLM gives lots of surprises
+As LLMs are non-deterministic, they usually come with new predictions which trigger different edge cases in our codebase, forcing developers to work on them first instead of on core logic.
+
+### Inconsistent Metadata
+npm packages often doesn't follow standard way to orchestrate metadata about it. For example in npm package's has a readme field present in package.json, instead of here, owners often put their readme data in hosting platform provided placeholder/homepage, (as github redame, or npmjs.com provided readme placeholder)
+
+---
+
+## 🚀 Major Improvement in December 2025
 
 ### Executive Summary - What Changed & Why It Matters
 
@@ -70,8 +86,6 @@ Switched to npm's official "universal translator" (Arborist) that automatically 
 - **Fewer bugs**: Official library is tested by millions of npm users daily
 - **Consistent information feeded to next LLM step.
 
----
-
 #### 2️⃣ **Made Error Messages Structured & Machine-Readable** _(Dec 16)_
 
 **The Challenge in Simple Terms:**  
@@ -85,10 +99,7 @@ Changed how we run installations so errors come as structured data (like filling
 - **Faster troubleshooting**: No more misreading error messages
 - **Better logging**: Debug issues faster with clear, categorized data
 
----
-
-#### 3️⃣ **Eliminated Unnecessary LLM Calls** _(Dec 16)_ 
-### 💡 THE BIG WIN
+#### 3️⃣ **Eliminated Unnecessary LLM Calls** _(Dec 16)_ 💡 THE BIG WIN
 
 **The Challenge in Simple Terms:**  
 We were asking LLM to do something humans could do deterministically - like using a calculator to add 2+2 instead of just doing the math. Each unnecessary LLM call added 5-15 seconds delay and cost tokens.
@@ -107,5 +118,3 @@ Now that errors come as structured data, we wrote simple logic to read them dire
 - 💰 **Cost Savings**: 500-1000 tokens saved per iteration. Resulting cleaner contexrt window
 - ✅ **Reliability**: Eliminated LLM hallucination risk in error interpretation (now 100% accurate)
 - 📊 **Scalability**: The more iterations needed, the more time/token we save
-
----
