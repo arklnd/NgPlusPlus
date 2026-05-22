@@ -1,13 +1,12 @@
 import Database from 'better-sqlite3';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
 import { getLogger, ChildLogger } from '@U/logger.utils';
 
 /**
  * Cache configuration interface
  */
 export interface CacheConfig {
-    /** Relative (to this file) or absolute directory where the DB file is stored */
+    /** Absolute directory where the DB file is stored */
     directory: string;
     /** Database filename */
     fileName: string;
@@ -20,7 +19,7 @@ export interface CacheConfig {
 }
 
 const DEFAULT_CONFIG: CacheConfig = {
-    directory: '../../',
+    directory: process.cwd(),
     fileName: 'package-cache.db',
     defaultTtlMinutes: 6000,
     enabled: true,
@@ -71,11 +70,7 @@ export class Cache {
         if (this.db && this.initialized) return this.db;
 
         try {
-            const __filename = fileURLToPath(import.meta.url);
-            const __dirname = path.dirname(__filename);
-            const dbPath = path.isAbsolute(this.config.directory)
-                ? path.join(this.config.directory, this.config.fileName)
-                : path.join(__dirname, this.config.directory, this.config.fileName);
+            const dbPath = path.join(this.config.directory, this.config.fileName);
 
             this.db = new Database(dbPath);
             this.db.exec(`
@@ -118,7 +113,7 @@ export class Cache {
                 package: key,
                 error: error instanceof Error ? error.message : String(error),
             });
-            return null; // Non-fatal
+            return null;
         }
     }
 

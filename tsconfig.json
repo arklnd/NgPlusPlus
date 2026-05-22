@@ -1,8 +1,8 @@
 {
     "compilerOptions": {
         "target": "ES2022",
-        "module": "ESNext",
-        "moduleResolution": "node",
+        "module": "ES2022",
+        "moduleResolution": "bundler",
         "allowSyntheticDefaultImports": true,
         "esModuleInterop": true,
         "noEmit": true,
@@ -11,41 +11,22 @@
         "forceConsistentCasingInFileNames": true,
         "baseUrl": ".",
         "paths": {
-            "@/*": [
-                "src/*"
-            ],
-            "@T/*": [
-                "src/tools/*"
-            ],
-            "@R/*": [
-                "src/resources/*"
-            ],
-            "@P/*": [
-                "src/prompts/*"
-            ],
-            "@U/*": [
-                "src/utils/*"
-            ],
-            "@S/*": [
-                "src/services/*"
-            ],
-            "@E/*": [
-                "src/exceptions/*"
-            ],
-            "@I/*": [
-                "src/interfaces/*"
-            ],
-            "@G/*": [
-                "src/graph/*"
-            ]
+            "@/*": ["src/*"],
+            "@G/*": ["src/graph/*"],
+            "@U/*": ["src/utils/*"],
+            "@S/*": ["src/services/*"],
+            "@E/*": ["src/exceptions/*"],
+            "@I/*": ["src/interfaces/*"]
         }
     },
-    "ts-node": {
-        "esm": true,
-        "experimentalSpecifierResolution": "node"
-    },
     "include": [
-        "src/**/*",
+        "src/**/*"
+    ],
+    "exclude": [
+        "dist",
+        "node_modules",
+        "**/*.test.ts",
+        "**/*.spec.ts",
         "test/**/*"
     ]
 }

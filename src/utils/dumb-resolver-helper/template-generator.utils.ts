@@ -1,13 +1,21 @@
 import Handlebars from 'handlebars';
-import * as fs from 'fs';
-import * as path from 'path';
-import { ResolverAnalysis } from './dependency-analyzer.utils';
-import { fileURLToPath } from 'url';
 import { ConflictAnalysis, ReasoningRecording, StrategicResponse } from '@I/index';
 
-// ES module compatibility
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Template imports - these are inlined as strings at build time by esbuild hbs-loader plugin.
+// At typecheck time TypeScript doesn't know about .hbs modules, so we use require() which
+// esbuild will resolve at bundle time, and for tsc --noEmit we declare the module below.
+//
+// When bundled by esbuild, each .hbs file is converted to: export default "<template string>"
+// At dev time (tsx), we fall back to fs.readFileSync.
+
+import systemPromptTpl from '../../templates/system-prompt.hbs';
+import strategicPromptTpl from '../../templates/strategic-prompt.hbs';
+import dependencyParsingPromptTpl from '../../templates/dependency-parsing-prompt.hbs';
+import packageRankingPromptTpl from '../../templates/package-ranking-prompt.hbs';
+import aiResponseFormatErrorTpl from '../../templates/ai-response-format-error.hbs';
+import packageValidationErrorTpl from '../../templates/package-validation-error.hbs';
+import noNewSuggestionErrorTpl from '../../templates/no-new-suggestion-error.hbs';
+import strategicResponseRectificationTpl from '../../templates/strategic-response-rectification-prompt.hbs';
 
 /**
  * Lazy-loaded compiled templates cache
@@ -15,10 +23,23 @@ const __dirname = path.dirname(__filename);
 const templateCache = new Map<string, HandlebarsTemplateDelegate>();
 
 /**
+ * Template source map - maps template name to raw content (inlined by esbuild)
+ */
+const TEMPLATE_SOURCES: Record<string, string> = {
+    'system-prompt': systemPromptTpl,
+    'strategic-prompt': strategicPromptTpl,
+    'dependency-parsing-prompt': dependencyParsingPromptTpl,
+    'package-ranking-prompt': packageRankingPromptTpl,
+    'ai-response-format-error': aiResponseFormatErrorTpl,
+    'package-validation-error': packageValidationErrorTpl,
+    'no-new-suggestion-error': noNewSuggestionErrorTpl,
+    'strategic-response-rectification-prompt': strategicResponseRectificationTpl,
+};
+
+/**
  * Register custom Handlebars helpers
  */
 function registerHelpers() {
-    // Register json helper for stringifying objects
     Handlebars.registerHelper('json', function(context) {
         return JSON.stringify(context, null, 2);
     });
@@ -28,17 +49,19 @@ function registerHelpers() {
 registerHelpers();
 
 /**
- * Load and compile a Handlebars template
+ * Load and compile a Handlebars template from inlined source
  */
 function loadTemplate(templateName: string): HandlebarsTemplateDelegate {
     if (templateCache.has(templateName)) {
         return templateCache.get(templateName)!;
     }
 
-    const templatePath = path.join(__dirname, '../../templates', `${templateName}.hbs`);
-    const templateContent = fs.readFileSync(templatePath, 'utf-8');
-    const compiledTemplate = Handlebars.compile(templateContent);
+    const templateContent = TEMPLATE_SOURCES[templateName];
+    if (!templateContent) {
+        throw new Error(`Template not found: ${templateName}. Available: ${Object.keys(TEMPLATE_SOURCES).join(', ')}`);
+    }
 
+    const compiledTemplate = Handlebars.compile(templateContent);
     templateCache.set(templateName, compiledTemplate);
     return compiledTemplate;
 }
@@ -57,7 +80,6 @@ export function createEnhancedSystemPrompt(): string {
 export function createStrategicPrompt(reasoningRecording: ReasoningRecording, errorOutput: string, analysis: ConflictAnalysis, targetPackages: string, attempt: number, maxAttempts: number): string {
     const template = loadTemplate('strategic-prompt');
 
-    // Prepare template data
     const allPackagesMap = analysis.allPackagesMentionedInError.reduce((acc, pkg) => {
         acc[pkg.name] = pkg;
         return acc;
@@ -97,17 +119,15 @@ export function createPackageValidationErrorMessage(errorMessage: string, additi
  */
 export function createDependencyParsingPrompt(installError: string): string {
     const template = loadTemplate('dependency-parsing-prompt');
-    
-    // Parse the JSON string to get structured error data
+
     let errorObject;
     try {
         errorObject = JSON.parse(installError);
-    } catch (error) {
-        // If parsing fails, treat it as a text error message (backward compatibility)
+    } catch {
         errorObject = null;
     }
-    
-    return template({ 
+
+    return template({
         installError,
         errorObject,
         hasStructuredError: errorObject !== null
@@ -138,7 +158,6 @@ export function createNoNewSuggestionErrorRetryMessage(errorMessage?: string): s
 export function createStrategicResponseRectificationPrompt(strategicResponse: StrategicResponse, conflictAnalysis: ConflictAnalysis, suggestedAndRequiredVersions: Record<string, { suggestedVersion: string; requirements: Array<{ requiredVersion: string; requiredByDependentPack: string }> }>): string {
     const template = loadTemplate('strategic-response-rectification-prompt');
 
-    // Prepare template data
     const allPackagesMap = conflictAnalysis.allPackagesMentionedInError.reduce((acc, pkg) => {
         acc[pkg.name] = pkg;
         return acc;

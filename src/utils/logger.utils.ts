@@ -1,59 +1,77 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
 import { LoggerConfig, LogLevel } from '@I/index';
 
 /**
- * Simple file-based logger utility for NgPlusPlus MCP
+ * Logger utility for NgPlusPlus VS Code extension.
+ * 
+ * Supports two output backends:
+ * 1. VS Code OutputChannel (primary in extension mode)
+ * 2. File-based logging (fallback / additional persistence)
+ * 
+ * Console logging is disabled by default in extension mode since
+ * VS Code extensions should use OutputChannel instead.
  */
+
+/**
+ * Abstraction for VS Code OutputChannel to avoid direct vscode import
+ * in this utility file (vscode module is only available at runtime).
+ */
+export interface OutputChannelLike {
+    appendLine(value: string): void;
+    show(preserveFocus?: boolean): void;
+}
+
 export class Logger {
     private config: LoggerConfig;
     private logFilePath: string;
+    private outputChannel: OutputChannelLike | null = null;
 
     constructor(config: Partial<LoggerConfig> = {}) {
         this.config = {
             level: LogLevel.TRACE,
-            enableFileLogging: true,
+            enableFileLogging: false,
             logDirectory: './logs',
             logFileName: (() => {
                 const now = new Date();
-                const year = now.toLocaleString('en-IN', {timeZone: 'Asia/Kolkata', year: 'numeric'});
-                const month = now.toLocaleString('en-IN', {timeZone: 'Asia/Kolkata', month: '2-digit'});
-                const day = now.toLocaleString('en-IN', {timeZone: 'Asia/Kolkata', day: '2-digit'});
-                const hour = now.toLocaleString('en-IN', {timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false});
-                const minute = now.toLocaleString('en-IN', {timeZone: 'Asia/Kolkata', minute: '2-digit'});
-                const second = now.toLocaleString('en-IN', {timeZone: 'Asia/Kolkata', second: '2-digit'});
-                return `ngplusplus-${year}-${month}-${day}_${hour}-${minute}-${second}.log`;
+                const pad = (n: number) => String(n).padStart(2, '0');
+                return `ngplusplus-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.log`;
             })(),
             maxFileSize: 10 * 1024 * 1024, // 10MB
             maxFiles: 5,
-            enableConsoleLogging: true,
+            enableConsoleLogging: false,
             ...config,
         };
 
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
-        this.config.logDirectory = path.join(__dirname, this.config.logDirectory);
         this.logFilePath = path.join(this.config.logDirectory, this.config.logFileName!);
-        console.log(`Logger initialized. Log file: ${this.logFilePath}`);
-        this.ensureLogDirectory();
+
+        if (this.config.enableFileLogging) {
+            this.ensureLogDirectory();
+        }
     }
 
     /**
-     * Ensure log directory exists
+     * Attach a VS Code OutputChannel for logging
      */
+    setOutputChannel(channel: OutputChannelLike): void {
+        this.outputChannel = channel;
+    }
+
+    /**
+     * Get attached output channel
+     */
+    getOutputChannel(): OutputChannelLike | null {
+        return this.outputChannel;
+    }
+
     private ensureLogDirectory(): void {
         if (this.config.enableFileLogging && !fs.existsSync(this.config.logDirectory)) {
             fs.mkdirSync(this.config.logDirectory, { recursive: true });
         }
     }
 
-    /**
-     * Check if log file needs rotation based on size
-     */
     private checkAndRotateLog(): void {
         if (!this.config.enableFileLogging) return;
-
         try {
             if (fs.existsSync(this.logFilePath)) {
                 const stats = fs.statSync(this.logFilePath);
@@ -61,27 +79,22 @@ export class Logger {
                     this.rotateLogFile();
                 }
             }
-        } catch (error) {
+        } catch {
             // If we can't check the file, just continue
         }
     }
 
-    /**
-     * Rotate log files when they get too large
-     */
     private rotateLogFile(): void {
         try {
             const baseName = path.basename(this.config.logFileName!, '.log');
             const extension = path.extname(this.config.logFileName!);
 
-            // Move existing log files
             for (let i = this.config.maxFiles! - 1; i >= 1; i--) {
                 const oldFile = path.join(this.config.logDirectory, `${baseName}.${i}${extension}`);
                 const newFile = path.join(this.config.logDirectory, `${baseName}.${i + 1}${extension}`);
 
                 if (fs.existsSync(oldFile)) {
                     if (i === this.config.maxFiles! - 1) {
-                        // Delete the oldest file
                         fs.unlinkSync(oldFile);
                     } else {
                         fs.renameSync(oldFile, newFile);
@@ -89,176 +102,105 @@ export class Logger {
                 }
             }
 
-            // Move current log file to .1
             const rotatedFile = path.join(this.config.logDirectory, `${baseName}.1${extension}`);
             fs.renameSync(this.logFilePath, rotatedFile);
-        } catch (error) {
+        } catch {
             // If rotation fails, just continue
         }
     }
 
-    /**
-     * Format log entry
-     */
     private formatLogEntry(level: string, message: string, context?: string, metadata?: Record<string, any>): string {
-        const timestamp = new Date()
-            .toLocaleString('en-IN', {
-                timeZone: 'Asia/Kolkata',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false,
-            })
-            .replace(', ', '_');
+        const timestamp = new Date().toISOString();
         const contextStr = context ? ` [${context}]` : '';
-        const metadataStr = metadata ? `${Object.keys(metadata).length > 200 ? JSON.stringify(metadata, null, 1) : JSON.stringify(metadata)}` : '';
+        const metadataStr = metadata
+            ? ` ${Object.keys(metadata).length > 200 ? JSON.stringify(metadata, null, 1) : JSON.stringify(metadata)}`
+            : '';
 
-        return `${timestamp} ${level.toUpperCase()} ${contextStr} ${message}${metadataStr}`;
+        return `${timestamp} ${level.toUpperCase()}${contextStr} ${message}${metadataStr}`;
     }
 
-    /**
-     * Write log entry to file
-     */
     private writeToFile(logEntry: string): void {
         if (!this.config.enableFileLogging) return;
-
         try {
             this.checkAndRotateLog();
             fs.appendFileSync(this.logFilePath, logEntry + '\n', 'utf8');
-        } catch (error) {
-            // If file logging fails, output to console error as fallback
-            console.error('Failed to write to log file:', error);
+        } catch {
+            // If file logging fails, swallow silently in extension context
         }
     }
 
-    /**
-     * Write log entry to console
-     */
+    private writeToOutputChannel(level: string, message: string, context?: string, metadata?: Record<string, any>): void {
+        if (!this.outputChannel) return;
+        const entry = this.formatLogEntry(level, message, context, metadata);
+        this.outputChannel.appendLine(entry);
+    }
+
     private writeToConsole(level: string, message: string, context?: string, metadata?: Record<string, any>): void {
         if (!this.config.enableConsoleLogging) return;
 
-        const redBright = '\x1b[91m';
-        const yellowBright = '\x1b[93m';
-        const cyanBright = '\x1b[96m';
-        const blueBright = '\x1b[94m';
-        const magentaBright = '\x1b[95m';
-        const gray = '\x1b[90m';
-        const reset = '\x1b[0m';
-
-        const emoji = this.getEmoji(level);
-        const contextStr = context ? `${magentaBright}[${context}]${reset}` : '';
-        const metadataStr = metadata ? `${Object.keys(metadata).length > 200 ? JSON.stringify(metadata, null, 4) : JSON.stringify(metadata)}` : '';
+        const contextStr = context ? `[${context}]` : '';
+        const metadataStr = metadata
+            ? ` ${JSON.stringify(metadata)}`
+            : '';
 
         switch (level.toLowerCase()) {
             case 'error':
-                console.error(`${contextStr} ${redBright}${emoji} ${message}${reset}${metadataStr}`);
+                console.error(`${contextStr} ${message}${metadataStr}`);
                 break;
             case 'warn':
-                console.warn(`${contextStr} ${yellowBright}${emoji} ${message}${reset}${metadataStr}`);
+                console.warn(`${contextStr} ${message}${metadataStr}`);
                 break;
             case 'debug':
             case 'trace':
-                console.debug(`${contextStr} ${cyanBright}${emoji} ${message}${reset}${metadataStr}`);
+                console.debug(`${contextStr} ${message}${metadataStr}`);
                 break;
             default:
-                console.log(`${contextStr} ${blueBright}${emoji} ${message}${reset}${metadataStr}`);
+                console.log(`${contextStr} ${message}${metadataStr}`);
         }
     }
 
-    /**
-     * Get emoji for log level
-     */
-    private getEmoji(level: string): string {
-        switch (level.toLowerCase()) {
-            case 'error':
-                return '💥';
-            case 'warn':
-                return '⚠️';
-            case 'info':
-                return 'ℹ️';
-            case 'debug':
-                return '🐛';
-            case 'trace':
-                return '🔍';
-            default:
-                return '';
-        }
-    }
-
-    /**
-     * Generic log method
-     */
     private log(level: LogLevel, levelName: string, message: string, context?: string, metadata?: Record<string, any>): void {
         if (level > this.config.level) return;
 
         const logEntry = this.formatLogEntry(levelName, message, context, metadata);
 
         this.writeToFile(logEntry);
+        this.writeToOutputChannel(levelName, message, context, metadata);
         this.writeToConsole(levelName, message, context, metadata);
     }
 
-    /**
-     * Log error message
-     */
     error(message: string, context?: string, metadata?: Record<string, any>): void {
         this.log(LogLevel.ERROR, 'ERROR', message, context, metadata);
     }
 
-    /**
-     * Log warning message
-     */
     warn(message: string, context?: string, metadata?: Record<string, any>): void {
         this.log(LogLevel.WARN, 'WARN', message, context, metadata);
     }
 
-    /**
-     * Log info message
-     */
     info(message: string, context?: string, metadata?: Record<string, any>): void {
         this.log(LogLevel.INFO, 'INFO', message, context, metadata);
     }
 
-    /**
-     * Log debug message
-     */
     debug(message: string, context?: string, metadata?: Record<string, any>): void {
         this.log(LogLevel.DEBUG, 'DEBUG', message, context, metadata);
     }
 
-    /**
-     * Log trace message
-     */
     trace(message: string, context?: string, metadata?: Record<string, any>): void {
         this.log(LogLevel.TRACE, 'TRACE', message, context, metadata);
     }
 
-    /**
-     * Create a child logger with a specific context
-     */
     child(context: string): ChildLogger {
         return new ChildLogger(this, context);
     }
 
-    /**
-     * Set log level
-     */
     setLevel(level: LogLevel): void {
         this.config.level = level;
     }
 
-    /**
-     * Get current log file path
-     */
     getLogFilePath(): string {
         return this.logFilePath;
     }
 
-    /**
-     * Get logger configuration
-     */
     getConfig(): LoggerConfig {
         return { ...this.config };
     }
