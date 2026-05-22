@@ -1,6 +1,8 @@
 import { expect } from 'chai';
 import { getRankingForPackage } from '@U/dumb-resolver-helper/conflict-analysis.utils';
 
+const emptyDependentsMap: Record<string, Array<{ name: string; version: string }>> = {};
+
 describe('getRankingForPackage', function () {
     this.timeout(15000);
 
@@ -10,7 +12,7 @@ describe('getRankingForPackage', function () {
         });
 
         it('should return null for empty package name', async function () {
-            const result = await getRankingForPackage('');
+            const result = await getRankingForPackage('', emptyDependentsMap);
             expect(result).to.be.null;
         });
     });
@@ -18,7 +20,7 @@ describe('getRankingForPackage', function () {
     describe('ttt', function () {
         it('should handle package ranking with cache', async function () {
             // Test with a well-known package
-            const result = await getRankingForPackage('@storybook/angular');
+            const result = await getRankingForPackage('@storybook/angular', emptyDependentsMap);
             
             if (result !== null) {
                 expect(result).to.be.an('object');
@@ -33,7 +35,7 @@ describe('getRankingForPackage', function () {
     describe('Cache Integration', function () {
         it('should handle package ranking with cache', async function () {
             // Test with a well-known package
-            const result = await getRankingForPackage('react');
+            const result = await getRankingForPackage('react', emptyDependentsMap);
             
             if (result !== null) {
                 expect(result).to.be.an('object');
@@ -49,10 +51,10 @@ describe('getRankingForPackage', function () {
             const packageName = 'lodash';
             
             // First call
-            const result1 = await getRankingForPackage(packageName);
+            const result1 = await getRankingForPackage(packageName, emptyDependentsMap);
             
             // Second call (should use cache if first was successful)
-            const result2 = await getRankingForPackage(packageName);
+            const result2 = await getRankingForPackage(packageName, emptyDependentsMap);
             
             // Both should return the same type
             if (result1 !== null && result2 !== null) {
@@ -71,7 +73,7 @@ describe('getRankingForPackage', function () {
             ];
 
             for (const packageName of invalidNames) {
-                const result = await getRankingForPackage(packageName);
+                const result = await getRankingForPackage(packageName, emptyDependentsMap);
                 
                 // Should either return null or valid ranking object
                 if (result !== null) {
@@ -89,7 +91,7 @@ describe('getRankingForPackage', function () {
             
             for (const packageName of edgeCases) {
                 expect(async () => {
-                    await getRankingForPackage(packageName);
+                    await getRankingForPackage(packageName, emptyDependentsMap);
                 }).to.not.throw();
             }
         });

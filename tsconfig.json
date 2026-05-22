@@ -34,6 +34,9 @@
             ],
             "@I/*": [
                 "src/interfaces/*"
+            ],
+            "@G/*": [
+                "src/graph/*"
             ]
         }
     },
@@ -44,5 +47,5 @@
     "include": [
         "src/**/*",
         "test/**/*"
-, "package-lock-parser.utils.ts"    ]
+    ]
 }

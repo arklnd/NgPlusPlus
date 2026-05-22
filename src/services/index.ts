@@ -1,1 +1,1 @@
-export * from '@S/openai.service';
+export * from '@S/llm.service';

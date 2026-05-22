@@ -1,7 +1,7 @@
 import { getPackageData } from '@U/package-registry.utils';
 import { getCleanVersion } from '@U/version.utils';
 import { ConflictDetail, ERESOLVErrorInfo, getLogger, getPackageDependents, RequiredBy } from '@U/index';
-import { getOpenAIService } from '@S/openai.service';
+import { invokeWithPrompt } from '@S/llm.service';
 import { ConflictAnalysis, PackageVersionRankRegistryData, RegistryData } from '@I/index';
 import { createDependencyParsingPrompt, createPackageRankingPrompt } from './template-generator.utils';
 import { getCachedPackageData, setCachedPackageData } from '@U/cache.utils';
@@ -153,7 +153,6 @@ export async function parseInstallErrorToConflictAnalysisStatically(installError
  */
 export async function parseInstallErrorToConflictAnalysis(installError: string): Promise<ConflictAnalysis> {
     const logger = getLogger().child('conflict-analysis');
-    const openai = getOpenAIService();
 
     logger.info('Parsing install error to generate conflict analysis');
 
@@ -161,7 +160,7 @@ export async function parseInstallErrorToConflictAnalysis(installError: string):
     const parsingPrompt = createDependencyParsingPrompt(installError);
 
     // Analyze the error output for constraints and blockers
-    let parsingResponse = await openai.generateText(parsingPrompt);
+    let parsingResponse = await invokeWithPrompt(parsingPrompt);
     parsingResponse = parsingResponse.trim();
     let jsonString = parsingResponse.trim();
 
@@ -389,13 +388,11 @@ export async function getRankingForPackage(packageName: string, dependentsMap: R
 
         const readme: RegistryData | null = packageName.trim() !== 'root project' ? await getPackageData(packageName, ['readme']) : null;
 
-        const openai = getOpenAIService(); // vscode extension hack আর কাজ করছে না
-
         // Create ranking prompt for this specific package
         const rankingPrompt = createPackageRankingPrompt(packageName, readme?.readme?.trim() && readme?.readme?.trim().length > 0 ? JSON.stringify(readme?.readme) : undefined, dependentsMap);
 
         // Get AI response for this package
-        let rankingResponse = await openai.generateText(rankingPrompt);
+        let rankingResponse = await invokeWithPrompt(rankingPrompt);
         rankingResponse = rankingResponse.trim();
         let jsonString = rankingResponse.trim();
 

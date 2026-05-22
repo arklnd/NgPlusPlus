@@ -1,12 +1,20 @@
 import { expect } from 'chai';
-import { validatePackageVersionsExist } from '@U/index';
+import { validatePackageVersionsExist, StrategicResponse } from '@U/index';
+
+function makeStrategicResponse(updates: Array<{ name: string; version: string; isDev: boolean }>): StrategicResponse {
+    return {
+        suggestions: updates.map((u) => ({ ...u, reason: '', fromVersion: '' })),
+        analysis: '',
+        reasoning: { updateMade: [] },
+    };
+}
 
 describe('Package Version Validation', () => {
     it('should validate existing package versions', async () => {
-        const plannedUpdates = [
+        const plannedUpdates = makeStrategicResponse([
             { name: 'lodash', version: '4.17.21', isDev: false },
             { name: 'express', version: '4.18.2', isDev: false },
-        ];
+        ]);
 
         const results = await validatePackageVersionsExist(plannedUpdates);
 
@@ -20,10 +28,10 @@ describe('Package Version Validation', () => {
     });
 
     it('should detect non-existing package versions', async () => {
-        const plannedUpdates = [
+        const plannedUpdates = makeStrategicResponse([
             { name: 'lodash', version: '999.999.999', isDev: false },
             { name: 'nonexistent-package-xyz', version: '1.0.0', isDev: false },
-        ];
+        ]);
 
         const results = await validatePackageVersionsExist(plannedUpdates);
 
@@ -39,10 +47,10 @@ describe('Package Version Validation', () => {
     });
 
     it('should handle mixed existing and non-existing versions', async () => {
-        const plannedUpdates = [
+        const plannedUpdates = makeStrategicResponse([
             { name: 'lodash', version: '4.17.21', isDev: false },
             { name: 'express', version: '999.999.999', isDev: false },
-        ];
+        ]);
 
         const results = await validatePackageVersionsExist(plannedUpdates);
 
@@ -55,7 +63,9 @@ describe('Package Version Validation', () => {
     });
 
     it('should handle scoped packages', async () => {
-        const plannedUpdates = [{ name: '@types/node', version: '20.0.0', isDev: true }];
+        const plannedUpdates = makeStrategicResponse([
+            { name: '@types/node', version: '20.0.0', isDev: true },
+        ]);
 
         const results = await validatePackageVersionsExist(plannedUpdates);
 
@@ -66,7 +76,7 @@ describe('Package Version Validation', () => {
     });
 
     it('should handle empty planned updates array', async () => {
-        const plannedUpdates: Array<{ name: string; version: string; isDev: boolean }> = [];
+        const plannedUpdates = makeStrategicResponse([]);
 
         const results = await validatePackageVersionsExist(plannedUpdates);
 

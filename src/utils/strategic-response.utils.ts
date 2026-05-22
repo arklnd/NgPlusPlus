@@ -1,6 +1,6 @@
 import { StrategicResponse, ConflictAnalysis } from '@I/index';
 import { createStrategicResponseRectificationPrompt } from './dumb-resolver-helper';
-import { getOpenAIService } from '@/services/openai.service';
+import { invokeWithPrompt } from '@S/llm.service';
 import { getPackageDependents } from './package-lock-parser.utils';
 import { getPackageVersionData } from './package-registry.utils';
 import { getLogger } from './logger.utils';
@@ -83,10 +83,9 @@ export async function rectifyStrategicResponseWithDependentInfo(strategicRespons
     });
 
     const rectificationPrompt = createStrategicResponseRectificationPrompt(strategicResponse, conflictAnalysis, suggestedAndRequiredVersions);
-    const openai = getOpenAIService();
 
-    logger.info('Calling OpenAI service for response generation');
-    const response = await openai.generateText(rectificationPrompt);
+    logger.info('Calling LLM service for response generation');
+    const response = await invokeWithPrompt(rectificationPrompt);
 
     let jsonString = response.trim();
     const jsonMatch = jsonString.match(JSON_RESPONSE_REGEX);

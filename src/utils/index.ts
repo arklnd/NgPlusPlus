@@ -2,7 +2,6 @@ export * from '@U/package-registry.utils';
 export * from '@U/version.utils';
 export * from '@U/package-json.utils';
 export * from '@U/conflict-resolution.utils';
-export * from '@U/transitive-dependencies.utils';
 export * from '@U/logger.utils';
 export * from '@U/cache.utils';
 export * from '@U/package-lock-parser.utils';

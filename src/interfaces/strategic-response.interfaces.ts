@@ -1,4 +1,4 @@
-import { ReasoningRecording } from "@/utils";
+import { ReasoningRecording } from "@I/conflict-resolution.interfaces";
 
 export interface StrategicSuggestion {
     name: string;
