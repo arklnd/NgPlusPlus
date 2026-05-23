@@ -6,13 +6,12 @@
     "publisher": "arijit-kundu",
     "license": "ISC",
     "author": "Arijit Kundu",
-    "icon": "media/icon.png",
     "repository": {
         "type": "git",
         "url": "https://github.com/ArijitKundu-repo/NgPlusPlus"
     },
     "engines": {
-        "vscode": "^1.95.0"
+        "vscode": "^1.120.0"
     },
     "categories": [
         "Other"
@@ -126,6 +125,7 @@
         "watch": "node esbuild.mjs --watch",
         "lint": "npx tsc --noEmit",
         "package": "npx @vscode/vsce package",
+        "build:vsix": "npm run clean:build && npm run compile && npm run package",
         "clean:build": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true})\"",
         "clean:db": "node -e \"const fs=require('fs'),path=require('path');function d(dir){const f=fs.readdirSync(dir);for(const e of f){const p=path.join(dir,e);fs.statSync(p).isDirectory()?d(p):e.endsWith('.db')&&fs.rmSync(p,{force:true})}}d('.')\"",
         "test": "npx mocha"

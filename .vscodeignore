@@ -1,0 +1,30 @@
+# Source files (compiled output is in dist/)
+src/**
+test/**
+docs/**
+
+# Config & tooling
+.vscode/**
+.github/**
+.gitignore
+.mocharc.json
+.prettierrc
+tsconfig.json
+esbuild.mjs
+
+# Documentation (not needed in extension)
+*.md
+!README.md
+
+# Build artifacts & caches
+.nyc_output/**
+coverage/**
+*.tsbuildinfo
+*.db
+
+# Package manager
+node_modules/**
+package-lock.json
+
+# VSIX files
+*.vsix
