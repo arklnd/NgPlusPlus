@@ -10,6 +10,18 @@
     ],
     "configurations": [
         {
+            "name": "Run Extension",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/dist/**/*.js"
+            ],
+            "preLaunchTask": "npm: watch"
+        },
+        {
             "type": "node",
             "request": "launch",
             "name": "Debug Current Mocha Test (TypeScript)",
