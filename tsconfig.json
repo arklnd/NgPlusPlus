@@ -9,14 +9,13 @@
         "strict": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
-        "baseUrl": ".",
         "paths": {
-            "@/*": ["src/*"],
-            "@G/*": ["src/graph/*"],
-            "@U/*": ["src/utils/*"],
-            "@S/*": ["src/services/*"],
-            "@E/*": ["src/exceptions/*"],
-            "@I/*": ["src/interfaces/*"]
+            "@/*": ["./src/*"],
+            "@G/*": ["./src/graph/*"],
+            "@U/*": ["./src/utils/*"],
+            "@S/*": ["./src/services/*"],
+            "@E/*": ["./src/exceptions/*"],
+            "@I/*": ["./src/interfaces/*"]
         }
     },
     "include": [

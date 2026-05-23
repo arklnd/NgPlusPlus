@@ -80,6 +80,7 @@ const buildOptions = {
     external: [
         'vscode',           // Provided by VS Code runtime
         'better-sqlite3',   // Native C++ addon - cannot be bundled
+        'node-gyp',         // Used by @npmcli/run-script via require.resolve at runtime
     ],
     plugins: [tsconfigPathsPlugin, hbsPlugin],
     logLevel: 'info',
